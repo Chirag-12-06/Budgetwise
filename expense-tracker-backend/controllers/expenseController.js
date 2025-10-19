@@ -1,5 +1,62 @@
+
+export const updateExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const expenseId = Number(id);
+    if (Number.isNaN(expenseId)) {
+      return res.status(400).json({ message: 'Invalid expense id' });
+    }
+
+    const { title, amount, category, date } = req.body;
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (amount !== undefined) {
+      const amt = Number(amount);
+      if (Number.isNaN(amt)) {
+        return res.status(400).json({ message: 'Invalid amount' });
+      }
+      updateData.amount = amt;
+    }
+    if (category) updateData.category = category;
+    if (date) {
+      let dateValue = new Date(date);
+      if (Number.isNaN(dateValue.getTime())) {
+        // try parsing dd-mm-yyyy
+        const parts = String(date).split(/[-/\.]/).map(p => p.trim());
+        if (parts.length === 3) {
+          const [a, b, c] = parts;
+          if (Number(a) > 0 && Number(a) <= 31) {
+            const iso = `${c.padStart(4,'0')}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+            const tryIso = new Date(iso);
+            if (!Number.isNaN(tryIso.getTime())) {
+              dateValue = tryIso;
+            } else {
+              dateValue = new Date();
+            }
+          } else {
+            dateValue = new Date();
+          }
+        } else {
+          dateValue = new Date();
+        }
+      }
+      updateData.createdAt = dateValue;
+    }
+
+    const updated = await prisma.expense.update({
+      where: { id: expenseId },
+      data: updateData
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('updateExpense error:', error && error.stack ? error.stack : error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 import { PrismaClient } from "@prisma/client";
-import fs from 'fs';
 const prisma = new PrismaClient();
 
 export const getExpenses = async (req, res) => {
@@ -57,7 +114,7 @@ export const addExpense = async (req, res) => {
         title,
         amount: amt,
         category,
-        date: dateValue
+        createdAt: dateValue
       }
     });
 
@@ -65,12 +122,6 @@ export const addExpense = async (req, res) => {
   } catch (error) {
     const errMsg = error && error.stack ? error.stack : String(error);
     console.error('addExpense error:', errMsg);
-    try {
-      const logPath = 'server_addExpense_error.log';
-      fs.appendFileSync(logPath, new Date().toISOString() + "\n" + errMsg + "\n----\n");
-    } catch (e) {
-      console.error('Failed writing error log:', e);
-    }
     res.status(500).json({ message: "Server error", error: error && error.message ? error.message : null });
   }
 };

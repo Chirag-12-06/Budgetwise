@@ -1,8 +1,15 @@
 // routes/expenseRoutes.js
 import express from "express";
-import { getExpenses, addExpense, deleteExpense } from "../controllers/expenseController.js";
+import { getExpenses, addExpense, deleteExpense, updateExpense } from "../controllers/expenseController.js";
 
 const router = express.Router();
+
+/**
+ * @route   PUT /api/expenses/:id
+ * @desc    Update an expense by id
+ */
+router.put("/:id", updateExpense);
+
 
 /**
  * @route   GET /api/expenses
