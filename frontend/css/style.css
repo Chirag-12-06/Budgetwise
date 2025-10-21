@@ -474,7 +474,7 @@ dialog {
 }
 
 /*
-Prevent resizing textareas horizontally by default.
+Prevent resizing text areas horizontally by default.
 */
 
 textarea {
@@ -521,7 +521,7 @@ Make sure disabled buttons don't get the pointer cursor.
 /*
 1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
 2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
-   This can trigger a poorly considered lint error in some tools but is included by design.
+   This can trigger a poorly considered lint error in some tools but included by design.
 */
 
 img,
@@ -608,7 +608,7 @@ video {
   --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity, 1));
 }
 
-.input-field:is(.dark *) {
+.input-field{
   --tw-border-opacity: 1;
   border-color: rgb(75 85 99 / var(--tw-border-opacity, 1));
   --tw-bg-opacity: 1;
@@ -641,12 +641,12 @@ video {
   background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
 }
 
-.btn-primary:is(.dark *) {
+.btn-primary{
   --tw-bg-opacity: 1;
   background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
 }
 
-.btn-primary:hover:is(.dark *) {
+.btn-primary:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(29 78 216 / var(--tw-bg-opacity, 1));
 }
@@ -678,7 +678,7 @@ video {
   --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity, 1));
 }
 
-.dropdown-toggle:is(.dark *) {
+.dropdown-toggle{
   --tw-border-opacity: 1;
   border-color: rgb(75 85 99 / var(--tw-border-opacity, 1));
   --tw-bg-opacity: 1;
@@ -695,17 +695,16 @@ video {
   border-radius: 0.5rem;
   border-width: 1px;
   --tw-bg-opacity: 1;
-  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
-  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  background-color: rgb(31 41 55 / var(--tw-bg-opacity, 1));
+  --tw-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
-.dropdown-menu:is(.dark *) {
+.dropdown-menu{
   --tw-border-opacity: 1;
   border-color: rgb(75 85 99 / var(--tw-border-opacity, 1));
   --tw-bg-opacity: 1;
-  background-color: rgb(31 41 55 / var(--tw-bg-opacity, 1));
 }
 
 .category-option {
@@ -724,7 +723,7 @@ video {
   background-color: rgb(55 65 81 / var(--tw-bg-opacity, 1));
 }
 
-.category-option:is(.dark *) {
+.category-option{
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity, 1));
 }
@@ -733,7 +732,7 @@ video {
   border-bottom-width: 1px;
 }
 
-.category-group:is(.dark *) {
+.category-group{
   --tw-border-opacity: 1;
   border-color: rgb(55 65 81 / var(--tw-border-opacity, 1));
 }
@@ -746,7 +745,7 @@ video {
   font-weight: 600;
 }
 
-.category-label:is(.dark *) {
+.category-label{
   --tw-bg-opacity: 1;
   background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
   --tw-text-opacity: 1;
@@ -878,22 +877,46 @@ video {
   color: rgb(21 128 61 / var(--tw-text-opacity, 1));
 }
 
-.dark\:bg-gray-900:is(.dark *) {
+.\:bg-gray-900{
   --tw-bg-opacity: 1;
   background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
 }
 
-.dark\:bg-green-900:is(.dark *) {
+.\:bg-green-900{
   --tw-bg-opacity: 1;
   background-color: rgb(20 83 45 / var(--tw-bg-opacity, 1));
 }
 
-.dark\:text-white:is(.dark *) {
+.\:text-white{
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
 
-.dark\:text-green-300:is(.dark *) {
-  --tw-text-opacity: 1;
-  color: rgb(134 239 172 / var(--tw-text-opacity, 1));
+
+.input-field, .dropdown-toggle {
+  transition: all 0.2s ease;
+}
+
+.input-field:focus, .dropdown-toggle:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.5);
+}
+
+.category-option {
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #6366f1;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #4f46e5;
+}
+
+body {
+  background-color: #111827;
+  color: #f9fafb;
+  font-family: 'Inter', sans-serif;
 }

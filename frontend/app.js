@@ -1,32 +1,31 @@
 const API_BASE = 'http://localhost:5000/api/expenses';
 let editingId = null;
 
-// Initialize custom select functionality
 function initializeCustomSelect() {
-  const selectedOption = document.querySelector('.selected-option');
-  const customSelect = document.querySelector('.custom-select');
-  const hiddenInput = document.getElementById('category');
+  const categorySelect = document.getElementById('categorySelect');
+  const categoryMenu = document.getElementById('categoryMenu');
+  const categoryInput = document.getElementById('category');
 
-  selectedOption.addEventListener('click', () => {
-    customSelect.classList.toggle('open');
+  // Toggle dropdown visibility
+  categorySelect.addEventListener('click', () => {
+    categoryMenu.classList.toggle('hidden');
   });
 
   // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {
-    if (!customSelect.contains(e.target)) {
-      customSelect.classList.remove('open');
+    if (!categorySelect.contains(e.target) && !categoryMenu.contains(e.target)) {
+      categoryMenu.classList.add('hidden');
     }
   });
 
-  // Handle option selection
-  const options = document.querySelectorAll('.option');
-  options.forEach(option => {
+  // Select option
+  document.querySelectorAll('.category-option').forEach(option => {
     option.addEventListener('click', () => {
-      const value = option.getAttribute('data-value');
-      const html = option.innerHTML;
-      selectedOption.innerHTML = html;
-      hiddenInput.value = value;
-      customSelect.classList.remove('open');
+      const value = option.dataset.value;
+      const label = option.textContent.trim();
+      categorySelect.innerHTML = `<i class="fas fa-tags mr-2"></i> ${label}`;
+      categoryInput.value = value;
+      categoryMenu.classList.add('hidden');
     });
   });
 }
@@ -38,6 +37,7 @@ async function addExpense() {
     const amount = document.getElementById('amount').value;
     const category = document.getElementById('category').value.trim();
     const date = document.getElementById('date').value;
+
     if (!title || !amount || !category) {
       setStatus('Please fill in all required fields.');
       return;
@@ -46,6 +46,7 @@ async function addExpense() {
       setStatus('Please enter a valid amount.');
       return;
     }
+
     const response = await fetch(API_BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -56,16 +57,14 @@ async function addExpense() {
         date: date || new Date().toISOString().split('T')[0]
       })
     });
-    if (!response.ok) {
-      const text = await response.text().catch(()=>null);
-      setStatus('Add failed: ' + (text || response.statusText));
-      return;
-    }
-    setStatus('Expense added.');
+
+    if (!response.ok) throw new Error('Failed to add expense');
+    setStatus('Expense added successfully.');
     document.getElementById('expenseForm').reset();
+    document.getElementById('categorySelect').innerHTML = `<i class="fas fa-tags mr-2"></i>Select`;
     await loadExpenses();
-  } catch (error) {
-    setStatus('Error: ' + error.message);
+  } catch (err) {
+    setStatus('Error: ' + err.message);
   }
 }
 
@@ -75,58 +74,23 @@ async function loadExpenses() {
     const res = await fetch(API_BASE);
     if (!res.ok) throw new Error('Failed to fetch expenses');
     const expenses = await res.json();
+
     const list = document.getElementById('expenseList');
     list.innerHTML = '';
+
     expenses.forEach(e => {
       const li = document.createElement('li');
-      if (editingId === e.id) {
-        // Edit mode
-        li.innerHTML = '';
-        li.appendChild(makeInput('text', e.title, 'Title', 'edit-title'));
-        li.appendChild(makeInput('number', e.amount, 'Amount', 'edit-amount'));
-        li.appendChild(makeInput('text', e.category, 'Category', 'edit-category'));
-        li.appendChild(makeInput('date', e.createdAt ? e.createdAt.split('T')[0] : '', 'Date', 'edit-date'));
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Save';
-        saveBtn.className = 'edit';
-        saveBtn.onclick = async () => {
-          await updateExpense(e.id);
-        };
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.onclick = () => { editingId = null; loadExpenses(); };
-        li.appendChild(saveBtn);
-        li.appendChild(cancelBtn);
-      } else {
-        const categoryText = getCategoryDisplay(e.category);
-      li.innerHTML = `<span><strong>${e.title}</strong> — ${e.amount} (${categoryText}) <span style='color:#888;font-size:0.9em'>${e.createdAt ? e.createdAt.split('T')[0] : ''}</span></span>`;
-        const actions = document.createElement('span');
-        actions.className = 'expense-actions';
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.className = 'edit';
-        editBtn.onclick = () => { editingId = e.id; loadExpenses(); };
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.onclick = async () => {
-          if (!confirm('Delete this expense?')) return;
-          try {
-            const d = await fetch(`${API_BASE}/${e.id}`, { method: 'DELETE' });
-            if (!d.ok) {
-              const txt = await d.text().catch(()=>null);
-              setStatus('Delete failed: ' + (txt || d.statusText));
-              return;
-            }
-            setStatus('Deleted.');
-            await loadExpenses();
-          } catch (delErr) {
-            setStatus('Delete failed: ' + delErr.message);
-          }
-        };
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-        li.appendChild(actions);
-      }
+      li.className = 'flex justify-between items-center bg-gray-700 px-4 py-2 rounded-md';
+      li.innerHTML = `
+        <div>
+          <span class="font-semibold text-indigo-300">${e.title}</span> — ₹${e.amount}
+          <span class="text-gray-400 text-sm">(${e.category})</span>
+          <span class="text-gray-500 text-xs">${e.createdAt ? e.createdAt.split('T')[0] : ''}</span>
+        </div>
+        <div class="space-x-2">
+          <button class="text-yellow-400 hover:underline" onclick="editExpense(${e.id})">Edit</button>
+          <button class="text-red-400 hover:underline" onclick="deleteExpense(${e.id})">Delete</button>
+        </div>`;
       list.appendChild(li);
     });
   } catch (err) {
@@ -134,51 +98,15 @@ async function loadExpenses() {
   }
 }
 
-function makeInput(type, value, placeholder, id) {
-  const input = document.createElement('input');
-  input.type = type;
-  input.value = value || '';
-  input.placeholder = placeholder;
-  input.id = id;
-  input.style.marginRight = '6px';
-  return input;
-}
-
-async function updateExpense(id) {
+async function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
   try {
-    setStatus('');
-    const title = document.getElementById('edit-title').value.trim();
-    const amount = document.getElementById('edit-amount').value;
-    const category = document.getElementById('edit-category').value.trim();
-    const date = document.getElementById('edit-date').value;
-    if (!title || !amount || !category) {
-      setStatus('Please fill in all fields.');
-      return;
-    }
-    if (isNaN(amount) || amount <= 0) {
-      setStatus('Please enter a valid amount.');
-      return;
-    }
-    const resp = await fetch(`${API_BASE}/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        title,
-        amount: parseFloat(amount),
-        category,
-        date
-      })
-    });
-    if (!resp.ok) {
-      const txt = await resp.text().catch(()=>null);
-      setStatus('Update failed: ' + (txt || resp.statusText));
-      return;
-    }
-    setStatus('Expense updated.');
-    editingId = null;
+    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete');
+    setStatus('Deleted successfully.');
     await loadExpenses();
   } catch (err) {
-    setStatus('Update failed: ' + err.message);
+    setStatus('Delete failed: ' + err.message);
   }
 }
 
@@ -186,35 +114,120 @@ function setStatus(msg) {
   const s = document.getElementById('status');
   if (!s) return;
   s.textContent = msg || '';
+  s.classList.remove('hidden');
+  setTimeout(() => s.classList.add('hidden'), 3000);
 }
 
-// Helper function to get readable category name
-function getCategoryDisplay(value) {
-  // Handle old data format
-  if (!value || !value.includes(':')) return value;
-  
-  const [mainCategory, subCategory] = value.split(':');
-  
-  // Capitalize main category
-  const mainFormatted = mainCategory.charAt(0).toUpperCase() + mainCategory.slice(1);
-  
-  const select = document.getElementById('category');
-  if (!select) return `${mainFormatted} - ${subCategory}`;
-  
-  // Find the option to get its display text
-  for (const option of select.getElementsByTagName('option')) {
-    if (option.value === value) {
-      return `${mainFormatted} - ${option.textContent}`;
-    }
-  }
-  
-  // Fallback for uncategorized or unknown values
-  if (value === 'uncategorized') return 'Uncategorized';
-  return value;
-}
-
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   initializeCustomSelect();
   loadExpenses();
 });
+
+// Set user-defined options
+let limit = 1000; // default limit
+let fromDate = "2025-10-01";
+let toDate = "2025-10-21";
+let groupBy = "daily"; // options: daily, weekly, monthly
+
+// Fetch data from backend
+async function fetchExpenses() {
+  const res = await fetch(`http://localhost:5000/api/expenses?from=${fromDate}&to=${toDate}&groupBy=${groupBy}`);
+  const data = await res.json();
+  return data;
+}
+
+// Draw line chart
+function drawLineChart(expenses) {
+  const ctx = document.getElementById("lineChart").getContext("2d");
+
+  const labels = expenses.map(e => e.date);
+  const amounts = expenses.map(e => e.amount);
+
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Daily Expense",
+          data: amounts,
+          borderColor: "#4FD1C5",
+          backgroundColor: "rgba(79, 209, 197, 0.2)",
+          fill: true,
+          tension: 0.3,
+        },
+        {
+          label: "Limit",
+          data: Array(amounts.length).fill(limit),
+          borderColor: "red",
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          mode: "index",
+          intersect: false,
+        },
+      },
+      interaction: {
+        intersect: false,
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+// Draw pie chart
+function drawPieChart(expenses) {
+  const ctx = document.getElementById("pieChart").getContext("2d");
+
+  // Aggregate expenses by category
+  const categoryMap = {};
+  expenses.forEach(e => {
+    categoryMap[e.category] = (categoryMap[e.category] || 0) + e.amount;
+  });
+
+  const labels = Object.keys(categoryMap);
+  const data = Object.values(categoryMap);
+  const colors = ["#4FD1C5", "#F6AD55", "#ED64A6", "#63B3ED", "#F56565"];
+
+  new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          data: data,
+          backgroundColor: colors,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "bottom",
+        },
+      },
+    },
+  });
+}
+
+// Initialize charts
+async function initCharts() {
+  const expenses = await fetchExpenses();
+  drawLineChart(expenses);
+  drawPieChart(expenses);
+}
+
+// Run on page load
+initCharts();

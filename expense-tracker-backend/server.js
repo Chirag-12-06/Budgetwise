@@ -1,37 +1,38 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 import expenseRoutes from "./routes/expenseRoutes.js";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Enable CORS for development
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    if (req.method === 'OPTIONS') {
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-        return res.status(200).json({});
-    }
-    next();
-});
+// ✅ Enable CORS for your frontend (Live Server or direct file)
+app.use(
+  cors({
+    credentials: true,
+    origin: ["http://127.0.0.1:5500", "http://localhost:5500"],
 
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 
-// __dirname for ES modules
+// ✅ Handle ES modules dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve test.html from backend root
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "test.html"));
-});
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "../frontend")));
+app.use(express.urlencoded({ extended: true }));
 
-// Use the router for API endpoints
+
+// ✅ API routes
 app.use("/api/expenses", expenseRoutes);
 
+// ✅ Fallback to index.html for any unknown route
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
 
-app.listen(5000, () => console.log(`✅ Server running at http://localhost:${5000}`));
-
+// ✅ Start server
+app.listen(5000, () => console.log(`✅ Server running at http://localhost:5000`));
