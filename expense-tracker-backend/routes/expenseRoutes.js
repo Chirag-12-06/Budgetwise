@@ -5,17 +5,16 @@ import { getExpenses, addExpense, deleteExpense, updateExpense } from "../contro
 const router = express.Router();
 
 /**
- * @route   PUT /api/expenses/:id
- * @desc    Update an expense by id
- */
-router.put("/:id", updateExpense);
-
-
-/**
  * @route   GET /api/expenses
  * @desc    Fetch all expenses
  */
 router.get("/", getExpenses);
+
+/**
+ * @route   PUT /api/expenses/:id
+ * @desc    Update an expense by id
+ */
+router.put("/:id", updateExpense);
 
 /**
  * @route   POST /api/expenses

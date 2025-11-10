@@ -1,54 +1,86 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-export const getDailyExpenses = async (req, res) => {
-  const expenses = await prisma.expense.groupBy({
-    by: ['createdAt'],
-    _sum: { amount: true },
-  });
+// export const getDailyExpenses = async (req, res) => {
+//   const expenses = await prisma.expense.groupBy({
+//     by: ['createdAt'],
+//     _sum: { amount: true },
+//   });
 
-  // Convert createdAt to just date string (YYYY-MM-DD)
-  const formatted = expenses.map(e => ({
-    date: e.createdAt.toISOString().split('T')[0],
-    total: e._sum.amount
-  }));
+//   // Convert createdAt to just date string (YYYY-MM-DD)
+//   const formatted = expenses.map(e => ({
+//     date: e.createdAt.toISOString().split('T')[0],
+//     total: e._sum.amount
+//   }));
 
-  res.json(formatted);
+//   res.json(formatted);
+// };
 
 export const getExpenses = async (req, res) => {
   try {
     const { from, to, groupBy } = req.query;
-    // Base filter
+
+    // Build a safe createdAt filter only when from/to are valid dates
     const filter = {};
-    if (from && to) {
-      filter.date = {
-        gte: new Date(from),
-        lte: new Date(to),
-      };
+    if (from || to) {
+      const createdAtFilter = {};
+      if (from) {
+        const f = new Date(from);
+        if (!Number.isNaN(f.getTime())) createdAtFilter.gte = f;
+      }
+      if (to) {
+        const t = new Date(to);
+        if (!Number.isNaN(t.getTime())) createdAtFilter.lte = t;
+      }
+      if (Object.keys(createdAtFilter).length) filter.createdAt = createdAtFilter;
     }
 
     const expenses = await prisma.expense.findMany({
       where: filter,
-      orderBy: { date: "asc" },
+      orderBy: { createdAt: "asc" },
     });
 
-    // Optional grouping logic (can also be done client-side)
-    if (groupBy === "daily") {
-      // Already grouped by day (each expense entry has a date)
-      return res.json(expenses);
-    } else if (groupBy === "weekly") {
-      // Group by week number
+    // Helper: ISO date key YYYY-MM-DD
+    const toDayKey = (d) => {
+      const dt = new Date(d);
+      return dt.toISOString().split('T')[0];
+    };
+
+    // Helper: year-week (ISO week-ish; simple approximation)
+    const getWeekKey = (d) => {
+      const date = new Date(d);
+      const year = date.getFullYear();
+      // Calculate week number (approximation by day-of-year / 7)
+      const oneJan = new Date(year, 0, 1);
+      const days = Math.floor((date - oneJan) / 86400000) + 1;
+      const week = Math.ceil(days / 7);
+      return `${year}-W${String(week).padStart(2, '0')}`;
+    };
+
+    if (groupBy === 'daily') {
       const grouped = {};
       for (const e of expenses) {
-        const week = Math.ceil(new Date(e.date).getDate() / 7);
-        grouped[week] = (grouped[week] || 0) + e.amount;
+        const key = toDayKey(e.createdAt);
+        grouped[key] = (grouped[key] || 0) + Number(e.amount || 0);
+      }
+      return res.json(Object.entries(grouped).map(([date, total]) => ({ date, total })));
+    }
+
+    if (groupBy === 'weekly') {
+      const grouped = {};
+      for (const e of expenses) {
+        const key = getWeekKey(e.createdAt);
+        grouped[key] = (grouped[key] || 0) + Number(e.amount || 0);
       }
       return res.json(Object.entries(grouped).map(([week, total]) => ({ week, total })));
-    } else if (groupBy === "monthly") {
+    }
+
+    if (groupBy === 'monthly') {
       const grouped = {};
       for (const e of expenses) {
-        const month = new Date(e.date).toLocaleString("default", { month: "short" });
-        grouped[month] = (grouped[month] || 0) + e.amount;
+        const d = new Date(e.createdAt);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        grouped[key] = (grouped[key] || 0) + Number(e.amount || 0);
       }
       return res.json(Object.entries(grouped).map(([month, total]) => ({ month, total })));
     }
