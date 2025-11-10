@@ -4,121 +4,122 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Budgetwise - Expense Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.3/dist/tailwind.min.css" rel="stylesheet"> -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="min-h-screen bg-gray-700 text-white">
-  <div class="container mx-auto px-4 py-8 max-w-3xl bg-gray-800 rounded-lg shadow-lg">
-    <h1 class="text-3xl font-bold text-center mb-8">Budgetwise</h1>
+<body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white">
+  <div class="container mx-auto px-4 py-8 max-w-3xl bg-white rounded-lg shadow-lg dark:bg-gray-800">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Budgetwise</h1>
+      <button id="darkModeToggle" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">🌙</button>
+    </div>
     <form id="expenseForm" autocomplete="off" class="space-y-6 mb-8">
       <!-- Category + Title on same line -->
       <div class="flex items-center space-x-3">
         <!-- Category -->
         <div class="relative w-1/4">
-          <div id="categorySelect" class="dropdown-toggle items-center justify-between px-3 py-2 border-gray-700 rounded-md bg-gray-700 cursor-pointer">
+          <div id="categorySelect" class="dropdown-toggle flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 cursor-pointer dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <span><i class="fas fa-tags mr-2"></i>Category</span>
           </div>
-          <div id="categoryMenu" class="dropdown-menu hidden absolute z-20 mt-1 bg-gray-800 border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Food</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="dining"><i class="fas fa-utensils category-icon mr-3 w-4"></i> Dining Out</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="groceries"><i class="fas fa-shopping-basket category-icon mr-3 w-4"></i> Groceries</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="fruits"><i class="fas fa-apple-alt category-icon mr-3 w-4"></i> Fruits</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="snacks"><i class="fas fa-coffee category-icon mr-3 w-4"></i> Snacks & Coffee</div>
+          <div id="categoryMenu" class="dropdown-menu hidden absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Food</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="dining"><i class="fas fa-utensils category-icon mr-3 w-4"></i> Dining Out</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="groceries"><i class="fas fa-shopping-basket category-icon mr-3 w-4"></i> Groceries</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="fruits"><i class="fas fa-apple-alt category-icon mr-3 w-4"></i> Fruits</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="snacks"><i class="fas fa-coffee category-icon mr-3 w-4"></i> Snacks & Coffee</div>
             </div>
 
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Drinks</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="liquor"><i class="fas fa-wine-glass-alt mr-3 w-4"></i> Liquor & Spirits</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="juices"><i class="fas fa-glass-whiskey mr-3 w-4"></i> Juices</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="beverages"><i class="fas fa-mug-hot mr-3 w-4"></i> Non-Alcoholic Beverages</div>
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Drinks</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="liquor"><i class="fas fa-wine-glass-alt mr-3 w-4"></i> Liquor & Spirits</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="juices"><i class="fas fa-glass-whiskey mr-3 w-4"></i> Juices</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="beverages"><i class="fas fa-mug-hot mr-3 w-4"></i> Non-Alcoholic Beverages</div>
             </div>
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Entertainment</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="movies"><i class="fas fa-film mr-3 w-4"></i> Movies</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="membership"><i class="fas fa-id-card mr-3 w-4"></i> Membership</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="music"><i class="fas fa-music mr-3 w-4"></i> Music</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="hobbies"><i class="fas fa-palette mr-3 w-4"></i> Hobbies</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="sports"><i class="fas fa-basketball-ball mr-3 w-4"></i> Sports & Recreation</div>
-            </div>
-
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Home</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="rent"><i class="fas fa-home mr-3 w-4"></i> Rent & Mortgage</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="electronics"><i class="fas fa-tv mr-3 w-4"></i> Electronics</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="furniture"><i class="fas fa-couch mr-3 w-4"></i> Furniture & Decor</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="maintenance"><i class="fas fa-tools mr-3 w-4"></i> Maintenance & Repairs</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="supplies"><i class="fas fa-box-open mr-3 w-4"></i> Household Supplies</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="pets"><i class="fas fa-paw mr-3 w-4"></i> Pets</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="services"><i class="fas fa-concierge-bell mr-3 w-4"></i> Services</div>
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Entertainment</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="movies"><i class="fas fa-film mr-3 w-4"></i> Movies</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="membership"><i class="fas fa-id-card mr-3 w-4"></i> Membership</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="music"><i class="fas fa-music mr-3 w-4"></i> Music</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="hobbies"><i class="fas fa-palette mr-3 w-4"></i> Hobbies</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="sports"><i class="fas fa-basketball-ball mr-3 w-4"></i> Sports & Recreation</div>
             </div>
 
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Life</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="childcare"><i class="fas fa-baby mr-3 w-4"></i> Childcare</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="clothing"><i class="fas fa-tshirt mr-3 w-4"></i> Clothing & Accessories</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="health"><i class="fas fa-heartbeat mr-3 w-4"></i> Healthcare</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="personal"><i class="fas fa-shower mr-3 w-4"></i> Personal Care</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="education"><i class="fas fa-graduation-cap mr-3 w-4"></i> Education</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="taxes"><i class="fas fa-receipt mr-3 w-4"></i> Taxes</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="insurance"><i class="fas fa-shield-alt mr-3 w-4"></i> Insurance</div>
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Home</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="rent"><i class="fas fa-home mr-3 w-4"></i> Rent & Mortgage</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="electronics"><i class="fas fa-tv mr-3 w-4"></i> Electronics</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="furniture"><i class="fas fa-couch mr-3 w-4"></i> Furniture & Decor</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="maintenance"><i class="fas fa-tools mr-3 w-4"></i> Maintenance & Repairs</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="supplies"><i class="fas fa-box-open mr-3 w-4"></i> Household Supplies</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="pets"><i class="fas fa-paw mr-3 w-4"></i> Pets</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="services"><i class="fas fa-concierge-bell mr-3 w-4"></i> Services</div>
+            </div>
+
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Life</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="childcare"><i class="fas fa-baby mr-3 w-4"></i> Childcare</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="clothing"><i class="fas fa-tshirt mr-3 w-4"></i> Clothing & Accessories</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="health"><i class="fas fa-heartbeat mr-3 w-4"></i> Healthcare</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="personal"><i class="fas fa-shower mr-3 w-4"></i> Personal Care</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="education"><i class="fas fa-graduation-cap mr-3 w-4"></i> Education</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="taxes"><i class="fas fa-receipt mr-3 w-4"></i> Taxes</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="insurance"><i class="fas fa-shield-alt mr-3 w-4"></i> Insurance</div>
                         
             </div>
                         
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Transportation</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="fuel"><i class="fas fa-gas-pump mr-3 w-4"></i> Fuel</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="parking"><i class="fas fa-parking mr-3 w-4"></i> Parking</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="maintenance"><i class="fas fa-wrench mr-3 w-4"></i> Vehicle Maintenance</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="cab"><i class="fas fa-taxi mr-3 w-4"></i> Cab</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="flight"><i class="fas fa-plane mr-3 w-4"></i> Flight</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="bicycle"><i class="fas fa-bicycle mr-3 w-4"></i> Bicycle</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="bus"><i class="fas fa-bus mr-3 w-4"></i> Bus</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="train"><i class="fas fa-train mr-3 w-4"></i> Train</div>
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Transportation</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="fuel"><i class="fas fa-gas-pump mr-3 w-4"></i> Fuel</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="parking"><i class="fas fa-parking mr-3 w-4"></i> Parking</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="maintenance"><i class="fas fa-wrench mr-3 w-4"></i> Vehicle Maintenance</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="cab"><i class="fas fa-taxi mr-3 w-4"></i> Cab</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="flight"><i class="fas fa-plane mr-3 w-4"></i> Flight</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="bicycle"><i class="fas fa-bicycle mr-3 w-4"></i> Bicycle</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="bus"><i class="fas fa-bus mr-3 w-4"></i> Bus</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="train"><i class="fas fa-train mr-3 w-4"></i> Train</div>
             </div>
 
-            <div class="category-group p-2 border-b border-gray-700">
-                <div class="category-label text-sm font-semibold text-gray-400 uppercase mb-1">Utilities</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="electricity"><i class="fas fa-bolt mr-3 w-4"></i> Electricity</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="water"><i class="fas fa-tint mr-3 w-4"></i> Water</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="cleaning"><i class="fas fa-broom mr-3 w-4"></i> Cleaning</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="gas"><i class="fas fa-burn mr-3 w-4"></i> Gas</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="internet"><i class="fas fa-wifi mr-3 w-4"></i> Internet & Cable</div>
-                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="phone"><i class="fas fa-phone mr-3 w-4"></i> Phone</div>
+            <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Utilities</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="electricity"><i class="fas fa-bolt mr-3 w-4"></i> Electricity</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="water"><i class="fas fa-tint mr-3 w-4"></i> Water</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="cleaning"><i class="fas fa-broom mr-3 w-4"></i> Cleaning</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="gas"><i class="fas fa-burn mr-3 w-4"></i> Gas</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="internet"><i class="fas fa-wifi mr-3 w-4"></i> Internet & Cable</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="phone"><i class="fas fa-phone mr-3 w-4"></i> Phone</div>
             </div>
 
-            <div class="category-option items-center px-3 py-2 cursor-pointer hover:bg-gray-700 rounded-md text-white" data-value="uncategorized"><i class="fas fa-question-circle mr-3 w-4"></i> Uncategorized</div>
+            <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="uncategorized"><i class="fas fa-question-circle mr-3 w-4"></i> Uncategorized</div>
             </div>
             <input type="hidden" id="category" name="category" placeholder="Category" required>
         </div>
         <!-- Title -->
         <input type="text" id="title" placeholder="Title" required
-          class="input-field w-3/4 px-3 py-2 border border-gray-700 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500">
+          class="input-field w-3/4 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600">
       </div>
 
       <!-- Amount -->
       <input type="number" id="amount" placeholder="Amount" min="0.01" step="0.01" required
-        class="input-field w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500">
+        class="input-field w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:border-gray-600">
 
       <!-- Date -->
       <input type="date" id="date"
-        class="input-field w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+        class="input-field w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:border-gray-600">
 
       <!-- Add Button -->
-      <button type="button" onclick="addExpense()"
+      <button type="button" id="submitBtn" onclick="addExpense()"
         class="btn btn-primary w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
         Add Expense
       </button>
     </form>
 
-    <div id="status" class="hidden bg-green-900 text-green-300 p-4 rounded-lg mb-4"></div>
+    <div id="status" class="hidden bg-green-100 text-green-800 p-4 rounded-lg mb-4 dark:bg-green-900 dark:text-green-300"></div>
 
-    <h2 class="text-2xl font-semibold mb-4">Expenses</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Expenses</h2>
     <ul id="expenseList" class="space-y-4"></ul>
   </div>
   <!-- Expenses Section -->
@@ -127,7 +128,7 @@
 </div>
 
 <!-- Charts Section -->
-<div id="charts" class="mt-8 p-4 bg-gray-800 rounded-lg text-white">
+<div id="charts" class="mt-8 p-4 bg-white rounded-lg text-gray-900 dark:bg-gray-800 dark:text-white shadow-lg">
   <h2 class="text-xl mb-4">📊 Expense Charts</h2>
 
   <!-- Line Chart -->
