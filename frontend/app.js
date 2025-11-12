@@ -1,5 +1,95 @@
 const API_BASE = 'http://localhost:5000/api/expenses';
 let editingId = null;
+let currentFilter = 'daily'; // Track current chart filter
+let excludeOutliers = false;
+let useLogScale = false;
+
+// Detect outliers using IQR (Interquartile Range) method
+function detectOutliers(data) {
+  if (data.length === 0) return { outliers: [], threshold: null };
+  
+  const sorted = [...data].sort((a, b) => a - b);
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  
+  const outliers = data.filter(val => val < lowerBound || val > upperBound);
+  
+  return {
+    outliers,
+    upperBound,
+    lowerBound,
+    hasOutliers: outliers.length > 0
+  };
+}
+
+// Show outlier warning
+function showOutlierWarning(outlierInfo, aggregated) {
+  const warning = document.getElementById('outlierWarning');
+  const message = document.getElementById('outlierMessage');
+  
+  if (!warning || !message) return;
+  
+  if (outlierInfo.hasOutliers) {
+    const maxOutlier = Math.max(...outlierInfo.outliers);
+    const count = outlierInfo.outliers.length;
+    const total = Object.keys(aggregated).length;
+    
+    message.textContent = `Found ${count} outlier value${count > 1 ? 's' : ''} out of ${total} data points. Highest outlier: ₹${maxOutlier.toLocaleString('en-IN', { maximumFractionDigits: 2 })}. This may affect chart readability.`;
+    warning.classList.remove('hidden');
+  } else {
+    warning.classList.add('hidden');
+  }
+}
+
+// Initialize chart options
+function initializeChartOptions() {
+  const excludeOutliersCheckbox = document.getElementById('excludeOutliers');
+  const useLogScaleCheckbox = document.getElementById('useLogScale');
+  
+  if (excludeOutliersCheckbox) {
+    excludeOutliersCheckbox.addEventListener('change', (e) => {
+      excludeOutliers = e.target.checked;
+      updateCharts();
+    });
+  }
+  
+  if (useLogScaleCheckbox) {
+    useLogScaleCheckbox.addEventListener('change', (e) => {
+      useLogScale = e.target.checked;
+      updateCharts();
+    });
+  }
+}
+
+// Initialize filter buttons
+function initializeChartFilters() {
+  const filterButtons = {
+    daily: document.getElementById('filterDaily'),
+    monthly: document.getElementById('filterMonthly'),
+    yearly: document.getElementById('filterYearly')
+  };
+
+  Object.entries(filterButtons).forEach(([filter, button]) => {
+    if (button) {
+      button.addEventListener('click', () => {
+        // Update active button styling
+        Object.values(filterButtons).forEach(btn => {
+          btn.classList.remove('bg-indigo-600', 'text-white');
+          btn.classList.add('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-600');
+        });
+        button.classList.add('bg-indigo-600', 'text-white');
+        button.classList.remove('text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-600');
+
+        // Update filter and redraw charts
+        currentFilter = filter;
+        updateCharts();
+      });
+    }
+  });
+}
 
 function initializeCustomSelect() {
   const categorySelect = document.getElementById('categorySelect');
@@ -89,6 +179,7 @@ async function addExpense() {
     document.getElementById('expenseForm').reset();
     document.getElementById('categorySelect').innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
     await loadExpenses();
+    await updateCharts();
   } catch (err) {
     setStatus('Error: ' + err.message);
   }
@@ -152,6 +243,7 @@ async function deleteExpense(id) {
     if (!res.ok) throw new Error('Failed to delete');
     setStatus('Deleted successfully.');
     await loadExpenses();
+    await updateCharts();
   } catch (err) {
     setStatus('Delete failed: ' + err.message);
   }
@@ -244,6 +336,7 @@ async function updateExpense(id) {
     submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
     
     await loadExpenses();
+    await updateCharts();
   } catch (err) {
     setStatus('Update failed: ' + err.message);
   }
@@ -257,116 +350,284 @@ function setStatus(msg) {
   setTimeout(() => s.classList.add('hidden'), 3000);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initializeCustomSelect();
-  loadExpenses();
-});
+// Chart instances (to prevent memory leaks)
+let lineChartInstance = null;
+let pieChartInstance = null;
 
-// Set user-defined options
-let limit = 1000; // default limit
-let fromDate = "2025-10-01";
-let toDate = "2025-10-21";
-let groupBy = "daily"; // options: daily, weekly, monthly
+// Aggregate expenses based on current filter
+function aggregateExpenses(expenses, filterType) {
+  const aggregated = {};
 
-// Fetch data from backend
-async function fetchExpenses() {
-  const res = await fetch(`http://localhost:5000/api/expenses?from=${fromDate}&to=${toDate}&groupBy=${groupBy}`);
-  const data = await res.json();
-  return data;
+  expenses.forEach(e => {
+    const amount = parseFloat(e.amount || 0);
+    const date = new Date(e.createdAt);
+    let key;
+
+    if (filterType === 'daily') {
+      // Group by date (YYYY-MM-DD)
+      key = e.createdAt ? e.createdAt.split('T')[0] : new Date().toISOString().split('T')[0];
+    } else if (filterType === 'monthly') {
+      // Group by month (YYYY-MM)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      key = `${year}-${month}`;
+    } else if (filterType === 'yearly') {
+      // Group by year (YYYY)
+      key = String(date.getFullYear());
+    }
+
+    aggregated[key] = (aggregated[key] || 0) + amount;
+  });
+
+  return aggregated;
 }
 
-// Draw line chart
-function drawLineChart(expenses) {
-  const ctx = document.getElementById("lineChart").getContext("2d");
+// Format labels based on filter type
+function formatLabel(key, filterType) {
+  if (filterType === 'daily') {
+    return key; // Already in YYYY-MM-DD format
+  } else if (filterType === 'monthly') {
+    const [year, month] = key.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
+  } else if (filterType === 'yearly') {
+    return key; // Just the year
+  }
+  return key;
+}
 
-  const labels = expenses.map(e => e.date);
-  const amounts = expenses.map(e => e.amount);
+// Draw line chart with aggregation
+async function drawLineChart() {
+  try {
+    const res = await fetch(API_BASE);
+    if (!res.ok) throw new Error('Failed to fetch expenses');
+    const expenses = await res.json();
 
-  new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Daily Expense",
-          data: amounts,
-          borderColor: "#4FD1C5",
-          backgroundColor: "rgba(79, 209, 197, 0.2)",
-          fill: true,
-          tension: 0.3,
+    if (expenses.length === 0) {
+      const ctx = document.getElementById("lineChart");
+      if (ctx) {
+        if (lineChartInstance) lineChartInstance.destroy();
+        lineChartInstance = null;
+      }
+      return;
+    }
+
+    // Aggregate expenses based on current filter
+    const aggregated = aggregateExpenses(expenses, currentFilter);
+    
+    // Sort keys
+    const sortedKeys = Object.keys(aggregated).sort();
+    let amounts = sortedKeys.map(key => aggregated[key]);
+    
+    // Detect outliers
+    const outlierInfo = detectOutliers(amounts);
+    showOutlierWarning(outlierInfo, aggregated);
+    
+    // Filter out outliers if enabled
+    let labels = sortedKeys.map(key => formatLabel(key, currentFilter));
+    if (excludeOutliers && outlierInfo.hasOutliers) {
+      const filtered = sortedKeys.filter((key, idx) => {
+        const val = amounts[idx];
+        return val >= outlierInfo.lowerBound && val <= outlierInfo.upperBound;
+      });
+      labels = filtered.map(key => formatLabel(key, currentFilter));
+      amounts = filtered.map(key => aggregated[key]);
+    }
+
+    const ctx = document.getElementById("lineChart");
+    if (!ctx) return;
+
+    // Destroy previous chart instance
+    if (lineChartInstance) {
+      lineChartInstance.destroy();
+    }
+
+    // Determine chart title based on filter
+    let chartTitle = 'Expense Trend';
+    if (currentFilter === 'daily') chartTitle = 'Daily Expense Trend';
+    else if (currentFilter === 'monthly') chartTitle = 'Monthly Expense Trend';
+    else if (currentFilter === 'yearly') chartTitle = 'Yearly Expense Trend';
+
+    lineChartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: `${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)} Spending (₹)`,
+            data: amounts,
+            borderColor: "#4F46E5",
+            backgroundColor: "rgba(79, 70, 229, 0.1)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          title: {
+            display: true,
+            text: chartTitle,
+            font: { size: 16, weight: 'bold' },
+            color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827'
+          },
+          tooltip: {
+            mode: "index",
+            intersect: false,
+            callbacks: {
+              label: function(context) {
+                return 'Amount: ₹' + context.parsed.y.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+              }
+            }
+          },
+          legend: {
+            display: true,
+            labels: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827'
+            }
+          }
         },
-        {
-          label: "Limit",
-          data: Array(amounts.length).fill(limit),
-          borderColor: "red",
-          borderDash: [5, 5],
-          pointRadius: 0,
-          fill: false,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          mode: "index",
+        interaction: {
           intersect: false,
         },
-      },
-      interaction: {
-        intersect: false,
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
+        scales: {
+          y: {
+            type: useLogScale ? 'logarithmic' : 'linear',
+            beginAtZero: !useLogScale,
+            ticks: {
+              callback: function(value) {
+                return '₹' + value;
+              },
+              color: '#6B7280'
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            ticks: {
+              color: '#6B7280',
+              maxRotation: 45,
+              minRotation: 45
+            },
+            grid: {
+              display: false
+            }
+          }
         },
       },
-    },
-  });
+    });
+  } catch (err) {
+    console.error('Error drawing line chart:', err);
+  }
 }
 
-// Draw pie chart
-function drawPieChart(expenses) {
-  const ctx = document.getElementById("pieChart").getContext("2d");
+// Draw pie chart - Category breakdown
+async function drawPieChart() {
+  try {
+    const res = await fetch(API_BASE);
+    if (!res.ok) throw new Error('Failed to fetch expenses');
+    const expenses = await res.json();
 
-  // Aggregate expenses by category
-  const categoryMap = {};
-  expenses.forEach(e => {
-    categoryMap[e.category] = (categoryMap[e.category] || 0) + e.amount;
-  });
+    if (expenses.length === 0) {
+      // Show empty state
+      const ctx = document.getElementById("pieChart");
+      if (ctx) {
+        if (pieChartInstance) pieChartInstance.destroy();
+        pieChartInstance = null;
+      }
+      return;
+    }
 
-  const labels = Object.keys(categoryMap);
-  const data = Object.values(categoryMap);
-  const colors = ["#4FD1C5", "#F6AD55", "#ED64A6", "#63B3ED", "#F56565"];
+    // Aggregate expenses by category
+    const categoryMap = {};
+    expenses.forEach(e => {
+      const cat = e.category || 'uncategorized';
+      categoryMap[cat] = (categoryMap[cat] || 0) + parseFloat(e.amount || 0);
+    });
 
-  new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: data,
-          backgroundColor: colors,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: "bottom",
+    const labels = Object.keys(categoryMap);
+    const data = Object.values(categoryMap);
+    
+    // Generate colors dynamically
+    const colors = [
+      "#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444",
+      "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#3B82F6",
+      "#6366F1", "#A855F7", "#84CC16", "#22D3EE", "#FB923C"
+    ];
+
+    const ctx = document.getElementById("pieChart");
+    if (!ctx) return;
+
+    // Destroy previous chart instance
+    if (pieChartInstance) {
+      pieChartInstance.destroy();
+    }
+
+    pieChartInstance = new Chart(ctx, {
+      type: "pie",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            data: data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Expenses by Category',
+            font: { size: 16, weight: 'bold' },
+            color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${label}: ₹${value.toFixed(2)} (${percentage}%)`;
+              }
+            }
+          },
+          legend: {
+            position: "right",
+            labels: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827',
+              padding: 15,
+              font: { size: 12 }
+            }
+          }
         },
       },
-    },
-  });
+    });
+  } catch (err) {
+    console.error('Error drawing pie chart:', err);
+  }
 }
 
-// Initialize charts
-async function initCharts() {
-  const expenses = await fetchExpenses();
-  drawLineChart(expenses);
-  drawPieChart(expenses);
+// Initialize and update charts
+async function updateCharts() {
+  await drawLineChart();
+  await drawPieChart();
 }
 
-// Run on page load
-initCharts();
+document.addEventListener('DOMContentLoaded', () => {
+  initializeCustomSelect();
+  initializeChartFilters();
+  initializeChartOptions();
+  loadExpenses();
+  updateCharts();
+});
