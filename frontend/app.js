@@ -3,6 +3,10 @@ let editingId = null;
 let currentFilter = 'daily'; // Track current chart filter
 let excludeOutliers = false;
 let useLogScale = false;
+let dateFilterMode = 'allTime'; // 'allTime', 'thisMonth', 'lastMonth', 'thisYear', 'custom'
+let customDateFrom = null;
+let customDateTo = null;
+let expenseDates = new Set(); // Track dates with expenses
 
 // Detect outliers using IQR (Interquartile Range) method
 function detectOutliers(data) {
@@ -44,6 +48,58 @@ function showOutlierWarning(outlierInfo, aggregated) {
   }
 }
 
+// Update expense dates from all expenses
+function updateExpenseDates(expenses) {
+  console.log('updateExpenseDates called with', expenses.length, 'expenses');
+  expenseDates.clear();
+  expenses.forEach(e => {
+    if (e.createdAt) {
+      const date = e.createdAt.split('T')[0]; // Get YYYY-MM-DD format
+      expenseDates.add(date);
+    }
+  });
+  console.log('expenseDates Set has', expenseDates.size, 'unique dates');
+  
+  // Update calendar input styling
+  highlightExpenseDates();
+}
+
+// Highlight calendar inputs if they contain dates with expenses
+function highlightExpenseDates() {
+  console.log('highlightExpenseDates called, expenseDates.size:', expenseDates.size);
+  const dateInput = document.getElementById('date');
+  const dateFromInput = document.getElementById('dateFrom');
+  const dateToInput = document.getElementById('dateTo');
+  
+  console.log('Date inputs found:', {
+    dateInput: !!dateInput,
+    dateFromInput: !!dateFromInput,
+    dateToInput: !!dateToInput
+  });
+  
+  // Add visual indicator that there are expense dates
+  if (expenseDates.size > 0) {
+    console.log('Adding has-expenses class to inputs');
+    if (dateInput) dateInput.classList.add('has-expenses');
+    if (dateFromInput) dateFromInput.classList.add('has-expenses');
+    if (dateToInput) dateToInput.classList.add('has-expenses');
+  } else {
+    console.log('Removing has-expenses class from inputs');
+    if (dateInput) dateInput.classList.remove('has-expenses');
+    if (dateFromInput) dateFromInput.classList.remove('has-expenses');
+    if (dateToInput) dateToInput.classList.remove('has-expenses');
+  }
+  
+  // Add tooltip to show expense dates info
+  const tooltipText = expenseDates.size > 0 
+    ? `${expenseDates.size} date${expenseDates.size > 1 ? 's' : ''} with expenses`
+    : 'No expenses recorded';
+  
+  if (dateInput) dateInput.title = tooltipText;
+  if (dateFromInput) dateFromInput.title = `Filter: ${tooltipText}`;
+  if (dateToInput) dateToInput.title = `Filter: ${tooltipText}`;
+}
+
 // Initialize chart options
 function initializeChartOptions() {
   const excludeOutliersCheckbox = document.getElementById('excludeOutliers');
@@ -60,6 +116,92 @@ function initializeChartOptions() {
     useLogScaleCheckbox.addEventListener('change', (e) => {
       useLogScale = e.target.checked;
       updateCharts();
+    });
+  }
+}
+
+// Initialize date filters
+function initializeDateFilters() {
+  const allTimeBtn = document.getElementById('filterAllTime');
+  const thisMonthBtn = document.getElementById('filterThisMonth');
+  const lastMonthBtn = document.getElementById('filterLastMonth');
+  const thisYearBtn = document.getElementById('filterThisYear');
+  const applyBtn = document.getElementById('applyDateRange');
+  const dateFromInput = document.getElementById('dateFrom');
+  const dateToInput = document.getElementById('dateTo');
+
+  const buttons = { allTime: allTimeBtn, thisMonth: thisMonthBtn, lastMonth: lastMonthBtn, thisYear: thisYearBtn };
+
+  // Update button styles
+  function updateButtonStyles(activeMode) {
+    Object.entries(buttons).forEach(([mode, btn]) => {
+      if (btn) {
+        if (mode === activeMode) {
+          btn.className = 'px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white transition-colors';
+        } else {
+          btn.className = 'px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors';
+        }
+      }
+    });
+  }
+
+  // All Time
+  if (allTimeBtn) {
+    allTimeBtn.addEventListener('click', () => {
+      dateFilterMode = 'allTime';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('allTime');
+      updateCharts();
+    });
+  }
+
+  // This Month
+  if (thisMonthBtn) {
+    thisMonthBtn.addEventListener('click', () => {
+      dateFilterMode = 'thisMonth';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('thisMonth');
+      updateCharts();
+    });
+  }
+
+  // Last Month
+  if (lastMonthBtn) {
+    lastMonthBtn.addEventListener('click', () => {
+      dateFilterMode = 'lastMonth';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('lastMonth');
+      updateCharts();
+    });
+  }
+
+  // This Year
+  if (thisYearBtn) {
+    thisYearBtn.addEventListener('click', () => {
+      dateFilterMode = 'thisYear';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('thisYear');
+      updateCharts();
+    });
+  }
+
+  // Apply Custom Date Range
+  if (applyBtn && dateFromInput && dateToInput) {
+    applyBtn.addEventListener('click', () => {
+      const from = dateFromInput.value;
+      const to = dateToInput.value;
+      
+      if (from || to) {
+        dateFilterMode = 'custom';
+        customDateFrom = from || null;
+        customDateTo = to || null;
+        updateButtonStyles(null); // Deselect all quick filters
+        updateCharts();
+      }
     });
   }
 }
@@ -142,6 +284,8 @@ function initializeCustomSelect() {
       const isDark = htmlEl.classList.toggle('dark');
       localStorage.setItem('bw-dark', isDark ? '1' : '0');
       dmToggle.textContent = isDark ? '☀️' : '🌙';
+      // Update charts with new color scheme
+      updateCharts();
     });
   }
 }
@@ -354,6 +498,43 @@ function setStatus(msg) {
 let lineChartInstance = null;
 let pieChartInstance = null;
 
+// Filter expenses by date range
+function filterExpensesByDate(expenses) {
+  if (dateFilterMode === 'allTime') {
+    return expenses;
+  }
+
+  const now = new Date();
+  let startDate, endDate;
+
+  if (dateFilterMode === 'thisMonth') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  } else if (dateFilterMode === 'lastMonth') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  } else if (dateFilterMode === 'thisYear') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+  } else if (dateFilterMode === 'custom') {
+    if (customDateFrom) {
+      startDate = new Date(customDateFrom);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    if (customDateTo) {
+      endDate = new Date(customDateTo);
+      endDate.setHours(23, 59, 59, 999);
+    }
+  }
+
+  return expenses.filter(e => {
+    const expenseDate = new Date(e.createdAt);
+    if (startDate && expenseDate < startDate) return false;
+    if (endDate && expenseDate > endDate) return false;
+    return true;
+  });
+}
+
 // Aggregate expenses based on current filter
 function aggregateExpenses(expenses, filterType) {
   const aggregated = {};
@@ -401,7 +582,13 @@ async function drawLineChart() {
   try {
     const res = await fetch(API_BASE);
     if (!res.ok) throw new Error('Failed to fetch expenses');
-    const expenses = await res.json();
+    let expenses = await res.json();
+
+    // Update expense dates for calendar highlighting
+    updateExpenseDates(expenses);
+
+    // Apply date filter
+    expenses = filterExpensesByDate(expenses);
 
     if (expenses.length === 0) {
       const ctx = document.getElementById("lineChart");
@@ -448,6 +635,13 @@ async function drawLineChart() {
     else if (currentFilter === 'monthly') chartTitle = 'Monthly Expense Trend';
     else if (currentFilter === 'yearly') chartTitle = 'Yearly Expense Trend';
 
+    // Check if dark mode is enabled
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const textColor = isDarkMode ? '#E5E7EB' : '#111827';
+    const gridColor = isDarkMode ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+    const lineColor = isDarkMode ? '#818CF8' : '#4F46E5'; // Lighter indigo for dark mode
+    const pointBorderColor = isDarkMode ? '#FFFFFF' : '#4F46E5'; // White markers in dark mode
+
     lineChartInstance = new Chart(ctx, {
       type: "line",
       data: {
@@ -456,24 +650,29 @@ async function drawLineChart() {
           {
             label: `${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)} Spending (₹)`,
             data: amounts,
-            borderColor: "#4F46E5",
-            backgroundColor: "rgba(79, 70, 229, 0.1)",
+            borderColor: lineColor,
+            backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.15)' : 'rgba(79, 70, 229, 0.1)',
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: pointBorderColor,
+            pointBorderColor: pointBorderColor,
+            pointBorderWidth: 2,
+            pointHoverBackgroundColor: pointBorderColor,
+            pointHoverBorderColor: pointBorderColor,
           },
         ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           title: {
             display: true,
             text: chartTitle,
             font: { size: 16, weight: 'bold' },
-            color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827'
+            color: textColor
           },
           tooltip: {
             mode: "index",
@@ -485,10 +684,7 @@ async function drawLineChart() {
             }
           },
           legend: {
-            display: true,
-            labels: {
-              color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827'
-            }
+            display: false
           }
         },
         interaction: {
@@ -500,17 +696,19 @@ async function drawLineChart() {
             beginAtZero: !useLogScale,
             ticks: {
               callback: function(value) {
-                return '₹' + value;
+                return '₹' + value.toLocaleString('en-IN');
               },
-              color: '#6B7280'
+              color: textColor,
+              maxTicksLimit: useLogScale ? 10 : 8,
+              autoSkip: true
             },
             grid: {
-              color: 'rgba(0, 0, 0, 0.05)'
+              color: gridColor
             }
           },
           x: {
             ticks: {
-              color: '#6B7280',
+              color: textColor,
               maxRotation: 45,
               minRotation: 45
             },
@@ -526,12 +724,73 @@ async function drawLineChart() {
   }
 }
 
+// Category display names and icons mapping
+function getCategoryDisplay(categoryValue) {
+  const categoryMap = {
+    'dining': { label: 'Dining Out', icon: '<i class="fas fa-utensils"></i>' },
+    'groceries': { label: 'Groceries', icon: '<i class="fas fa-shopping-basket"></i>' },
+    'fruits': { label: 'Fruits', icon: '<i class="fas fa-apple-alt"></i>' },
+    'snacks': { label: 'Snacks & Coffee', icon: '<i class="fas fa-coffee"></i>' },
+    'liquor': { label: 'Liquor & Spirits', icon: '<i class="fas fa-wine-glass-alt"></i>' },
+    'juices': { label: 'Juices', icon: '<i class="fas fa-glass-whiskey"></i>' },
+    'beverages': { label: 'Non-Alcoholic Beverages', icon: '<i class="fas fa-mug-hot"></i>' },
+    'movies': { label: 'Movies', icon: '<i class="fas fa-film"></i>' },
+    'membership': { label: 'Membership', icon: '<i class="fas fa-id-card"></i>' },
+    'music': { label: 'Music', icon: '<i class="fas fa-music"></i>' },
+    'hobbies': { label: 'Hobbies', icon: '<i class="fas fa-palette"></i>' },
+    'sports': { label: 'Sports & Recreation', icon: '<i class="fas fa-basketball-ball"></i>' },
+    'rent': { label: 'Rent & Mortgage', icon: '<i class="fas fa-home"></i>' },
+    'electronics': { label: 'Electronics', icon: '<i class="fas fa-tv"></i>' },
+    'furniture': { label: 'Furniture & Decor', icon: '<i class="fas fa-couch"></i>' },
+    'maintenance': { label: 'Maintenance & Repairs', icon: '<i class="fas fa-tools"></i>' },
+    'supplies': { label: 'Household Supplies', icon: '<i class="fas fa-box-open"></i>' },
+    'pets': { label: 'Pets', icon: '<i class="fas fa-paw"></i>' },
+    'services': { label: 'Services', icon: '<i class="fas fa-concierge-bell"></i>' },
+    'childcare': { label: 'Childcare', icon: '<i class="fas fa-baby"></i>' },
+    'clothing': { label: 'Clothing & Accessories', icon: '<i class="fas fa-tshirt"></i>' },
+    'health': { label: 'Healthcare', icon: '<i class="fas fa-heartbeat"></i>' },
+    'personal': { label: 'Personal Care', icon: '<i class="fas fa-shower"></i>' },
+    'education': { label: 'Education', icon: '<i class="fas fa-graduation-cap"></i>' },
+    'taxes': { label: 'Taxes', icon: '<i class="fas fa-receipt"></i>' },
+    'insurance': { label: 'Insurance', icon: '<i class="fas fa-shield-alt"></i>' },
+    'fuel': { label: 'Fuel', icon: '<i class="fas fa-gas-pump"></i>' },
+    'parking': { label: 'Parking', icon: '<i class="fas fa-parking"></i>' },
+    'cab': { label: 'Cab', icon: '<i class="fas fa-taxi"></i>' },
+    'flight': { label: 'Flight', icon: '<i class="fas fa-plane"></i>' },
+    'bicycle': { label: 'Bicycle', icon: '<i class="fas fa-bicycle"></i>' },
+    'bus': { label: 'Bus', icon: '<i class="fas fa-bus"></i>' },
+    'train': { label: 'Train', icon: '<i class="fas fa-train"></i>' },
+    'electricity': { label: 'Electricity', icon: '<i class="fas fa-bolt"></i>' },
+    'water': { label: 'Water', icon: '<i class="fas fa-tint"></i>' },
+    'cleaning': { label: 'Cleaning', icon: '<i class="fas fa-broom"></i>' },
+    'gas': { label: 'Gas', icon: '<i class="fas fa-burn"></i>' },
+    'internet': { label: 'Internet & Cable', icon: '<i class="fas fa-wifi"></i>' },
+    'phone': { label: 'Phone', icon: '<i class="fas fa-phone"></i>' },
+    'uncategorized': { label: 'Uncategorized', icon: '<i class="fas fa-question-circle"></i>' }
+  };
+  
+  // If category exists in map, return it; otherwise capitalize first letter
+  if (categoryMap[categoryValue]) {
+    return categoryMap[categoryValue];
+  }
+  
+  // Fallback: capitalize first letter
+  const capitalized = categoryValue.charAt(0).toUpperCase() + categoryValue.slice(1);
+  return { label: capitalized, icon: '<i class="fas fa-circle"></i>' };
+}
+
 // Draw pie chart - Category breakdown
 async function drawPieChart() {
   try {
     const res = await fetch(API_BASE);
     if (!res.ok) throw new Error('Failed to fetch expenses');
-    const expenses = await res.json();
+    let expenses = await res.json();
+
+    // Update expense dates for calendar highlighting
+    updateExpenseDates(expenses);
+
+    // Apply date filter
+    expenses = filterExpensesByDate(expenses);
 
     if (expenses.length === 0) {
       // Show empty state
@@ -550,8 +809,14 @@ async function drawPieChart() {
       categoryMap[cat] = (categoryMap[cat] || 0) + parseFloat(e.amount || 0);
     });
 
-    const labels = Object.keys(categoryMap);
+    const categoryKeys = Object.keys(categoryMap);
     const data = Object.values(categoryMap);
+    
+    // Format labels - just use the proper names without icons since Chart.js doesn't support HTML
+    const labels = categoryKeys.map(key => {
+      const display = getCategoryDisplay(key);
+      return display.label;
+    });
     
     // Generate colors dynamically
     const colors = [
@@ -568,6 +833,10 @@ async function drawPieChart() {
       pieChartInstance.destroy();
     }
 
+    // Check if dark mode is enabled
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const textColor = isDarkMode ? '#E5E7EB' : '#111827';
+
     pieChartInstance = new Chart(ctx, {
       type: "pie",
       data: {
@@ -577,19 +846,19 @@ async function drawPieChart() {
             data: data,
             backgroundColor: colors.slice(0, labels.length),
             borderWidth: 2,
-            borderColor: '#ffffff'
+            borderColor: isDarkMode ? '#374151' : '#ffffff'
           },
         ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           title: {
             display: true,
             text: 'Expenses by Category',
             font: { size: 16, weight: 'bold' },
-            color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827'
+            color: textColor
           },
           tooltip: {
             callbacks: {
@@ -598,21 +867,59 @@ async function drawPieChart() {
                 const value = context.parsed || 0;
                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                 const percentage = ((value / total) * 100).toFixed(1);
-                return `${label}: ₹${value.toFixed(2)} (${percentage}%)`;
+                return `${label}: ₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })} (${percentage}%)`;
               }
             }
           },
           legend: {
-            position: "right",
-            labels: {
-              color: getComputedStyle(document.documentElement).getPropertyValue('color') || '#111827',
-              padding: 15,
-              font: { size: 12 }
-            }
+            display: false  // Hide default legend, we'll create custom HTML legend
           }
         },
       },
     });
+
+    // Create custom HTML legend with Font Awesome icons
+    const legendContainer = document.getElementById('pieLegend');
+    if (legendContainer) {
+      const total = data.reduce((a, b) => a + b, 0);
+      legendContainer.innerHTML = categoryKeys.map((key, index) => {
+        const display = getCategoryDisplay(key);
+        const value = data[index];
+        const percentage = ((value / total) * 100).toFixed(1);
+        const color = colors[index % colors.length];
+        
+        return `
+          <div class="legend-item flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors" data-index="${index}">
+            <div style="width: 16px; height: 16px; background-color: ${color}; border-radius: 3px; flex-shrink: 0;"></div>
+            <span class="text-gray-700 dark:text-gray-300 text-sm">${display.icon} ${display.label}</span>
+            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">${percentage}%</span>
+          </div>
+        `;
+      }).join('');
+
+      // Add click handlers to legend items to toggle visibility
+      legendContainer.querySelectorAll('.legend-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+          const meta = pieChartInstance.getDatasetMeta(0);
+          const segment = meta.data[index];
+          
+          // Toggle visibility
+          segment.hidden = !segment.hidden;
+          
+          // Update legend item opacity
+          if (segment.hidden) {
+            item.style.opacity = '0.3';
+            item.style.textDecoration = 'line-through';
+          } else {
+            item.style.opacity = '1';
+            item.style.textDecoration = 'none';
+          }
+          
+          // Update the chart
+          pieChartInstance.update();
+        });
+      });
+    }
   } catch (err) {
     console.error('Error drawing pie chart:', err);
   }
@@ -628,6 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeCustomSelect();
   initializeChartFilters();
   initializeChartOptions();
+  initializeDateFilters();
   loadExpenses();
   updateCharts();
 });
