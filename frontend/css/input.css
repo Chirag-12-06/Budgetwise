@@ -26,8 +26,9 @@
   }
   
   input[type="date"].has-expenses {
-    background-image: linear-gradient(45deg, transparent 40%, rgba(79, 70, 229, 0.1) 40%, rgba(79, 70, 229, 0.1) 60%, transparent 60%);
-    background-size: 8px 8px;
-    border-color: #4F46E5;
+    background-image: linear-gradient(45deg, transparent 40%, rgba(79, 70, 229, 0.1) 40%, rgba(79, 70, 229, 0.1) 60%, transparent 60%) !important;
+    background-size: 8px 8px !important;
+    border-color: #4F46E5 !important;
+    border-width: 2px !important;
   }
 }

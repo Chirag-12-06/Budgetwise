@@ -1,4 +1,5 @@
 const API_BASE = 'http://localhost:5000/api/expenses';
+const ML_API = 'http://localhost:5001/api';
 let editingId = null;
 let currentFilter = 'daily'; // Track current chart filter
 let excludeOutliers = false;
@@ -7,19 +8,66 @@ let dateFilterMode = 'allTime'; // 'allTime', 'thisMonth', 'lastMonth', 'thisYea
 let customDateFrom = null;
 let customDateTo = null;
 let expenseDates = new Set(); // Track dates with expenses
+let flatpickrInstances = {}; // Store flatpickr instances
+let isModelTrained = false; // Track if ML model is trained
 
 // Detect outliers using IQR (Interquartile Range) method
 function detectOutliers(data) {
-  if (data.length === 0) return { outliers: [], threshold: null };
+  if (data.length < 2) return { outliers: [], threshold: null, hasOutliers: false };
   
+  // For small datasets (2-3 points), use a simpler approach
+  if (data.length <= 3) {
+    const sorted = [...data].sort((a, b) => a - b);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    const range = max - min;
+    
+    // If the max is more than 10x the min, consider it an outlier
+    if (max / min > 10) {
+      console.log('Small dataset outlier detected:', { min, max, ratio: max / min });
+      return {
+        outliers: [max],
+        upperBound: min * 10,
+        lowerBound: 0,
+        hasOutliers: true
+      };
+    }
+    
+    // If range is very large relative to minimum value, flag it
+    if (range > min * 5) {
+      console.log('Large range detected:', { min, max, range });
+      return {
+        outliers: [max],
+        upperBound: min * 5,
+        lowerBound: 0,
+        hasOutliers: true
+      };
+    }
+    
+    return { outliers: [], upperBound: max, lowerBound: min, hasOutliers: false };
+  }
+  
+  // Standard IQR method for larger datasets
   const sorted = [...data].sort((a, b) => a - b);
   const q1 = sorted[Math.floor(sorted.length * 0.25)];
   const q3 = sorted[Math.floor(sorted.length * 0.75)];
   const iqr = q3 - q1;
+  
+  // Use 1.5 * IQR for outlier detection (standard method)
   const lowerBound = q1 - 1.5 * iqr;
   const upperBound = q3 + 1.5 * iqr;
   
   const outliers = data.filter(val => val < lowerBound || val > upperBound);
+  
+  console.log('Outlier detection:', {
+    q1,
+    q3,
+    iqr,
+    lowerBound,
+    upperBound,
+    outliers,
+    dataLength: data.length
+  });
   
   return {
     outliers,
@@ -50,7 +98,6 @@ function showOutlierWarning(outlierInfo, aggregated) {
 
 // Update expense dates from all expenses
 function updateExpenseDates(expenses) {
-  console.log('updateExpenseDates called with', expenses.length, 'expenses');
   expenseDates.clear();
   expenses.forEach(e => {
     if (e.createdAt) {
@@ -58,47 +105,98 @@ function updateExpenseDates(expenses) {
       expenseDates.add(date);
     }
   });
-  console.log('expenseDates Set has', expenseDates.size, 'unique dates');
   
-  // Update calendar input styling
-  highlightExpenseDates();
+  console.log('Updated expense dates:', Array.from(expenseDates).sort());
+  console.log('Total unique dates with expenses:', expenseDates.size);
+
+  // Refresh all flatpickr instances to update highlighted dates
+  Object.values(flatpickrInstances).forEach(fp => {
+    if (fp && fp.redraw) {
+      fp.redraw();
+    }
+  });
 }
 
-// Highlight calendar inputs if they contain dates with expenses
-function highlightExpenseDates() {
-  console.log('highlightExpenseDates called, expenseDates.size:', expenseDates.size);
+// Initialize flatpickr date pickers with expense date highlighting
+function initializeDatePickers() {
   const dateInput = document.getElementById('date');
   const dateFromInput = document.getElementById('dateFrom');
   const dateToInput = document.getElementById('dateTo');
-  
-  console.log('Date inputs found:', {
-    dateInput: !!dateInput,
-    dateFromInput: !!dateFromInput,
-    dateToInput: !!dateToInput
-  });
-  
-  // Add visual indicator that there are expense dates
-  if (expenseDates.size > 0) {
-    console.log('Adding has-expenses class to inputs');
-    if (dateInput) dateInput.classList.add('has-expenses');
-    if (dateFromInput) dateFromInput.classList.add('has-expenses');
-    if (dateToInput) dateToInput.classList.add('has-expenses');
-  } else {
-    console.log('Removing has-expenses class from inputs');
-    if (dateInput) dateInput.classList.remove('has-expenses');
-    if (dateFromInput) dateFromInput.classList.remove('has-expenses');
-    if (dateToInput) dateToInput.classList.remove('has-expenses');
+
+  // Custom CSS for highlighting dates with expenses
+  const style = document.createElement('style');
+  style.textContent = `
+    .flatpickr-day.has-expense {
+      background: #4F46E5 !important;
+      color: white !important;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+    .flatpickr-day.has-expense:hover {
+      background: #4338CA !important;
+      color: white !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Main date input
+  if (dateInput) {
+    flatpickrInstances.date = flatpickr(dateInput, {
+      dateFormat: 'Y-m-d',
+      onDayCreate: function(dObj, dStr, fp, dayElem) {
+        const date = dayElem.dateObj;
+        // Use local date to avoid timezone issues
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        if (expenseDates.has(dateStr)) {
+          dayElem.classList.add('has-expense');
+          console.log('Highlighting date:', dateStr);
+        }
+      },
+      onReady: function() {
+        console.log('Main date picker ready, expense dates:', expenseDates.size);
+      }
+    });
   }
-  
-  // Add tooltip to show expense dates info
-  const tooltipText = expenseDates.size > 0 
-    ? `${expenseDates.size} date${expenseDates.size > 1 ? 's' : ''} with expenses`
-    : 'No expenses recorded';
-  
-  if (dateInput) dateInput.title = tooltipText;
-  if (dateFromInput) dateFromInput.title = `Filter: ${tooltipText}`;
-  if (dateToInput) dateToInput.title = `Filter: ${tooltipText}`;
+
+  // Filter date inputs
+  if (dateFromInput) {
+    flatpickrInstances.dateFrom = flatpickr(dateFromInput, {
+      dateFormat: 'Y-m-d',
+      onDayCreate: function(dObj, dStr, fp, dayElem) {
+        const date = dayElem.dateObj;
+        // Use local date to avoid timezone issues
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        if (expenseDates.has(dateStr)) {
+          dayElem.classList.add('has-expense');
+        }
+      }
+    });
+  }
+
+  if (dateToInput) {
+    flatpickrInstances.dateTo = flatpickr(dateToInput, {
+      dateFormat: 'Y-m-d',
+      onDayCreate: function(dObj, dStr, fp, dayElem) {
+        const date = dayElem.dateObj;
+        // Use local date to avoid timezone issues
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        if (expenseDates.has(dateStr)) {
+          dayElem.classList.add('has-expense');
+        }
+      }
+    });
+  }
 }
+
 
 // Initialize chart options
 function initializeChartOptions() {
@@ -324,6 +422,9 @@ async function addExpense() {
     document.getElementById('categorySelect').innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
     await loadExpenses();
     await updateCharts();
+    
+    // Retrain model in background after adding expense
+    trainModel();
   } catch (err) {
     setStatus('Error: ' + err.message);
   }
@@ -642,6 +743,11 @@ async function drawLineChart() {
     const lineColor = isDarkMode ? '#818CF8' : '#4F46E5'; // Lighter indigo for dark mode
     const pointBorderColor = isDarkMode ? '#FFFFFF' : '#4F46E5'; // White markers in dark mode
 
+    // Calculate max value for proper scaling in log mode
+    const maxAmount = Math.max(...amounts);
+    // const suggestedMaxLog = useLogScale ? Math.pow(10, Math.ceil(Math.log10(maxAmount))) : undefined;
+    const suggestedMaxLog = useLogScale ? maxAmount : undefined;
+
     lineChartInstance = new Chart(ctx, {
       type: "line",
       data: {
@@ -694,19 +800,40 @@ async function drawLineChart() {
           y: {
             type: useLogScale ? 'logarithmic' : 'linear',
             beginAtZero: !useLogScale,
+            ...(useLogScale && {
+              afterBuildTicks: (scale) => {
+                // Ensure max value is included as a tick
+                const maxVal = Math.max(...amounts);
+                if (!scale.ticks.some(t => t.value === maxVal)) {
+                  scale.ticks.push({ value: maxVal });
+                  // Sort ticks by value
+                  scale.ticks.sort((a, b) => a.value - b.value);
+                  // Limit to 10 ticks
+                  if (scale.ticks.length > 10) {
+                    // Keep first, last, and evenly distribute the rest
+                    const first = scale.ticks[0];
+                    const last = scale.ticks[scale.ticks.length - 1];
+                    const step = Math.floor((scale.ticks.length - 2) / 8);
+                    const middle = scale.ticks.slice(1, -1).filter((_, i) => i % step === 0).slice(0, 8);
+                    scale.ticks = [first, ...middle, last];
+                  }
+                }
+              }
+            }),
             ticks: {
               callback: function(value) {
                 return '₹' + value.toLocaleString('en-IN');
               },
               color: textColor,
-              maxTicksLimit: useLogScale ? 10 : 8,
-              autoSkip: true
+              autoSkip: false,
+              maxTicksLimit: useLogScale ? 10 : 8
             },
             grid: {
               color: gridColor
             }
           },
           x: {
+            offset: true, // Offset labels to align with grid lines centered under points
             ticks: {
               color: textColor,
               maxRotation: 45,
@@ -785,9 +912,6 @@ async function drawPieChart() {
     const res = await fetch(API_BASE);
     if (!res.ok) throw new Error('Failed to fetch expenses');
     let expenses = await res.json();
-
-    // Update expense dates for calendar highlighting
-    updateExpenseDates(expenses);
 
     // Apply date filter
     expenses = filterExpensesByDate(expenses);
@@ -931,11 +1055,117 @@ async function updateCharts() {
   await drawPieChart();
 }
 
+// Train ML model with existing expenses
+async function trainModel() {
+  try {
+    console.log('🤖 Starting model training...');
+    const response = await fetch('http://localhost:5000/api/train-model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Training failed');
+    }
+    
+    const result = await response.json();
+    isModelTrained = true;
+    console.log(`✅ Model trained! Accuracy: ${(result.accuracy * 100).toFixed(1)}%, Samples: ${result.samples}`);
+    return true;
+  } catch (err) {
+    console.log('⚠️ Model training skipped:', err.message);
+    return false;
+  }
+}
+
+// Predict category based on title and amount
+async function predictCategory(title, amount) {
+  if (!isModelTrained) {
+    console.log('⚠️ Model not trained yet');
+    return null;
+  }
+  
+  if (!title) return null;
+  
+  try {
+    console.log('🔮 Predicting category for:', title, amount);
+    const response = await fetch(`${ML_API}/predict-category`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, amount: parseFloat(amount) || 0 })
+    });
+    
+    if (!response.ok) return null;
+    
+    const result = await response.json();
+    console.log('📊 Prediction result:', result);
+    
+    // Only use prediction if confidence is high enough
+    if (result.confidence >= 0.6) {
+      return result.category;
+    }
+  } catch (err) {
+    console.error('❌ Prediction error:', err);
+  }
+  
+  return null;
+}
+
+// Setup auto-prediction on title input
+function setupAutoPrediction() {
+  const titleInput = document.getElementById('title');
+  const amountInput = document.getElementById('amount');
+  const categoryInput = document.getElementById('category');
+  const categorySelect = document.getElementById('categorySelect');
+  
+  if (!titleInput || !categoryInput || !categorySelect) return;
+  
+  let debounceTimer;
+  
+  const handlePrediction = async () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      const title = titleInput.value.trim();
+      const amount = amountInput.value;
+      
+      if (title.length < 3) return; // Need at least 3 characters
+      
+      const predicted = await predictCategory(title, amount);
+      
+      if (predicted) {
+        // Update the category dropdown
+        categoryInput.value = predicted;
+        const categoryOption = document.querySelector(`[data-value="${predicted}"]`);
+        if (categoryOption) {
+          const icon = categoryOption.querySelector('i') ? categoryOption.querySelector('i').outerHTML + ' ' : '';
+          const label = categoryOption.textContent.trim();
+          categorySelect.innerHTML = `${icon}${label} <span class="text-xs text-indigo-400 ml-1">✨</span>`;
+        }
+      }
+    }, 500); // Wait 500ms after user stops typing
+  };
+  
+  titleInput.addEventListener('input', handlePrediction);
+  amountInput.addEventListener('input', handlePrediction);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 App loaded - ML features enabled');
   initializeCustomSelect();
   initializeChartFilters();
   initializeChartOptions();
   initializeDateFilters();
+  initializeDatePickers(); // Initialize flatpickr date pickers first
   loadExpenses();
-  updateCharts();
+  updateCharts(); // This will call updateExpenseDates which will refresh the calendars
+  
+  // Auto-train model and setup prediction
+  trainModel().then(() => {
+    console.log('Training completed. Model trained:', isModelTrained);
+    if (isModelTrained) {
+      setupAutoPrediction();
+      console.log('✅ Auto-prediction is now active!');
+    }
+  });
 });
