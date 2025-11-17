@@ -53,7 +53,7 @@ app.post("/api/train-model", async (req, res) => {
     
     // Send to ML service for training
     console.log('🚀 Sending to ML service...');
-    const mlResponse = await fetch('http://localhost:5001/api/train-model', {
+    const mlResponse = await fetch('http://127.0.0.1:5001/api/train-model', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ expenses })

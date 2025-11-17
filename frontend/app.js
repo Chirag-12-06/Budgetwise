@@ -1,5 +1,5 @@
 const API_BASE = 'http://localhost:5000/api/expenses';
-const ML_API = 'http://localhost:5001/api';
+const ML_API = 'http://127.0.0.1:5001/api';
 let editingId = null;
 let currentFilter = 'daily'; // Track current chart filter
 let excludeOutliers = false;
@@ -678,6 +678,50 @@ function formatLabel(key, filterType) {
   return key;
 }
 
+// Update total spending display
+function updateTotalSpending(expenses) {
+  const displayDiv = document.getElementById('totalSpendingDisplay');
+  const amountSpan = document.getElementById('totalSpendingAmount');
+  const periodSpan = document.getElementById('totalSpendingPeriod');
+  
+  if (!displayDiv || !amountSpan || !periodSpan) return;
+  
+  // Calculate total
+  const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+  
+  // Show/hide based on whether a filter is active
+  if (dateFilterMode !== 'allTime' || expenses.length > 0) {
+    displayDiv.classList.remove('hidden');
+    amountSpan.textContent = `₹${total.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    
+    // Set period text
+    let periodText = '';
+    if (dateFilterMode === 'allTime') {
+      periodText = `All time (${expenses.length} expenses)`;
+    } else if (dateFilterMode === 'thisMonth') {
+      const now = new Date();
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      periodText = `${monthNames[now.getMonth()]} ${now.getFullYear()} (${expenses.length} expenses)`;
+    } else if (dateFilterMode === 'lastMonth') {
+      const now = new Date();
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      periodText = `${monthNames[lastMonth.getMonth()]} ${lastMonth.getFullYear()} (${expenses.length} expenses)`;
+    } else if (dateFilterMode === 'thisYear') {
+      const now = new Date();
+      periodText = `${now.getFullYear()} (${expenses.length} expenses)`;
+    } else if (dateFilterMode === 'custom') {
+      const parts = [];
+      if (customDateFrom) parts.push(`from ${customDateFrom}`);
+      if (customDateTo) parts.push(`to ${customDateTo}`);
+      periodText = `${parts.join(' ')} (${expenses.length} expenses)`;
+    }
+    periodSpan.textContent = periodText;
+  } else {
+    displayDiv.classList.add('hidden');
+  }
+}
+
 // Draw line chart with aggregation
 async function drawLineChart() {
   try {
@@ -697,8 +741,12 @@ async function drawLineChart() {
         if (lineChartInstance) lineChartInstance.destroy();
         lineChartInstance = null;
       }
+      updateTotalSpending(expenses);
       return;
     }
+
+    // Update total spending display
+    updateTotalSpending(expenses);
 
     // Aggregate expenses based on current filter
     const aggregated = aggregateExpenses(expenses, currentFilter);
@@ -886,6 +934,7 @@ function getCategoryDisplay(categoryValue) {
     'flight': { label: 'Flight', icon: '<i class="fas fa-plane"></i>' },
     'bicycle': { label: 'Bicycle', icon: '<i class="fas fa-bicycle"></i>' },
     'bus': { label: 'Bus', icon: '<i class="fas fa-bus"></i>' },
+    'metro': { label: 'Metro', icon: '<i class="fas fa-subway"></i>' },
     'train': { label: 'Train', icon: '<i class="fas fa-train"></i>' },
     'electricity': { label: 'Electricity', icon: '<i class="fas fa-bolt"></i>' },
     'water': { label: 'Water', icon: '<i class="fas fa-tint"></i>' },
@@ -1122,6 +1171,7 @@ function setupAutoPrediction() {
   if (!titleInput || !categoryInput || !categorySelect) return;
   
   let debounceTimer;
+  let lastPredictedCategory = null;
   
   const handlePrediction = async () => {
     clearTimeout(debounceTimer);
@@ -1129,19 +1179,33 @@ function setupAutoPrediction() {
       const title = titleInput.value.trim();
       const amount = amountInput.value;
       
-      if (title.length < 3) return; // Need at least 3 characters
+      if (title.length < 3) {
+        // Reset category if title is too short
+        if (lastPredictedCategory) {
+          categoryInput.value = '';
+          categorySelect.innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
+          lastPredictedCategory = null;
+        }
+        return;
+      }
       
       const predicted = await predictCategory(title, amount);
       
       if (predicted) {
         // Update the category dropdown
         categoryInput.value = predicted;
+        lastPredictedCategory = predicted;
         const categoryOption = document.querySelector(`[data-value="${predicted}"]`);
         if (categoryOption) {
           const icon = categoryOption.querySelector('i') ? categoryOption.querySelector('i').outerHTML + ' ' : '';
           const label = categoryOption.textContent.trim();
           categorySelect.innerHTML = `${icon}${label} <span class="text-xs text-indigo-400 ml-1">✨</span>`;
         }
+      } else if (lastPredictedCategory) {
+        // Clear previous prediction if no new prediction
+        categoryInput.value = '';
+        categorySelect.innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
+        lastPredictedCategory = null;
       }
     }, 500); // Wait 500ms after user stops typing
   };

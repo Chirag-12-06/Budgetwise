@@ -84,6 +84,7 @@
                 <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="flight"><i class="fas fa-plane mr-3 w-4"></i> Flight</div>
                 <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="bicycle"><i class="fas fa-bicycle mr-3 w-4"></i> Bicycle</div>
                 <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="bus"><i class="fas fa-bus mr-3 w-4"></i> Bus</div>
+                <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="metro"><i class="fas fa-subway mr-3 w-4"></i> Metro</div>
                 <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="train"><i class="fas fa-train mr-3 w-4"></i> Train</div>
             </div>
 
@@ -200,10 +201,27 @@
             </div>
           </div>
         </div>
+
+        <!-- Total Spending Section -->
+        <div id="totalSpendingDisplay" class="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 rounded-lg p-6 shadow-lg hidden mx-auto" style="max-width: 80%;">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-medium text-indigo-100 mb-1">💰 Total Spending</h3>
+              <p class="text-xs text-indigo-200" id="totalSpendingPeriod"></p>
+            </div>
+            <div class="text-right">
+              <span id="totalSpendingAmount" class="text-4xl font-bold text-white">₹0</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Outlier Warning -->
-      <div id="outlierWarning" class="hidden bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        </div>
+      </div>
+
+      <!-- Outlier Warning -->
+      <div id="outlierWarning" class="hidden bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mx-auto" style="max-width: 80%;">
         <div class="flex items-start gap-3">
           <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-500 mt-0.5"></i>
           <div class="flex-1">
@@ -215,14 +233,14 @@
       </div>
 
       <!-- Line Chart -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-md">
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-md mx-auto" style="max-width: 80%;">
         <div style="height: 400px;">
           <canvas id="lineChart"></canvas>
         </div>
       </div>
 
       <!-- Pie Chart -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-md">
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-md mx-auto" style="max-width: 80%;">
         <div class="flex flex-col lg:flex-row gap-4">
           <div style="flex: 1; min-width: 0; height: 400px;">
             <canvas id="pieChart"></canvas>
