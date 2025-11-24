@@ -1,35 +1,17 @@
-import numpy as np
-import pickle
-import os
-import json
-from difflib import SequenceMatcher
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from googletrans import Translator
-
-class CategoryPredictor:
-    def __init__(self, model_path='model.pkl'):
-        self.model_path = model_path
-        self.model = None
-        self.translator = Translator()
-        self.load_model()
-        
-        # Load category mappings from JSON file
-        with open('category_keywords.json', 'r') as f:
-            self.keyword_map = json.load(f)
-        
-        # Load regional keywords
-        try:
-            with open('regional_keywords.json', 'r') as f:
-                regional_data = json.load(f)
-                # Flatten all regional keywords into main map
-                for lang, keywords in regional_data.items():
-                    self.keyword_map.update(keywords)
-        except:
-            pass
+            'gst': 'taxes',
+            
+            # Pets
+            'pet': 'pets',
+            'dog food': 'pets',
+            'cat food': 'pets',
+            'vet': 'pets',
+            'veterinary': 'pets',
+            
+            # General Shopping
+            'amazon': 'uncategorized',
+            'flipkart': 'uncategorized',
+            'shopping': 'uncategorized',
+        }
     
     def load_model(self):
         """Load the trained model if it exists"""
@@ -53,82 +35,17 @@ class CategoryPredictor:
         except Exception as e:
             print(f"Error saving model: {e}")
     
-    def fuzzy_match(self, word1, word2, threshold=0.8):
-        """Check if two words are similar using fuzzy matching"""
-        return SequenceMatcher(None, word1, word2).ratio() >= threshold
-    
-    def translate_to_english(self, title):
-        """Translate title to English if it's in another language"""
-        try:
-            # Detect and translate
-            result = self.translator.translate(title, dest='en')
-            if result.src != 'en':
-                print(f"Translation: '{title}' ({result.src}) → '{result.text}' (en)")
-                return result.text
-            return title
-        except Exception as e:
-            print(f"Translation error: {e}")
-            return title
-    
     def predict_by_keywords(self, title):
-        """Predict category based on keywords with fuzzy matching"""
-        # First translate to English if needed
-        title_translated = self.translate_to_english(title)
-        title_lower = title_translated.lower()
-        title_words = title_lower.split()
-        
-        # First try exact match with whole words or as substring
+        """Predict category based on keywords"""
+        title_lower = title.lower()
         for keyword, category in self.keyword_map.items():
-            # Check if keyword is a complete word match or surrounded by spaces
-            if f' {keyword} ' in f' {title_lower} ' or title_lower == keyword:
-                return category, 0.85  # High confidence for exact matches
-        
-        # Try fuzzy matching for spelling mistakes
-        best_match = None
-        best_ratio = 0.75  # Minimum similarity threshold
-        best_keyword = None
-        
-        for keyword, category in self.keyword_map.items():
-            keyword_words = keyword.split()
-            
-            # Check each word in title against keyword
-            for title_word in title_words:
-                # Skip very short words to avoid false matches
-                if len(title_word) < 3:
-                    continue
-                    
-                for keyword_word in keyword_words:
-                    # Only compare if lengths are similar (within 1 character for short words)
-                    len_diff = abs(len(title_word) - len(keyword_word))
-                    if len(keyword_word) <= 4 and len_diff > 1:
-                        continue
-                    if len(keyword_word) > 4 and len_diff > 2:
-                        continue
-                    
-                    ratio = SequenceMatcher(None, title_word, keyword_word).ratio()
-                    
-                    # Heavily penalize length mismatches
-                    length_penalty = 1 - (len_diff * 0.2)
-                    
-                    # Prioritize exact length matches and longer words
-                    score = ratio * length_penalty * min(len(keyword_word), 10)
-                    
-                    if ratio >= 0.75 and score > best_ratio:
-                        best_ratio = score
-                        best_match = category
-                        best_keyword = keyword_word
-        
-        if best_match:
-            # Lower confidence for fuzzy matches
-            confidence = 0.75 if best_ratio >= 0.85 else 0.65
-            print(f"Fuzzy match: '{title_lower}' → '{best_keyword}' → {best_match} (ratio: {best_ratio:.2f})")
-            return best_match, confidence
-        
+            if keyword in title_lower:
+                return category, 0.85  # High confidence for keyword matches
         return None, 0.0
     
     def predict(self, title, amount=None):
         """Predict category for a given expense title and amount"""
-        # First try keyword-based prediction (with fuzzy matching)
+        # First try keyword-based prediction
         keyword_category, keyword_confidence = self.predict_by_keywords(title)
         if keyword_category:
             return keyword_category, keyword_confidence
