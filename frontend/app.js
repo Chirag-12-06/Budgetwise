@@ -911,7 +911,6 @@ function getCategoryDisplay(categoryValue) {
     'beverages': { label: 'Non-Alcoholic Beverages', icon: '<i class="fas fa-mug-hot"></i>' },
     'movies': { label: 'Movies', icon: '<i class="fas fa-film"></i>' },
     'membership': { label: 'Membership', icon: '<i class="fas fa-id-card"></i>' },
-    'music': { label: 'Music', icon: '<i class="fas fa-music"></i>' },
     'hobbies': { label: 'Hobbies', icon: '<i class="fas fa-palette"></i>' },
     'sports': { label: 'Sports & Recreation', icon: '<i class="fas fa-basketball-ball"></i>' },
     'rent': { label: 'Rent & Mortgage', icon: '<i class="fas fa-home"></i>' },
