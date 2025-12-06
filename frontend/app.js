@@ -404,7 +404,7 @@ function initializeCustomSelect() {
 
   // Initialize display text if empty
   if (!categorySelect.innerHTML.trim()) {
-    categorySelect.innerHTML = `<i class="fas fa-tags mr-2"></i> Category`;
+    categorySelect.innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
   }
 
   // Toggle dropdown visibility
@@ -420,15 +420,34 @@ function initializeCustomSelect() {
     }
   });
 
+  // Add colored boxes to dropdown options
+  categoryMenu.querySelectorAll('.category-option').forEach(option => {
+    const value = option.dataset.value || '';
+    const categoryDisplay = getCategoryDisplay(value);
+    const label = option.textContent.trim();
+    
+    option.innerHTML = `
+      <div class="w-8 h-8 p-1.5 rounded flex items-center justify-center flex-shrink-0" style="background-color: ${categoryDisplay.color}">
+        <span class="text-white text-sm">${categoryDisplay.icon}</span>
+      </div>
+      <span style="margin-left: 12px;">${label}</span>
+    `;
+  });
+
   // Select option
   categoryMenu.querySelectorAll('.category-option').forEach(option => {
     option.addEventListener('click', (evt) => {
       evt.stopPropagation();
       const value = option.dataset.value || '';
-      const label = option.textContent.trim();
-      // preserve icon if present in option
-      const icon = option.querySelector('i') ? option.querySelector('i').outerHTML + ' ' : '';
-      categorySelect.innerHTML = `${icon}${label}`;
+      const categoryDisplay = getCategoryDisplay(value);
+      
+      // Create colored box with icon
+      categorySelect.innerHTML = `
+        <div class="w-8 h-8 p-1.5 rounded flex items-center justify-center" style="background-color: ${categoryDisplay.color}; display: inline-flex; vertical-align: middle;">
+          <span class="text-white text-sm">${categoryDisplay.icon}</span>
+        </div>
+        <span style="margin-left: 12px; vertical-align: middle;">${categoryDisplay.label}</span>
+      `;
       categoryInput.value = value;
       categoryMenu.classList.add('hidden');
     });
@@ -1280,4 +1299,332 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('✅ Auto-prediction is now active!');
     }
   });
+  initializeOCR(); // Initialize OCR scanner
 });
+
+// OCR Receipt Scanner Functions
+function initializeOCR() {
+  const scanReceiptBtn = document.getElementById('scanReceiptBtn');
+  const closeOcrBtn = document.getElementById('closeOcrBtn');
+  const ocrSection = document.getElementById('ocrSection');
+  const scanBtn = document.getElementById('scanBtn');
+  
+  if (!scanReceiptBtn) return; // Not on the add expense page
+  
+  scanReceiptBtn.addEventListener('click', () => {
+    ocrSection.classList.toggle('hidden');
+  });
+  
+  closeOcrBtn?.addEventListener('click', () => {
+    ocrSection.classList.add('hidden');
+    document.getElementById('receiptImage').value = '';
+    document.getElementById('ocrItemsList').classList.add('hidden');
+  });
+  
+  scanBtn?.addEventListener('click', processReceipt);
+}
+
+async function processReceipt() {
+  const fileInput = document.getElementById('receiptImage');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    setStatus('Please select an image first');
+    return;
+  }
+  
+  const scanBtn = document.getElementById('scanBtn');
+  const progressSection = document.getElementById('progressSection');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const currencySelect = document.getElementById('currencySelect');
+  const selectedCurrency = currencySelect.value;
+  
+  scanBtn.disabled = true;
+  progressSection.classList.remove('hidden');
+  
+  try {
+    progressText.textContent = 'Initializing OCR...';
+    
+    const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+      logger: (m) => {
+        if (m.status === 'recognizing text') {
+          const progress = Math.round(m.progress * 100);
+          progressBar.style.width = `${progress}%`;
+          progressText.textContent = `Processing: ${progress}%`;
+        }
+      }
+    });
+    
+    progressText.textContent = 'Extracting items...';
+    
+    const items = parseReceiptText(text, selectedCurrency);
+    
+    if (items.length === 0) {
+      setStatus('No items found in receipt');
+      progressSection.classList.add('hidden');
+      scanBtn.disabled = false;
+      return;
+    }
+    
+    displayOCRItems(items, selectedCurrency);
+    progressSection.classList.add('hidden');
+    setStatus(`Found ${items.length} items!`);
+    
+  } catch (error) {
+    console.error('OCR Error:', error);
+    setStatus('Failed to process image: ' + error.message);
+    progressSection.classList.add('hidden');
+  } finally {
+    scanBtn.disabled = false;
+  }
+}
+
+function parseReceiptText(text, currency = 'INR') {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+  const items = [];
+  
+  // Currency-specific symbols and patterns
+  const currencySymbols = {
+    'INR': ['Rs\\.?', '₹', 'INR'],
+    'USD': ['\\$', 'USD'],
+    'EUR': ['€', 'EUR'],
+    'GBP': ['£', 'GBP'],
+    'AED': ['د\\.إ', 'AED'],
+    'SAR': ['﷼', 'SAR'],
+    'JPY': ['¥', 'JPY'],
+    'CNY': ['¥', 'CNY'],
+    'AUD': ['A\\$', 'AUD'],
+    'CAD': ['C\\$', 'CAD']
+  };
+  
+  const symbols = currencySymbols[currency] || currencySymbols['INR'];
+  
+  // Enhanced price patterns based on currency
+  const pricePatterns = [
+    new RegExp(`(?:${symbols.join('|')})\\s*(\\d+(?:[.,]\\d{2,3})?)`, 'gi'),
+    new RegExp(`(\\d+(?:[.,]\\d{2}))\\s*(?:${symbols.join('|')})`, 'gi'),
+    /(\d+\.\d{2})\b/g,
+  ];
+  
+  // Patterns to identify and skip
+  const skipPatterns = {
+    headers: /^(?:item|description|qty|quantity|price|amount|total|bill|invoice|receipt|date|time)/i,
+    totals: /(?:sub\s*total|grand\s*total|total|tax|gst|cgst|sgst|igst|vat|discount|paid|balance|change|due)/i,
+    common: /(?:thank\s*you|visit|again|welcome|cashier|counter|bill\s*no|invoice\s*no)/i,
+    phone: /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+    numbers_only: /^\d+$/,
+    special_chars: /^[^\w\s]+$/
+  };
+  
+  // Quantity patterns to clean
+  const qtyPattern = /^(\d+)\s*[x×*]\s*/i;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip if line matches any skip pattern
+    if (Object.values(skipPatterns).some(pattern => pattern.test(line))) continue;
+    if (line.length < 3 || line.length > 100) continue;
+    
+    let foundPrice = null;
+    let pricePosition = -1;
+    
+    // Try all price patterns
+    for (const pattern of pricePatterns) {
+      const matches = [...line.matchAll(pattern)];
+      if (matches.length > 0) {
+        const lastMatch = matches[matches.length - 1];
+        const price = parseFloat(lastMatch[1].replace(',', ''));
+        
+        // Validate price range
+        if (price >= 1 && price < 100000) {
+          foundPrice = price;
+          pricePosition = line.lastIndexOf(lastMatch[0]);
+          break;
+        }
+      }
+    }
+    
+    if (foundPrice && pricePosition !== -1) {
+      // Extract item name (everything before the price)
+      let itemName = line.substring(0, pricePosition).trim();
+      
+      // Clean up item name
+      itemName = itemName.replace(qtyPattern, ''); // Remove quantity like "2x" or "3 *"
+      itemName = itemName.replace(/^\d+\.?\s*/, ''); // Remove leading numbers
+      itemName = itemName.replace(/[_\-:]+/g, ' '); // Replace separators with space
+      itemName = itemName.replace(/\s+/g, ' ').trim(); // Normalize spaces
+      
+      // Skip if name is too short or looks invalid
+      if (itemName.length < 2) continue;
+      if (/^\d+$/.test(itemName)) continue; // Just numbers
+      if (skipPatterns.totals.test(itemName)) continue;
+      
+      // Look ahead for potential item name on previous line (some receipts split name and price)
+      if (itemName.length < 3 && i > 0) {
+        const prevLine = lines[i - 1];
+        if (!skipPatterns.headers.test(prevLine) && prevLine.length > 2 && prevLine.length < 50) {
+          itemName = prevLine.trim();
+        }
+      }
+      
+      if (itemName.length >= 3) {
+        const category = suggestCategoryFromName(itemName);
+        items.push({ 
+          name: capitalizeWords(itemName), 
+          amount: foundPrice, 
+          category,
+          currency: currency
+        });
+      }
+    }
+  }
+  
+  // Remove duplicates (sometimes OCR picks up same item twice)
+  const uniqueItems = [];
+  const seen = new Set();
+  
+  for (const item of items) {
+    const key = `${item.name.toLowerCase()}_${item.amount}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueItems.push(item);
+    }
+  }
+  
+  return uniqueItems;
+}
+
+// Helper function to capitalize words
+function capitalizeWords(str) {
+  return str.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function suggestCategoryFromName(itemName) {
+  const name = itemName.toLowerCase();
+  
+  // Food & Dining - More comprehensive patterns
+  if (/(pizza|burger|sandwich|paneer|tandoori|masala|curry|dal|roti|naan|paratha|dosa|idli|vada|samosa|pakora|chaat|pav\s*bhaji|chole|biryani|pulao|fried\s*rice|chicken|mutton|fish|prawn|egg|seafood|meal|lunch|dinner|breakfast|roll|wrap|kebab|tikka)/i.test(name)) return 'dining';
+  
+  // Groceries - Vegetables, staples, cooking items
+  if (/(vegetable|veggie|sabzi|carrot|potato|aloo|tomato|onion|pyaz|cabbage|patta\s*gobi|cauliflower|phool\s*gobi|spinach|palak|broccoli|capsicum|shimla\s*mirch|beans|peas|matar|corn|bhutta|ladyfinger|bhindi|brinjal|baingan|pumpkin|kaddu|radish|mooli|ginger|adrak|garlic|lehsun|chilli|mirch|coriander|dhaniya|mint|pudina|flour|atta|rice|chawal|dal|lentil|oil|tel|ghee|salt|namak|sugar|chini|spice|masala)/i.test(name)) return 'groceries';
+  
+  // Fruits
+  if (/(apple|seb|banana|kela|orange|santra|grape|angoor|mango|aam|papaya|papita|watermelon|tarbooz|pineapple|ananas|guava|amrud|pomegranate|anar|lychee|litchi|berry|ber|strawberry|kiwi|dragon\s*fruit|melon|kharbuja|coconut|nariyal|fruit)/i.test(name)) return 'fruits';
+  
+  // Snacks & Coffee
+  if (/(coffee|tea|chai|latte|espresso|cappuccino|mocha|snack|namkeen|chips|biscuit|cookie|kurkure|mixture|sev|bhujia|cake|pastry|donut|muffin|brownie|wafer|maggi|noodles|instant|popcorn|corn\s*flakes|oats|bread|pav|bun|toast)/i.test(name)) return 'snacks';
+  
+  // Drinks - Alcoholic
+  if (/(beer|wine|whisky|whiskey|vodka|rum|gin|brandy|scotch|tequila|alcohol|liquor|cocktail|mocktail|champagne)/i.test(name)) return 'liquor';
+  
+  // Juices
+  if (/(juice|ras|fresh|smoothie|shake|lassi|milkshake|cold\s*coffee|frappe)/i.test(name)) return 'juices';
+  
+  // Non-alcoholic beverages
+  if (/(coke|pepsi|sprite|fanta|limca|thums\s*up|maaza|frooti|slice|tropicana|real|minute\s*maid|soda|club\s*soda|tonic|water|mineral\s*water|kinley|bisleri|aquafina|soft\s*drink|cold\s*drink|beverage|energy\s*drink|red\s*bull|monster|gatorade)/i.test(name)) return 'beverages';
+  
+  // Entertainment
+  if (/(movie|cinema|ticket|show|film|entertainment|netflix|prime|hotstar|disney|subscription|ott|spotify|youtube|gaming|game)/i.test(name)) return 'movies';
+  
+  // Membership & Subscriptions
+  if (/(membership|gym|fitness|club|subscription|annual|monthly|premium|pro|plan)/i.test(name)) return 'membership';
+  
+  // Sports & Recreation
+  if (/(sports|cricket|football|badminton|tennis|swimming|yoga|equipment|ball|bat|racket|jersey|shoes\s*sport)/i.test(name)) return 'sports';
+  
+  // Transportation
+  if (/(petrol|diesel|fuel|gas|cng|pump)/i.test(name)) return 'fuel';
+  if (/(uber|ola|rapido|taxi|cab|auto|rickshaw|ride|fare)/i.test(name)) return 'cab';
+  if (/(metro|subway|rapid|dmrc)/i.test(name)) return 'metro';
+  if (/(bus|volvo|transit|dtc)/i.test(name)) return 'bus';
+  if (/(train|railway|irctc|ticket|reservation)/i.test(name)) return 'train';
+  if (/(flight|airline|air\s*india|indigo|spicejet|vistara|go\s*air|airways)/i.test(name)) return 'flight';
+  if (/(parking|toll|fastag)/i.test(name)) return 'parking';
+  
+  // Utilities
+  if (/(electricity|power|electric|bill|bijli)/i.test(name)) return 'electricity';
+  if (/(internet|wifi|broadband|fiber|jio|airtel|act)/i.test(name)) return 'internet';
+  if (/(phone|mobile|recharge|prepaid|postpaid|sim|data)/i.test(name)) return 'phone';
+  if (/(water|jal|municipal)/i.test(name)) return 'water';
+  if (/(lpg|cylinder|gas|indane|bharat\s*gas|hp\s*gas)/i.test(name)) return 'gas';
+  
+  // Personal Care & Health
+  if (/(shampoo|conditioner|soap|face\s*wash|body\s*wash|toothpaste|toothbrush|cream|lotion|powder|deo|deodorant|perfume|cologne|razor|shave|trimmer|comb|oil\s*hair)/i.test(name)) return 'personal';
+  if (/(medicine|tablet|capsule|syrup|injection|pharmacy|medical|doctor|hospital|clinic|test|health|checkup|fever|pain|antibiotic|vitamin|supplement)/i.test(name)) return 'health';
+  
+  // Clothing & Accessories
+  if (/(shirt|t-shirt|tshirt|jeans|pant|trouser|dress|skirt|kurta|kurti|saree|salwar|suit|jacket|sweater|hoodie|blazer|shoes|sandal|slipper|chappal|belt|watch|bag|purse|wallet|sunglasses|cap|hat|sock|tie|scarf|dupatta|clothing|garment|apparel|fashion)/i.test(name)) return 'clothing';
+  
+  // Electronics & Home
+  if (/(laptop|computer|mobile|phone|tablet|ipad|charger|cable|earphone|headphone|speaker|tv|television|ac|air\s*conditioner|fan|cooler|refrigerator|fridge|washing\s*machine|microwave|oven|mixer|grinder|iron|electronic)/i.test(name)) return 'electronics';
+  if (/(furniture|sofa|chair|table|bed|mattress|cupboard|almirah|shelf|rack|curtain|blind|carpet|rug|cushion|pillow|decor)/i.test(name)) return 'furniture';
+  
+  // Education
+  if (/(book|notebook|pen|pencil|eraser|scale|compass|calculator|bag\s*school|uniform|fee|tuition|course|class|exam|study|stationery|education)/i.test(name)) return 'education';
+  
+  // Default
+  return 'uncategorized';
+}
+
+function displayOCRItems(items, currency = 'INR') {
+  const itemsList = document.getElementById('ocrItemsList');
+  itemsList.innerHTML = '<h4 class="font-semibold mb-3">Click an item to add it:</h4>';
+  
+  const currencySymbols = {
+    'INR': '₹', 'USD': '$', 'EUR': '€', 'GBP': '£',
+    'AED': 'د.إ', 'SAR': '﷼', 'JPY': '¥', 'CNY': '¥',
+    'AUD': 'A$', 'CAD': 'C$'
+  };
+  
+  const symbol = currencySymbols[currency] || '₹';
+  
+  items.forEach((item, index) => {
+    const categoryDisplay = getCategoryDisplay(item.category);
+    const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['uncategorized'];
+    
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors';
+    itemDiv.onclick = () => fillFormWithItem(item);
+    
+    itemDiv.innerHTML = `
+      <div class="w-10 h-10 p-2 rounded flex items-center justify-center flex-shrink-0" style="background-color: ${color}">
+        <span class="text-white">${categoryDisplay.icon}</span>
+      </div>
+      <div class="flex-1">
+        <div class="font-medium text-gray-900 dark:text-white">${item.name}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">${categoryDisplay.label}</div>
+      </div>
+      <div class="text-lg font-bold text-gray-900 dark:text-white">${symbol}${item.amount.toFixed(2)}</div>
+    `;
+    
+    itemsList.appendChild(itemDiv);
+  });
+  
+  itemsList.classList.remove('hidden');
+}
+
+function fillFormWithItem(item) {
+  document.getElementById('title').value = item.name;
+  document.getElementById('amount').value = item.amount;
+  document.getElementById('category').value = item.category;
+  
+  const categoryDisplay = getCategoryDisplay(item.category);
+  const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['uncategorized'];
+  const categorySelect = document.getElementById('categorySelect');
+  
+  categorySelect.innerHTML = `
+    <div class="w-8 h-8 p-1.5 rounded flex items-center justify-center" style="background-color: ${color}; display: inline-flex; vertical-align: middle;">
+      <span class="text-white text-sm">${categoryDisplay.icon}</span>
+    </div>
+    <span style="margin-left: 12px; vertical-align: middle;">${categoryDisplay.label}</span>
+  `;
+  
+  // Scroll to form
+  document.getElementById('expenseForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  
+  setStatus('Item details filled! Review and click "Add Expense"');
+}

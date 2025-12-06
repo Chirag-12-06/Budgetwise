@@ -13,11 +13,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Flatpickr JS -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <!-- Tesseract.js for OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white">
   <!-- Navigation Bar -->
   <nav class="bg-white dark:bg-gray-800 shadow-md">
-    <div class="container mx-auto px-4 py-3 max-w-6xl">
+    <div class="container mx-auto px-4 py-5">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Budgetwise</h1>
         <div class="flex items-center gap-4">
@@ -36,17 +38,73 @@
     </div>
   </nav>
 
-  <div class="container mx-auto px-4 py-8 max-w-3xl bg-white rounded-lg shadow-lg dark:bg-gray-800 mt-6">
-    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Add New Expense</h2>
+  <div class="container mx-auto px-4 py-8 max-w-3xl bg-white rounded-lg shadow-lg dark:bg-gray-800 mt-12">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Add New Expense</h2>
+      <button id="scanReceiptBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">
+        <i class="fas fa-camera mr-2"></i>Scan Receipt
+      </button>
+    </div>
+    
+    <!-- OCR Section (Hidden by default) -->
+    <div id="ocrSection" class="hidden mb-6 p-4 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">Receipt Scanner</h3>
+        <button id="closeOcrBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">Currency</label>
+        <select id="currencySelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="INR">₹ Indian Rupee (INR)</option>
+          <option value="USD">$ US Dollar (USD)</option>
+          <option value="EUR">€ Euro (EUR)</option>
+          <option value="GBP">£ British Pound (GBP)</option>
+          <option value="AED">د.إ UAE Dirham (AED)</option>
+          <option value="SAR">﷼ Saudi Riyal (SAR)</option>
+          <option value="JPY">¥ Japanese Yen (JPY)</option>
+          <option value="CNY">¥ Chinese Yuan (CNY)</option>
+          <option value="AUD">A$ Australian Dollar (AUD)</option>
+          <option value="CAD">C$ Canadian Dollar (CAD)</option>
+        </select>
+      </div>
+      
+      <div class="mb-4">
+        <input type="file" id="receiptImage" accept="image/*" class="block w-full text-sm text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none p-2">
+      </div>
+
+      <button id="scanBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed mb-4">
+        <i class="fas fa-play mr-2"></i>Process Receipt
+      </button>
+
+      <!-- Progress -->
+      <div id="progressSection" class="hidden mb-4">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+          <span id="progressText" class="text-sm">Processing...</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div id="progressBar" class="bg-indigo-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Extracted Items List -->
+      <div id="ocrItemsList" class="hidden space-y-2 max-h-96 overflow-y-auto">
+        <!-- Items will be inserted here -->
+      </div>
+    </div>
+
     <form id="expenseForm" autocomplete="off" class="space-y-6 mb-8">
       <!-- Category + Title on same line -->
       <div class="flex items-center space-x-3">
         <!-- Category -->
-        <div class="relative w-1/4">
+        <div class="relative" style="min-width: 220px;">
           <div id="categorySelect" class="dropdown-toggle flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 cursor-pointer dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <span><i class="fas fa-tags mr-2"></i>Category</span>
           </div>
-          <div id="categoryMenu" class="dropdown-menu hidden absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
+          <div id="categoryMenu" class="dropdown-menu hidden absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto dark:bg-gray-800 dark:border-gray-700" style="min-width: 220px;">
             <div class="category-group p-2 border-b border-gray-200 dark:border-gray-700">
                 <div class="category-label text-sm font-semibold text-gray-500 uppercase mb-1 dark:text-gray-400">Food</div>
                 <div class="category-option flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-md text-gray-700 dark:hover:bg-gray-700 dark:text-gray-200" data-value="dining"><i class="fas fa-utensils category-icon mr-3 w-4"></i> Dining Out</div>
