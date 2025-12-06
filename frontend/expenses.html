@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses - Budgetwise</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white">
+  <!-- Navigation Bar -->
+  <nav class="bg-white dark:bg-gray-800 shadow-md">
+    <div class="container mx-auto px-4 py-3 max-w-6xl">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Budgetwise</h1>
+        <div class="flex items-center gap-4">
+          <a href="index.html" class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+            <i class="fas fa-plus-circle mr-2"></i>Add Expense
+          </a>
+          <a href="expenses.html" class="px-4 py-2 bg-indigo-600 text-white rounded-md">
+            <i class="fas fa-list mr-2"></i>Expenses
+          </a>
+          <a href="analytics.html" class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+            <i class="fas fa-chart-line mr-2"></i>Analytics
+          </a>
+          <button id="darkModeToggle" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">🌙</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="bg-white rounded-lg shadow-lg dark:bg-gray-800 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">All Expenses</h2>
+        <div id="status" class="hidden bg-green-100 text-green-800 p-4 rounded-lg dark:bg-green-900 dark:text-green-300"></div>
+      </div>
+      
+      <!-- Expenses List -->
+      <ul id="expenseList" class="space-y-4"></ul>
+      
+      <!-- Empty State -->
+      <div id="emptyState" class="text-center py-12 hidden">
+        <i class="fas fa-receipt text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">No expenses yet</h3>
+        <p class="text-gray-500 dark:text-gray-500 mb-4">Start tracking your expenses from the dashboard</p>
+        <a href="index.html" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+          Go to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="expenses.js"></script>
+</body>
+</html>

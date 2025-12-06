@@ -11,6 +11,50 @@ let expenseDates = new Set(); // Track dates with expenses
 let flatpickrInstances = {}; // Store flatpickr instances
 let isModelTrained = false; // Track if ML model is trained
 
+// Centralized category color mapping
+const CATEGORY_COLORS = {
+  'dining': '#f97316',
+  'groceries': '#22c55e',
+  'fruits': '#ef4444',
+  'snacks': '#d97706',
+  'liquor': '#9333ea',
+  'juices': '#eab308',
+  'beverages': '#14b8a6',
+  'movies': '#db2777',
+  'membership': '#6366f1',
+  'hobbies': '#f43f5e',
+  'sports': '#ea580c',
+  'rent': '#2563eb',
+  'electronics': '#475569',
+  'furniture': '#b45309',
+  'maintenance': '#4b5563',
+  'supplies': '#06b6d4',
+  'pets': '#65a30d',
+  'services': '#8b5cf6',
+  'childcare': '#f9a8d4',
+  'clothing': '#d946ef',
+  'health': '#dc2626',
+  'personal': '#0ea5e9',
+  'education': '#1d4ed8',
+  'taxes': '#047857',
+  'insurance': '#0f766e',
+  'fuel': '#b91c1c',
+  'parking': '#4f46e5',
+  'cab': '#ca8a04',
+  'flight': '#0284c7',
+  'bicycle': '#16a34a',
+  'bus': '#c2410c',
+  'metro': '#7e22ce',
+  'train': '#334155',
+  'electricity': '#eab308',
+  'water': '#3b82f6',
+  'cleaning': '#0891b2',
+  'gas': '#f97316',
+  'internet': '#4338ca',
+  'phone': '#15803d',
+  'uncategorized': '#6b7280'
+};
+
 // Detect outliers using IQR (Interquartile Range) method
 function detectOutliers(data) {
   if (data.length < 2) return { outliers: [], threshold: null, hasOutliers: false };
@@ -331,6 +375,26 @@ function initializeChartFilters() {
   });
 }
 
+function initializeDarkMode() {
+  const dmToggle = document.getElementById('darkModeToggle');
+  const htmlEl = document.documentElement;
+  const saved = localStorage.getItem('bw-dark');
+  if (saved === '1') htmlEl.classList.add('dark');
+  if (dmToggle) {
+    dmToggle.textContent = htmlEl.classList.contains('dark') ? '☀️' : '🌙';
+    dmToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isDark = htmlEl.classList.toggle('dark');
+      localStorage.setItem('bw-dark', isDark ? '1' : '0');
+      dmToggle.textContent = isDark ? '☀️' : '🌙';
+      // Update charts with new color scheme if they exist
+      if (typeof updateCharts === 'function') {
+        updateCharts();
+      }
+    });
+  }
+}
+
 function initializeCustomSelect() {
   const categorySelect = document.getElementById('categorySelect');
   const categoryMenu = document.getElementById('categoryMenu');
@@ -369,23 +433,6 @@ function initializeCustomSelect() {
       categoryMenu.classList.add('hidden');
     });
   });
-
-  // Dark mode handling
-  const dmToggle = document.getElementById('darkModeToggle');
-  const htmlEl = document.documentElement;
-  const saved = localStorage.getItem('bw-dark');
-  if (saved === '1') htmlEl.classList.add('dark');
-  if (dmToggle) {
-    dmToggle.textContent = htmlEl.classList.contains('dark') ? '☀️' : '🌙';
-    dmToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isDark = htmlEl.classList.toggle('dark');
-      localStorage.setItem('bw-dark', isDark ? '1' : '0');
-      dmToggle.textContent = isDark ? '☀️' : '🌙';
-      // Update charts with new color scheme
-      updateCharts();
-    });
-  }
 }
 
 async function addExpense() {
@@ -437,45 +484,48 @@ async function loadExpenses() {
     if (!res.ok) throw new Error('Failed to fetch expenses');
     const expenses = await res.json();
 
+    // Only update list if on dashboard page (expenseList element exists)
     const list = document.getElementById('expenseList');
-    list.innerHTML = '';
+    if (list) {
+      list.innerHTML = '';
 
-    expenses.forEach(e => {
-      const li = document.createElement('li');
-      li.className = 'flex justify-between items-center bg-gray-50 px-6 py-5 rounded-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow';
-      
-      // Info div
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'flex-1 min-w-0 mr-4';
-      infoDiv.innerHTML = `
-        <div class="flex flex-wrap items-baseline gap-2">
-          <span class="font-semibold text-indigo-600 dark:text-indigo-400 text-lg">${e.title}</span>
-          <span class="text-gray-800 dark:text-white font-medium text-lg">₹${e.amount}</span>
-          <span class="text-gray-600 text-sm dark:text-gray-400">(${e.category})</span>
-          <span class="text-gray-500 text-xs dark:text-gray-500">${e.createdAt ? e.createdAt.split('T')[0] : ''}</span>
-        </div>
-      `;
-      
-      // Buttons div
-      const buttonsDiv = document.createElement('div');
-      buttonsDiv.className = 'flex gap-3 flex-shrink-0';
-      
-      const editBtn = document.createElement('button');
-      editBtn.className = 'px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-md text-sm font-medium transition-colors shadow-sm';
-      editBtn.innerHTML = 'Edit';
-      editBtn.onclick = () => editExpense(e.id);
-      
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'px-4 py-2 bg-red-500 hover:bg-red-600 text-black rounded-md text-sm font-medium transition-colors shadow-sm';
-      deleteBtn.innerHTML = 'Delete';
-      deleteBtn.onclick = () => deleteExpense(e.id);
-      
-      buttonsDiv.appendChild(editBtn);
-      buttonsDiv.appendChild(deleteBtn);
-      li.appendChild(infoDiv);
-      li.appendChild(buttonsDiv);
-      list.appendChild(li);
-    });
+      expenses.forEach(e => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center bg-gray-50 px-6 py-5 rounded-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow';
+        
+        // Info div
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'flex-1 min-w-0 mr-4';
+        infoDiv.innerHTML = `
+          <div class="flex flex-wrap items-baseline gap-2">
+            <span class="font-semibold text-indigo-600 dark:text-indigo-400 text-lg">${e.title}</span>
+            <span class="text-gray-800 dark:text-white font-medium text-lg">₹${e.amount}</span>
+            <span class="text-gray-600 text-sm dark:text-gray-400">(${e.category})</span>
+            <span class="text-gray-500 text-xs dark:text-gray-500">${e.createdAt ? e.createdAt.split('T')[0] : ''}</span>
+          </div>
+        `;
+        
+        // Buttons div
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'flex gap-3 flex-shrink-0';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-md text-sm font-medium transition-colors shadow-sm';
+        editBtn.innerHTML = 'Edit';
+        editBtn.onclick = () => editExpense(e.id);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'px-4 py-2 bg-red-500 hover:bg-red-600 text-black rounded-md text-sm font-medium transition-colors shadow-sm';
+        deleteBtn.innerHTML = 'Delete';
+        deleteBtn.onclick = () => deleteExpense(e.id);
+        
+        buttonsDiv.appendChild(editBtn);
+        buttonsDiv.appendChild(deleteBtn);
+        li.appendChild(infoDiv);
+        li.appendChild(buttonsDiv);
+        list.appendChild(li);
+      });
+    }
   } catch (err) {
     setStatus('Failed to load expenses: ' + err.message);
   }
@@ -902,46 +952,46 @@ async function drawLineChart() {
 // Category display names and icons mapping
 function getCategoryDisplay(categoryValue) {
   const categoryMap = {
-    'dining': { label: 'Dining Out', icon: '<i class="fas fa-utensils"></i>' },
-    'groceries': { label: 'Groceries', icon: '<i class="fas fa-shopping-basket"></i>' },
-    'fruits': { label: 'Fruits', icon: '<i class="fas fa-apple-alt"></i>' },
-    'snacks': { label: 'Snacks & Coffee', icon: '<i class="fas fa-coffee"></i>' },
-    'liquor': { label: 'Liquor & Spirits', icon: '<i class="fas fa-wine-glass-alt"></i>' },
-    'juices': { label: 'Juices', icon: '<i class="fas fa-glass-whiskey"></i>' },
-    'beverages': { label: 'Non-Alcoholic Beverages', icon: '<i class="fas fa-mug-hot"></i>' },
-    'movies': { label: 'Movies', icon: '<i class="fas fa-film"></i>' },
-    'membership': { label: 'Membership', icon: '<i class="fas fa-id-card"></i>' },
-    'hobbies': { label: 'Hobbies', icon: '<i class="fas fa-palette"></i>' },
-    'sports': { label: 'Sports & Recreation', icon: '<i class="fas fa-basketball-ball"></i>' },
-    'rent': { label: 'Rent & Mortgage', icon: '<i class="fas fa-home"></i>' },
-    'electronics': { label: 'Electronics', icon: '<i class="fas fa-tv"></i>' },
-    'furniture': { label: 'Furniture & Decor', icon: '<i class="fas fa-couch"></i>' },
-    'maintenance': { label: 'Maintenance & Repairs', icon: '<i class="fas fa-tools"></i>' },
-    'supplies': { label: 'Household Supplies', icon: '<i class="fas fa-box-open"></i>' },
-    'pets': { label: 'Pets', icon: '<i class="fas fa-paw"></i>' },
-    'services': { label: 'Services', icon: '<i class="fas fa-concierge-bell"></i>' },
-    'childcare': { label: 'Childcare', icon: '<i class="fas fa-baby"></i>' },
-    'clothing': { label: 'Clothing & Accessories', icon: '<i class="fas fa-tshirt"></i>' },
-    'health': { label: 'Healthcare', icon: '<i class="fas fa-heartbeat"></i>' },
-    'personal': { label: 'Personal Care', icon: '<i class="fas fa-shower"></i>' },
-    'education': { label: 'Education', icon: '<i class="fas fa-graduation-cap"></i>' },
-    'taxes': { label: 'Taxes', icon: '<i class="fas fa-receipt"></i>' },
-    'insurance': { label: 'Insurance', icon: '<i class="fas fa-shield-alt"></i>' },
-    'fuel': { label: 'Fuel', icon: '<i class="fas fa-gas-pump"></i>' },
-    'parking': { label: 'Parking', icon: '<i class="fas fa-parking"></i>' },
-    'cab': { label: 'Cab', icon: '<i class="fas fa-taxi"></i>' },
-    'flight': { label: 'Flight', icon: '<i class="fas fa-plane"></i>' },
-    'bicycle': { label: 'Bicycle', icon: '<i class="fas fa-bicycle"></i>' },
-    'bus': { label: 'Bus', icon: '<i class="fas fa-bus"></i>' },
-    'metro': { label: 'Metro', icon: '<i class="fas fa-subway"></i>' },
-    'train': { label: 'Train', icon: '<i class="fas fa-train"></i>' },
-    'electricity': { label: 'Electricity', icon: '<i class="fas fa-bolt"></i>' },
-    'water': { label: 'Water', icon: '<i class="fas fa-tint"></i>' },
-    'cleaning': { label: 'Cleaning', icon: '<i class="fas fa-broom"></i>' },
-    'gas': { label: 'Gas', icon: '<i class="fas fa-burn"></i>' },
-    'internet': { label: 'Internet & Cable', icon: '<i class="fas fa-wifi"></i>' },
-    'phone': { label: 'Phone', icon: '<i class="fas fa-phone"></i>' },
-    'uncategorized': { label: 'Uncategorized', icon: '<i class="fas fa-question-circle"></i>' }
+    'dining': { label: 'Dining Out', icon: '<i class="fas fa-utensils"></i>', color: CATEGORY_COLORS.dining },
+    'groceries': { label: 'Groceries', icon: '<i class="fas fa-shopping-basket"></i>', color: CATEGORY_COLORS.groceries },
+    'fruits': { label: 'Fruits', icon: '<i class="fas fa-apple-alt"></i>', color: CATEGORY_COLORS.fruits },
+    'snacks': { label: 'Snacks & Coffee', icon: '<i class="fas fa-coffee"></i>', color: CATEGORY_COLORS.snacks },
+    'liquor': { label: 'Liquor & Spirits', icon: '<i class="fas fa-wine-glass-alt"></i>', color: CATEGORY_COLORS.liquor },
+    'juices': { label: 'Juices', icon: '<i class="fas fa-glass-whiskey"></i>', color: CATEGORY_COLORS.juices },
+    'beverages': { label: 'Non-Alcoholic Beverages', icon: '<i class="fas fa-mug-hot"></i>', color: CATEGORY_COLORS.beverages },
+    'movies': { label: 'Movies', icon: '<i class="fas fa-film"></i>', color: CATEGORY_COLORS.movies },
+    'membership': { label: 'Membership', icon: '<i class="fas fa-id-card"></i>', color: CATEGORY_COLORS.membership },
+    'hobbies': { label: 'Hobbies', icon: '<i class="fas fa-palette"></i>', color: CATEGORY_COLORS.hobbies },
+    'sports': { label: 'Sports & Recreation', icon: '<i class="fas fa-basketball-ball"></i>', color: CATEGORY_COLORS.sports },
+    'rent': { label: 'Rent & Mortgage', icon: '<i class="fas fa-home"></i>', color: CATEGORY_COLORS.rent },
+    'electronics': { label: 'Electronics', icon: '<i class="fas fa-tv"></i>', color: CATEGORY_COLORS.electronics },
+    'furniture': { label: 'Furniture & Decor', icon: '<i class="fas fa-couch"></i>', color: CATEGORY_COLORS.furniture },
+    'maintenance': { label: 'Maintenance & Repairs', icon: '<i class="fas fa-tools"></i>', color: CATEGORY_COLORS.maintenance },
+    'supplies': { label: 'Household Supplies', icon: '<i class="fas fa-box-open"></i>', color: CATEGORY_COLORS.supplies },
+    'pets': { label: 'Pets', icon: '<i class="fas fa-paw"></i>', color: CATEGORY_COLORS.pets },
+    'services': { label: 'Services', icon: '<i class="fas fa-concierge-bell"></i>', color: CATEGORY_COLORS.services },
+    'childcare': { label: 'Childcare', icon: '<i class="fas fa-baby"></i>', color: CATEGORY_COLORS.childcare },
+    'clothing': { label: 'Clothing & Accessories', icon: '<i class="fas fa-tshirt"></i>', color: CATEGORY_COLORS.clothing },
+    'health': { label: 'Healthcare', icon: '<i class="fas fa-heartbeat"></i>', color: CATEGORY_COLORS.health },
+    'personal': { label: 'Personal Care', icon: '<i class="fas fa-shower"></i>', color: CATEGORY_COLORS.personal },
+    'education': { label: 'Education', icon: '<i class="fas fa-graduation-cap"></i>', color: CATEGORY_COLORS.education },
+    'taxes': { label: 'Taxes', icon: '<i class="fas fa-receipt"></i>', color: CATEGORY_COLORS.taxes },
+    'insurance': { label: 'Insurance', icon: '<i class="fas fa-shield-alt"></i>', color: CATEGORY_COLORS.insurance },
+    'fuel': { label: 'Fuel', icon: '<i class="fas fa-gas-pump"></i>', color: CATEGORY_COLORS.fuel },
+    'parking': { label: 'Parking', icon: '<i class="fas fa-parking"></i>', color: CATEGORY_COLORS.parking },
+    'cab': { label: 'Cab', icon: '<i class="fas fa-taxi"></i>', color: CATEGORY_COLORS.cab },
+    'flight': { label: 'Flight', icon: '<i class="fas fa-plane"></i>', color: CATEGORY_COLORS.flight },
+    'bicycle': { label: 'Bicycle', icon: '<i class="fas fa-bicycle"></i>', color: CATEGORY_COLORS.bicycle },
+    'bus': { label: 'Bus', icon: '<i class="fas fa-bus"></i>', color: CATEGORY_COLORS.bus },
+    'metro': { label: 'Metro', icon: '<i class="fas fa-subway"></i>', color: CATEGORY_COLORS.metro },
+    'train': { label: 'Train', icon: '<i class="fas fa-train"></i>', color: CATEGORY_COLORS.train },
+    'electricity': { label: 'Electricity', icon: '<i class="fas fa-bolt"></i>', color: CATEGORY_COLORS.electricity },
+    'water': { label: 'Water', icon: '<i class="fas fa-tint"></i>', color: CATEGORY_COLORS.water },
+    'cleaning': { label: 'Cleaning', icon: '<i class="fas fa-broom"></i>', color: CATEGORY_COLORS.cleaning },
+    'gas': { label: 'Gas', icon: '<i class="fas fa-burn"></i>', color: CATEGORY_COLORS.gas },
+    'internet': { label: 'Internet & Cable', icon: '<i class="fas fa-wifi"></i>', color: CATEGORY_COLORS.internet },
+    'phone': { label: 'Phone', icon: '<i class="fas fa-phone"></i>', color: CATEGORY_COLORS.phone },
+    'uncategorized': { label: 'Uncategorized', icon: '<i class="fas fa-question-circle"></i>', color: CATEGORY_COLORS.uncategorized }
   };
   
   // If category exists in map, return it; otherwise capitalize first letter
@@ -990,12 +1040,10 @@ async function drawPieChart() {
       return display.label;
     });
     
-    // Generate colors dynamically
-    const colors = [
-      "#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444",
-      "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#3B82F6",
-      "#6366F1", "#A855F7", "#84CC16", "#22D3EE", "#FB923C"
-    ];
+    // Use category-specific colors from centralized mapping
+    const colors = categoryKeys.map(key => {
+      return CATEGORY_COLORS[key] || CATEGORY_COLORS.uncategorized;
+    });
 
     const ctx = document.getElementById("pieChart");
     if (!ctx) return;
@@ -1215,6 +1263,7 @@ function setupAutoPrediction() {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 App loaded - ML features enabled');
+  initializeDarkMode(); // Initialize dark mode first
   initializeCustomSelect();
   initializeChartFilters();
   initializeChartOptions();
