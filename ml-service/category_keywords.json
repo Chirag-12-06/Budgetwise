@@ -200,6 +200,7 @@
   "coach bus": "bus",
   "tour bus": "bus",
   "chartered bus": "bus",
+
   "train": "train",
   "train ride": "train",
   "train ticket": "train",
@@ -283,6 +284,7 @@
   "sydney trains": "train",
   "goods train": "train",
   "freight train": "train",
+  
   "flight": "flight",
   "flight ticket": "flight",
   "flight booking": "flight",

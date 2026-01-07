@@ -109,6 +109,9 @@ async function loadExpenses() {
             </div>
             <div class="flex items-center gap-4">
               <span class="text-2xl font-bold text-gray-900 dark:text-white">₹${expense.amount.toLocaleString('en-IN')}</span>
+              <a href="index.html?edit=${expense.id}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 mr-2">
+                <i class="fas fa-edit"></i>
+              </a>
               <button onclick="deleteExpense(${expense.id})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                 <i class="fas fa-trash"></i>
               </button>

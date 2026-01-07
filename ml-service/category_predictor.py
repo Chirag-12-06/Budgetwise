@@ -11,11 +11,15 @@ from sklearn.metrics import accuracy_score
 from googletrans import Translator
 
 class CategoryPredictor:
-    def __init__(self, model_path='model.pkl'):
+    def __init__(self, model_path='model.pkl', user_id='default'):
         self.model_path = model_path
+        self.user_id = user_id
+        self.user_prefs_path = f'user_preferences_{user_id}.json'
         self.model = None
         self.translator = Translator()
+        self.user_preferences = {}
         self.load_model()
+        self.load_user_preferences()
         
         # Load category mappings from JSON file
         with open('category_keywords.json', 'r') as f:
@@ -53,6 +57,38 @@ class CategoryPredictor:
         except Exception as e:
             print(f"Error saving model: {e}")
     
+    def load_user_preferences(self):
+        """Load user-defined title->category preferences"""
+        if os.path.exists(self.user_prefs_path):
+            try:
+                with open(self.user_prefs_path, 'r') as f:
+                    self.user_preferences = json.load(f)
+                print(f"Loaded {len(self.user_preferences)} user preferences")
+            except Exception as e:
+                print(f"Error loading user preferences: {e}")
+                self.user_preferences = {}
+        else:
+            self.user_preferences = {}
+    
+    def save_user_preferences(self):
+        """Save user preferences to file"""
+        try:
+            with open(self.user_prefs_path, 'w') as f:
+                json.dump(self.user_preferences, f, indent=2)
+            print(f"User preferences saved")
+        except Exception as e:
+            print(f"Error saving user preferences: {e}")
+    
+    def learn_from_user(self, title, category):
+        """Learn from user's manual category assignment"""
+        # Normalize title (lowercase, strip whitespace)
+        normalized_title = title.lower().strip()
+        
+        # Store the preference
+        self.user_preferences[normalized_title] = category
+        self.save_user_preferences()
+        print(f"Learned: '{title}' -> {category}")
+    
     def fuzzy_match(self, word1, word2, threshold=0.8):
         """Check if two words are similar using fuzzy matching"""
         return SequenceMatcher(None, word1, word2).ratio() >= threshold
@@ -74,10 +110,16 @@ class CategoryPredictor:
         """Predict category based on keywords with fuzzy matching"""
         # First translate to English if needed
         title_translated = self.translate_to_english(title)
-        title_lower = title_translated.lower()
+        title_lower = title_translated.lower().strip()
         title_words = title_lower.split()
         
-        # First try exact match with whole words or as substring
+        # Priority 1: Check user preferences (highest priority)
+        if title_lower in self.user_preferences:
+            category = self.user_preferences[title_lower]
+            print(f"User preference match: '{title}' -> {category}")
+            return category, 0.95  # Very high confidence for user preferences
+        
+        # Priority 2: Try exact match with keywords
         for keyword, category in self.keyword_map.items():
             # Check if keyword is a complete word match or surrounded by spaces
             if f' {keyword} ' in f' {title_lower} ' or title_lower == keyword:
@@ -127,7 +169,7 @@ class CategoryPredictor:
         return None, 0.0
     
     def predict(self, title, amount=None):
-        """Predict category for a given expense title and amount"""
+        """Predict category for a given expense title"""
         # First try keyword-based prediction (with fuzzy matching)
         keyword_category, keyword_confidence = self.predict_by_keywords(title)
         if keyword_category:
@@ -136,8 +178,8 @@ class CategoryPredictor:
         # If model is trained, use it
         if self.model:
             try:
-                # Create feature combining title and amount range
-                feature_text = self._create_feature(title, amount)
+                # Create feature from title only
+                feature_text = self._create_feature(title)
                 prediction = self.model.predict([feature_text])[0]
                 
                 # Get prediction probabilities for confidence
@@ -148,44 +190,14 @@ class CategoryPredictor:
             except Exception as e:
                 print(f"Prediction error: {e}")
         
-        # Fallback to amount-based prediction
-        return self._predict_by_amount(amount), 0.5
+        # Fallback to uncategorized
+        return 'uncategorized', 0.3
     
-    def _create_feature(self, title, amount):
-        """Create feature string combining title and amount range"""
+    def _create_feature(self, title):
+        """Create feature string from title only"""
         # Convert title to lowercase for consistency
         title_lower = title.lower()
-        
-        amount_range = ""
-        if amount:
-            if amount < 100:
-                amount_range = "very_low"
-            elif amount < 500:
-                amount_range = "low"
-            elif amount < 2000:
-                amount_range = "medium"
-            elif amount < 10000:
-                amount_range = "high"
-            else:
-                amount_range = "very_high"
-        
-        return f"{title_lower} {amount_range}"
-    
-    def _predict_by_amount(self, amount):
-        """Simple rule-based prediction based on amount"""
-        if not amount:
-            return 'uncategorized'
-        
-        if amount < 100:
-            return 'snacks'
-        elif amount < 500:
-            return 'groceries'
-        elif amount < 2000:
-            return 'dining'
-        elif amount < 10000:
-            return 'clothing'
-        else:
-            return 'rent'
+        return title_lower
     
     def train(self, expenses):
         """Train the model with expense data"""
@@ -198,26 +210,40 @@ class CategoryPredictor:
         
         for expense in expenses:
             title = expense.get('title', '')
-            amount = expense.get('amount', 0)
             category = expense.get('category', 'uncategorized')
             
             if title and category:
-                feature_text = self._create_feature(title, amount)
+                feature_text = self._create_feature(title)
                 X.append(feature_text)
                 y.append(category)
         
         if len(X) < 10:
             raise ValueError("Not enough valid training data")
         
+        # For small datasets, use smaller test split
+        test_size = 0.1 if len(X) < 30 else 0.2
+        
+        # Check if stratification is possible (all classes need at least 2 samples)
+        from collections import Counter
+        class_counts = Counter(y)
+        can_stratify = all(count >= 2 for count in class_counts.values())
+        
         # Split data for training and validation
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+            X, y, test_size=test_size, random_state=42, 
+            stratify=y if can_stratify else None
         )
         
-        # Create and train the model pipeline
+        # Create and train the model pipeline with better parameters
         self.model = Pipeline([
-            ('tfidf', TfidfVectorizer(max_features=100, ngram_range=(1, 2))),
-            ('clf', MultinomialNB(alpha=0.1))
+            ('tfidf', TfidfVectorizer(
+                max_features=500,  # Increased from 100
+                ngram_range=(1, 3),  # Added trigrams
+                min_df=1,  # Include rare words
+                sublinear_tf=True,  # Use log scaling
+                strip_accents='unicode'
+            )),
+            ('clf', MultinomialNB(alpha=0.01))  # Reduced smoothing for small data
         ])
         
         self.model.fit(X_train, y_train)

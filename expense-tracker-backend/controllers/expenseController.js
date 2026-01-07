@@ -224,6 +224,27 @@ export const updateExpense = async (req, res) => {
       where: { id: expenseId },
       data: updateData
     });
+    
+    // Learn from user's manual category assignment if category was changed
+    if (updateData.category && updateData.title) {
+      try {
+        // Get user_id from header (sent from frontend localStorage)
+        const userId = req.headers['x-user-id'] || 'default';
+        
+        await fetch('http://127.0.0.1:5001/api/learn-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: updateData.title,
+            category: updateData.category,
+            user_id: userId
+          })
+        });
+      } catch (err) {
+        console.log('ML service learning skipped:', err.message);
+      }
+    }
+    
     res.json(updated);
   } catch (error) {
     console.error('updateExpense error:', error && error.stack ? error.stack : error);

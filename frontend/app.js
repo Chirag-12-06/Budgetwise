@@ -602,6 +602,12 @@ async function editExpense(id) {
     submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
     submitBtn.classList.add('bg-green-600', 'hover:bg-green-700');
     
+    // Update page title
+    const pageTitle = document.querySelector('h2');
+    if (pageTitle) {
+      pageTitle.innerHTML = 'Edit Expense <a href="index.html" class="text-sm font-normal text-indigo-600 hover:text-indigo-800 ml-3"><i class="fas fa-times"></i> Cancel</a>';
+    }
+    
     // Scroll to form
     document.getElementById('expenseForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
@@ -626,9 +632,14 @@ async function updateExpense(id) {
       return;
     }
 
+    const userId = window.getUserId();
     const response = await fetch(`${API_BASE}/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json',
+        'x-user-id': userId 
+      },
       body: JSON.stringify({
         title,
         amount: parseFloat(amount),
@@ -651,6 +662,11 @@ async function updateExpense(id) {
     
     await loadExpenses();
     await updateCharts();
+    
+    // Redirect to expenses page after a brief delay
+    setTimeout(() => {
+      window.location.href = 'expenses.html';
+    }, 1000);
   } catch (err) {
     setStatus('Update failed: ' + err.message);
   }
@@ -1174,9 +1190,11 @@ async function updateCharts() {
 async function trainModel() {
   try {
     console.log('🤖 Starting model training...');
+    const userId = window.getUserId();
     const response = await fetch('http://localhost:5000/api/train-model', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
     });
     
     if (!response.ok) {
@@ -1205,10 +1223,15 @@ async function predictCategory(title, amount) {
   
   try {
     console.log('🔮 Predicting category for:', title, amount);
+    const userId = window.getUserId();
     const response = await fetch(`${ML_API}/predict-category`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, amount: parseFloat(amount) || 0 })
+      body: JSON.stringify({ 
+        title, 
+        amount: parseFloat(amount) || 0,
+        user_id: userId 
+      })
     });
     
     if (!response.ok) return null;
@@ -1282,6 +1305,13 @@ function setupAutoPrediction() {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 App loaded - ML features enabled');
+  
+  // Display user name
+  const userNameEl = document.getElementById('userName');
+  if (userNameEl) {
+    userNameEl.textContent = window.getUserName();
+  }
+  
   initializeDarkMode(); // Initialize dark mode first
   initializeCustomSelect();
   initializeChartFilters();
@@ -1290,6 +1320,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeDatePickers(); // Initialize flatpickr date pickers first
   loadExpenses();
   updateCharts(); // This will call updateExpenseDates which will refresh the calendars
+  
+  // Check if we're editing an expense
+  const urlParams = new URLSearchParams(window.location.search);
+  const editId = urlParams.get('edit');
+  if (editId) {
+    // Load expense for editing
+    editExpense(parseInt(editId));
+  }
   
   // Auto-train model and setup prediction
   trainModel().then(() => {

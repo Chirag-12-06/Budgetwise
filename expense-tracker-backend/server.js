@@ -3,6 +3,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import expenseRoutes from "./routes/expenseRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -12,7 +13,7 @@ app.use(
     credentials: true,
     origin: ["http://127.0.0.1:5500", "http://localhost:5500", "http://127.0.0.1:5501", "http://localhost:5501"],
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
   })
 );
 
@@ -27,12 +28,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ API routes
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/auth", authRoutes);
 
 // ✅ ML training endpoint
 app.post("/api/train-model", async (req, res) => {
   try {
     console.log('📥 Training request received');
     const fetch = (await import('node-fetch')).default;
+    const { user_id } = req.body;
     
     // Fetch all expenses from database
     const expensesResponse = await fetch('http://localhost:5000/api/expenses');
@@ -42,7 +45,7 @@ app.post("/api/train-model", async (req, res) => {
     }
     
     const expenses = await expensesResponse.json();
-    console.log(`📊 Found ${expenses.length} expenses`);
+    console.log(`📊 Found ${expenses.length} expenses for user: ${user_id || 'default'}`);
     
     if (expenses.length < 10) {
       return res.status(400).json({ 
@@ -56,7 +59,10 @@ app.post("/api/train-model", async (req, res) => {
     const mlResponse = await fetch('http://127.0.0.1:5001/api/train-model', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ expenses })
+      body: JSON.stringify({ 
+        expenses,
+        user_id: user_id || 'default'
+      })
     });
     
     if (!mlResponse.ok) {
