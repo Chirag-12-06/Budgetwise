@@ -1,6 +1,15 @@
 // Expenses page JavaScript
 const API_BASE = 'http://localhost:5000/api';
 
+function getAuthToken() {
+  return localStorage.getItem('bw-token') || '';
+}
+
+function getAuthHeaders() {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // Centralized category color mapping (same as app.js)
 const CATEGORY_COLORS = {
   'dining': '#f97316',
@@ -69,7 +78,9 @@ darkModeToggle.addEventListener('click', () => {
 // Fetch and display expenses
 async function loadExpenses() {
   try {
-    const response = await fetch(`${API_BASE}/expenses`);
+    const response = await fetch(`${API_BASE}/expenses`, {
+      headers: getAuthHeaders()
+    });
     const expenses = await response.json();
     
     const expenseList = document.getElementById('expenseList');
@@ -134,7 +145,8 @@ async function deleteExpense(id) {
   
   try {
     const response = await fetch(`${API_BASE}/expenses/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     
     if (response.ok) {
@@ -169,7 +181,7 @@ function getCategoryDisplay(categoryValue) {
     'dining': { label: 'Dining Out', icon: '<i class="fas fa-utensils"></i>', color: CATEGORY_COLORS['dining'] },
     'groceries': { label: 'Groceries', icon: '<i class="fas fa-shopping-basket"></i>', color: CATEGORY_COLORS['groceries'] },
     'fruits': { label: 'Fruits', icon: '<i class="fas fa-apple-alt"></i>', color: CATEGORY_COLORS['fruits'] },
-    'snacks': { label: 'Snacks & Coffee', icon: '<i class="fas fa-coffee"></i>', color: CATEGORY_COLORS['snacks'] },
+    'snacks': { label: 'Snacks', icon: '<i class="fas fa-cookie-bite"></i>', color: CATEGORY_COLORS['snacks'] },
     'liquor': { label: 'Liquor & Spirits', icon: '<i class="fas fa-wine-glass-alt"></i>', color: CATEGORY_COLORS['liquor'] },
     'juices': { label: 'Juices', icon: '<i class="fas fa-glass-whiskey"></i>', color: CATEGORY_COLORS['juices'] },
     'beverages': { label: 'Non-Alcoholic Beverages', icon: '<i class="fas fa-mug-hot"></i>', color: CATEGORY_COLORS['beverages'] },
@@ -220,4 +232,8 @@ function getCategoryDisplay(categoryValue) {
 }
 
 // Load expenses on page load
+if (!localStorage.getItem('bw-token')) {
+  window.location.href = 'auth.html';
+}
+
 loadExpenses();

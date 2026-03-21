@@ -2,9 +2,6 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-// Simple user storage (in production, use proper database and password hashing)
-const users = new Map();
-
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -18,29 +15,30 @@ export const signup = async (req, res) => {
     }
 
     // Check if user already exists
-    if (users.has(email)) {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user
-    const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    const user = {
-      id: userId,
-      name,
-      email,
-      password, // In production, use bcrypt.hash(password, 10)
-      createdAt: new Date().toISOString()
-    };
-
-    users.set(email, user);
-
-    // Return user data (exclude password)
-    const { password: _, ...userWithoutPassword } = user;
+    // Create user in DB. ID is assigned by database automatically.
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password // In production, use bcrypt.hash(password, 10)
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true
+      }
+    });
     
     res.status(201).json({
       message: 'User created successfully',
-      user: userWithoutPassword,
-      token: userId // In production, use JWT
+      user,
+      token: String(user.id) // In production, use JWT
     });
   } catch (error) {
     console.error('Signup error:', error);
@@ -56,20 +54,22 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user
-    const user = users.get(email);
-
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user || user.password !== password) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Return user data (exclude password)
-    const { password: _, ...userWithoutPassword } = user;
+    const userWithoutPassword = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt
+    };
     
     res.json({
       message: 'Login successful',
       user: userWithoutPassword,
-      token: user.id // In production, use JWT
+      token: String(user.id) // In production, use JWT
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -79,21 +79,24 @@ export const login = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const userId = req.headers['authorization']?.replace('Bearer ', '');
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    const userId = Number(token);
     
-    if (!userId) {
+    if (!token || Number.isNaN(userId)) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
     // Find user by ID
-    const user = Array.from(users.values()).find(u => u.id === userId);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, createdAt: true }
+    });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
+    res.json(user);
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ message: 'Server error' });

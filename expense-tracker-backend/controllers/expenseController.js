@@ -18,10 +18,11 @@ const prisma = new PrismaClient();
 
 export const getExpenses = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { from, to, groupBy } = req.query;
 
     // Build a safe createdAt filter only when from/to are valid dates
-    const filter = {};
+    const filter = { userId };
     if (from || to) {
       const createdAtFilter = {};
       if (from) {
@@ -94,6 +95,7 @@ export const getExpenses = async (req, res) => {
 
 export const addExpense = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { title, amount, category, date } = req.body;
 
     if (!title || !amount || !category) {
@@ -142,7 +144,8 @@ export const addExpense = async (req, res) => {
         title,
         amount: amt,
         category,
-        createdAt: dateValue
+        createdAt: dateValue,
+        userId
       }
     });
 
@@ -156,6 +159,7 @@ export const addExpense = async (req, res) => {
 
 export const deleteExpense = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { id } = req.params;
     const expenseId = Number(id);
 
@@ -163,7 +167,7 @@ export const deleteExpense = async (req, res) => {
       return res.status(400).json({ message: 'Invalid expense id' });
     }
 
-    const existing = await prisma.expense.findUnique({ where: { id: expenseId } });
+    const existing = await prisma.expense.findFirst({ where: { id: expenseId, userId } });
     if (!existing) {
       return res.status(404).json({ message: 'Expense not found' });
     }
@@ -178,6 +182,7 @@ export const deleteExpense = async (req, res) => {
 
 export const updateExpense = async (req, res) => {
   try {
+    const userId = req.user.id;
     const { id } = req.params;
     const expenseId = Number(id);
     if (Number.isNaN(expenseId)) {
@@ -220,6 +225,11 @@ export const updateExpense = async (req, res) => {
       updateData.createdAt = dateValue;
     }
 
+    const existing = await prisma.expense.findFirst({ where: { id: expenseId, userId } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
     const updated = await prisma.expense.update({
       where: { id: expenseId },
       data: updateData
@@ -228,16 +238,13 @@ export const updateExpense = async (req, res) => {
     // Learn from user's manual category assignment if category was changed
     if (updateData.category && updateData.title) {
       try {
-        // Get user_id from header (sent from frontend localStorage)
-        const userId = req.headers['x-user-id'] || 'default';
-        
         await fetch('http://127.0.0.1:5001/api/learn-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: updateData.title,
             category: updateData.category,
-            user_id: userId
+            user_id: String(userId)
           })
         });
       } catch (err) {

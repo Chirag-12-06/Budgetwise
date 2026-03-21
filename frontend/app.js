@@ -11,6 +11,23 @@ let expenseDates = new Set(); // Track dates with expenses
 let flatpickrInstances = {}; // Store flatpickr instances
 let isModelTrained = false; // Track if ML model is trained
 
+function getAuthToken() {
+  return localStorage.getItem('bw-token') || '';
+}
+
+function getAuthHeaders(includeJson = false) {
+  const headers = {};
+  const token = getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  if (includeJson) {
+    headers['Content-Type'] = 'application/json';
+    headers.Accept = 'application/json';
+  }
+  return headers;
+}
+
 // Centralized category color mapping
 const CATEGORY_COLORS = {
   'dining': '#f97316',
@@ -127,6 +144,12 @@ function showOutlierWarning(outlierInfo, aggregated) {
   const message = document.getElementById('outlierMessage');
   
   if (!warning || !message) return;
+
+  // If user chose to exclude outliers, keep the warning hidden.
+  if (excludeOutliers) {
+    warning.classList.add('hidden');
+    return;
+  }
   
   if (outlierInfo.hasOutliers) {
     const maxOutlier = Math.max(...outlierInfo.outliers);
@@ -473,7 +496,7 @@ async function addExpense() {
 
     const response = await fetch(API_BASE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: getAuthHeaders(true),
       body: JSON.stringify({
         title,
         amount: parseFloat(amount),
@@ -499,7 +522,7 @@ async function addExpense() {
 async function loadExpenses() {
   try {
     setStatus('');
-    const res = await fetch(API_BASE);
+    const res = await fetch(API_BASE, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch expenses');
     const expenses = await res.json();
 
@@ -553,7 +576,10 @@ async function loadExpenses() {
 async function deleteExpense(id) {
   if (!confirm('Delete this expense?')) return;
   try {
-    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
     if (!res.ok) throw new Error('Failed to delete');
     setStatus('Deleted successfully.');
     await loadExpenses();
@@ -566,7 +592,7 @@ async function deleteExpense(id) {
 async function editExpense(id) {
   try {
     // Use getExpenses to fetch all expenses, then find the one we need
-    const res = await fetch(API_BASE);
+    const res = await fetch(API_BASE, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch expenses');
     const expenses = await res.json();
     
@@ -632,14 +658,9 @@ async function updateExpense(id) {
       return;
     }
 
-    const userId = window.getUserId();
     const response = await fetch(`${API_BASE}/${id}`, {
       method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'Accept': 'application/json',
-        'x-user-id': userId 
-      },
+      headers: getAuthHeaders(true),
       body: JSON.stringify({
         title,
         amount: parseFloat(amount),
@@ -810,7 +831,7 @@ function updateTotalSpending(expenses) {
 // Draw line chart with aggregation
 async function drawLineChart() {
   try {
-    const res = await fetch(API_BASE);
+    const res = await fetch(API_BASE, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch expenses');
     let expenses = await res.json();
 
@@ -990,7 +1011,7 @@ function getCategoryDisplay(categoryValue) {
     'dining': { label: 'Dining Out', icon: '<i class="fas fa-utensils"></i>', color: CATEGORY_COLORS.dining },
     'groceries': { label: 'Groceries', icon: '<i class="fas fa-shopping-basket"></i>', color: CATEGORY_COLORS.groceries },
     'fruits': { label: 'Fruits', icon: '<i class="fas fa-apple-alt"></i>', color: CATEGORY_COLORS.fruits },
-    'snacks': { label: 'Snacks & Coffee', icon: '<i class="fas fa-coffee"></i>', color: CATEGORY_COLORS.snacks },
+    'snacks': { label: 'Snacks', icon: '<i class="fas fa-cookie-bite"></i>', color: CATEGORY_COLORS.snacks },
     'liquor': { label: 'Liquor & Spirits', icon: '<i class="fas fa-wine-glass-alt"></i>', color: CATEGORY_COLORS.liquor },
     'juices': { label: 'Juices', icon: '<i class="fas fa-glass-whiskey"></i>', color: CATEGORY_COLORS.juices },
     'beverages': { label: 'Non-Alcoholic Beverages', icon: '<i class="fas fa-mug-hot"></i>', color: CATEGORY_COLORS.beverages },
@@ -1042,7 +1063,7 @@ function getCategoryDisplay(categoryValue) {
 // Draw pie chart - Category breakdown
 async function drawPieChart() {
   try {
-    const res = await fetch(API_BASE);
+    const res = await fetch(API_BASE, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch expenses');
     let expenses = await res.json();
 
@@ -1190,11 +1211,10 @@ async function updateCharts() {
 async function trainModel() {
   try {
     console.log('🤖 Starting model training...');
-    const userId = window.getUserId();
     const response = await fetch('http://localhost:5000/api/train-model', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId })
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({})
     });
     
     if (!response.ok) {
@@ -1305,6 +1325,11 @@ function setupAutoPrediction() {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 App loaded - ML features enabled');
+
+  if (!localStorage.getItem('bw-token')) {
+    window.location.href = 'auth.html';
+    return;
+  }
   
   // Display user name
   const userNameEl = document.getElementById('userName');
@@ -1553,7 +1578,7 @@ function suggestCategoryFromName(itemName) {
   // Fruits
   if (/(apple|seb|banana|kela|orange|santra|grape|angoor|mango|aam|papaya|papita|watermelon|tarbooz|pineapple|ananas|guava|amrud|pomegranate|anar|lychee|litchi|berry|ber|strawberry|kiwi|dragon\s*fruit|melon|kharbuja|coconut|nariyal|fruit)/i.test(name)) return 'fruits';
   
-  // Snacks & Coffee
+  // Snacks
   if (/(coffee|tea|chai|latte|espresso|cappuccino|mocha|snack|namkeen|chips|biscuit|cookie|kurkure|mixture|sev|bhujia|cake|pastry|donut|muffin|brownie|wafer|maggi|noodles|instant|popcorn|corn\s*flakes|oats|bread|pav|bun|toast)/i.test(name)) return 'snacks';
   
   // Drinks - Alcoholic

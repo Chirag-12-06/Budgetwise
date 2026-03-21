@@ -1,8 +1,11 @@
 // routes/expenseRoutes.js
 import express from "express";
 import { getExpenses, addExpense, deleteExpense, updateExpense } from "../controllers/expenseController.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 /**
  * @route   GET /api/expenses

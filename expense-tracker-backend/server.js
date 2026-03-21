@@ -35,17 +35,26 @@ app.post("/api/train-model", async (req, res) => {
   try {
     console.log('📥 Training request received');
     const fetch = (await import('node-fetch')).default;
-    const { user_id } = req.body;
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     
-    // Fetch all expenses from database
-    const expensesResponse = await fetch('http://localhost:5000/api/expenses');
+    // Fetch authenticated user's expenses from database
+    const expensesResponse = await fetch('http://localhost:5000/api/expenses', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     
     if (!expensesResponse.ok) {
       throw new Error('Failed to fetch expenses from database');
     }
     
     const expenses = await expensesResponse.json();
-    console.log(`📊 Found ${expenses.length} expenses for user: ${user_id || 'default'}`);
+    console.log(`📊 Found ${expenses.length} expenses for authenticated user: ${token}`);
     
     if (expenses.length < 10) {
       return res.status(400).json({ 
@@ -61,7 +70,7 @@ app.post("/api/train-model", async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         expenses,
-        user_id: user_id || 'default'
+        user_id: token
       })
     });
     
