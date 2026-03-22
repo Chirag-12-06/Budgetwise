@@ -1,5 +1,10 @@
 // Expenses page JavaScript
 const API_BASE = 'http://localhost:5000/api';
+let dateFilterMode = 'allTime'; // 'allTime', 'thisMonth', 'lastMonth', 'thisYear', 'custom'
+let customDateFrom = null;
+let customDateTo = null;
+let expenseDates = new Set();
+let flatpickrInstances = {};
 
 function getAuthToken() {
   return localStorage.getItem('bw-token') || '';
@@ -75,6 +80,199 @@ darkModeToggle.addEventListener('click', () => {
   }
 });
 
+// Update set of dates that have expenses
+function updateExpenseDates(expenses) {
+  expenseDates.clear();
+  expenses.forEach(expense => {
+    if (expense.createdAt) {
+      expenseDates.add(expense.createdAt.split('T')[0]);
+    }
+  });
+
+  Object.values(flatpickrInstances).forEach(instance => {
+    if (instance && instance.redraw) {
+      instance.redraw();
+    }
+  });
+}
+
+// Initialize flatpickr date pickers to match analytics calendar behavior
+function initializeDatePickers() {
+  const dateFromInput = document.getElementById('dateFrom');
+  const dateToInput = document.getElementById('dateTo');
+
+  if (typeof flatpickr === 'undefined') {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .flatpickr-day.has-expense {
+      background: #4F46E5 !important;
+      color: white !important;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+    .flatpickr-day.has-expense:hover {
+      background: #4338CA !important;
+      color: white !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const onDayCreate = function(dObj, dStr, fp, dayElem) {
+    const date = dayElem.dateObj;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    if (expenseDates.has(dateStr)) {
+      dayElem.classList.add('has-expense');
+    }
+  };
+
+  if (dateFromInput) {
+    flatpickrInstances.dateFrom = flatpickr(dateFromInput, {
+      dateFormat: 'Y-m-d',
+      onDayCreate
+    });
+  }
+
+  if (dateToInput) {
+    flatpickrInstances.dateTo = flatpickr(dateToInput, {
+      dateFormat: 'Y-m-d',
+      onDayCreate
+    });
+  }
+}
+
+// Initialize date filters
+function initializeDateFilters() {
+  const allTimeBtn = document.getElementById('filterAllTime');
+  const thisMonthBtn = document.getElementById('filterThisMonth');
+  const lastMonthBtn = document.getElementById('filterLastMonth');
+  const thisYearBtn = document.getElementById('filterThisYear');
+  const applyBtn = document.getElementById('applyDateRange');
+  const dateFromInput = document.getElementById('dateFrom');
+  const dateToInput = document.getElementById('dateTo');
+
+  const buttons = { allTime: allTimeBtn, thisMonth: thisMonthBtn, lastMonth: lastMonthBtn, thisYear: thisYearBtn };
+
+  function updateButtonStyles(activeMode) {
+    Object.entries(buttons).forEach(([mode, btn]) => {
+      if (!btn) return;
+
+      if (mode === activeMode) {
+        btn.className = 'px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white transition-colors';
+      } else {
+        btn.className = 'px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors';
+      }
+    });
+  }
+
+  if (allTimeBtn) {
+    allTimeBtn.addEventListener('click', () => {
+      dateFilterMode = 'allTime';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('allTime');
+      loadExpenses();
+    });
+  }
+
+  if (thisMonthBtn) {
+    thisMonthBtn.addEventListener('click', () => {
+      dateFilterMode = 'thisMonth';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('thisMonth');
+      loadExpenses();
+    });
+  }
+
+  if (lastMonthBtn) {
+    lastMonthBtn.addEventListener('click', () => {
+      dateFilterMode = 'lastMonth';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('lastMonth');
+      loadExpenses();
+    });
+  }
+
+  if (thisYearBtn) {
+    thisYearBtn.addEventListener('click', () => {
+      dateFilterMode = 'thisYear';
+      customDateFrom = null;
+      customDateTo = null;
+      updateButtonStyles('thisYear');
+      loadExpenses();
+    });
+  }
+
+  if (applyBtn && dateFromInput && dateToInput) {
+    applyBtn.addEventListener('click', () => {
+      const from = dateFromInput.value;
+      const to = dateToInput.value;
+
+      if (!from && !to) {
+        showStatus('Choose at least one date to apply custom range', 'error');
+        return;
+      }
+
+      if (from && to && new Date(from) > new Date(to)) {
+        showStatus('From date cannot be later than To date', 'error');
+        return;
+      }
+
+      dateFilterMode = 'custom';
+      customDateFrom = from || null;
+      customDateTo = to || null;
+      updateButtonStyles(null);
+      loadExpenses();
+    });
+  }
+}
+
+// Filter expenses by selected date range
+function filterExpensesByDate(expenses) {
+  if (dateFilterMode === 'allTime') {
+    return expenses;
+  }
+
+  const now = new Date();
+  let startDate;
+  let endDate;
+
+  if (dateFilterMode === 'thisMonth') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  } else if (dateFilterMode === 'lastMonth') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  } else if (dateFilterMode === 'thisYear') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+  } else if (dateFilterMode === 'custom') {
+    if (customDateFrom) {
+      startDate = new Date(customDateFrom);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    if (customDateTo) {
+      endDate = new Date(customDateTo);
+      endDate.setHours(23, 59, 59, 999);
+    }
+  }
+
+  return expenses.filter(expense => {
+    const expenseDate = new Date(expense.createdAt);
+    if (startDate && expenseDate < startDate) return false;
+    if (endDate && expenseDate > endDate) return false;
+    return true;
+  });
+}
+
 // Fetch and display expenses
 async function loadExpenses() {
   try {
@@ -82,22 +280,38 @@ async function loadExpenses() {
       headers: getAuthHeaders()
     });
     const expenses = await response.json();
+    updateExpenseDates(expenses);
     
     const expenseList = document.getElementById('expenseList');
     const emptyState = document.getElementById('emptyState');
     
-    if (expenses.length === 0) {
+    // Sort by date (newest first)
+    expenses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const filteredExpenses = filterExpensesByDate(expenses);
+    const noExpensesInDateRange = filteredExpenses.length === 0 && expenses.length > 0;
+
+    const emptyTitle = emptyState.querySelector('h3');
+    const emptySubtitle = emptyState.querySelector('p');
+
+    if (filteredExpenses.length === 0) {
       expenseList.innerHTML = '';
       emptyState.classList.remove('hidden');
+
+      if (emptyTitle && emptySubtitle && noExpensesInDateRange) {
+        emptyTitle.textContent = 'No expenses in selected range';
+        emptySubtitle.textContent = 'Try a different filter or adjust the custom date range';
+      } else if (emptyTitle && emptySubtitle) {
+        emptyTitle.textContent = 'No expenses yet';
+        emptySubtitle.textContent = 'Start tracking your expenses from the dashboard';
+      }
+
       return;
     }
     
     emptyState.classList.add('hidden');
     
-    // Sort by date (newest first)
-    expenses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    expenseList.innerHTML = expenses.map(expense => {
+    expenseList.innerHTML = filteredExpenses.map(expense => {
       const categoryDisplay = getCategoryDisplay(expense.category);
       const date = new Date(expense.createdAt);
       const formattedDate = date.toLocaleDateString('en-IN', { 
@@ -236,4 +450,6 @@ if (!localStorage.getItem('bw-token')) {
   window.location.href = 'auth.html';
 }
 
+initializeDatePickers();
+initializeDateFilters();
 loadExpenses();

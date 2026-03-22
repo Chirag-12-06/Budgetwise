@@ -6,6 +6,7 @@
   <title>Expenses - Budgetwise</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white">
@@ -36,6 +37,44 @@
         <h2 class="text-3xl font-bold text-gray-900 dark:text-white">All Expenses</h2>
         <div id="status" class="hidden bg-green-100 text-green-800 p-4 rounded-lg dark:bg-green-900 dark:text-green-300"></div>
       </div>
+
+      <!-- Date Range Filter -->
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Date Range:</label>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Quick Filters -->
+            <div class="flex gap-2">
+              <button id="filterAllTime" class="px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white transition-colors">
+                All Time
+              </button>
+              <button id="filterThisMonth" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                This Month
+              </button>
+              <button id="filterLastMonth" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                Last Month
+              </button>
+              <button id="filterThisYear" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                This Year
+              </button>
+            </div>
+
+            <!-- Custom Date Range -->
+            <div class="flex items-center gap-2 border-l border-gray-300 dark:border-gray-600 pl-3">
+              <label class="text-sm text-gray-600 dark:text-gray-400">From:</label>
+              <input type="date" id="dateFrom" class="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+
+              <label class="text-sm text-gray-600 dark:text-gray-400">To:</label>
+              <input type="date" id="dateTo" class="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+
+              <button id="applyDateRange" class="px-3 py-1.5 text-sm font-medium rounded-md bg-green-600 hover:bg-green-700 text-white transition-colors">
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <!-- Expenses List -->
       <ul id="expenseList" class="space-y-4"></ul>
@@ -52,6 +91,7 @@
     </div>
   </div>
   
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="expenses.js"></script>
 </body>
 </html>

@@ -703,7 +703,60 @@ function setStatus(msg) {
 
 // Chart instances (to prevent memory leaks)
 let lineChartInstance = null;
-let pieChartInstance = null;
+let hiddenBubbleCategories = new Set();
+let bubbleResizeTimer = null;
+
+function ensureBubbleFloatingStyles() {
+  if (document.getElementById('bubbleFloatingStyles')) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = 'bubbleFloatingStyles';
+  style.textContent = `
+    .floating-bubble {
+      animation-name: bubbleDrift;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+      will-change: transform;
+    }
+
+    @keyframes bubbleDrift {
+      0%, 100% {
+        transform: translate(calc(-50% + var(--drift-x-start, 0px)), calc(-50% + var(--drift-y-start, 0px)));
+      }
+      50% {
+        transform: translate(calc(-50% + var(--drift-x-mid, 0px)), calc(-50% + var(--drift-y-mid, 0px)));
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function hexToRgba(hex, alpha) {
+  const normalized = (hex || '#6b7280').replace('#', '');
+  const safe = normalized.length === 3
+    ? normalized.split('').map(ch => ch + ch).join('')
+    : normalized.padEnd(6, '0').slice(0, 6);
+  const value = parseInt(safe, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getContrastTextColor(hex) {
+  const normalized = (hex || '#6b7280').replace('#', '');
+  const safe = normalized.length === 3
+    ? normalized.split('').map(ch => ch + ch).join('')
+    : normalized.padEnd(6, '0').slice(0, 6);
+  const value = parseInt(safe, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance > 160 ? '#111827' : '#F9FAFB';
+}
 
 // Filter expenses by date range
 function filterExpensesByDate(expenses) {
@@ -1060,7 +1113,7 @@ function getCategoryDisplay(categoryValue) {
   return { label: capitalized, icon: '<i class="fas fa-circle"></i>' };
 }
 
-// Draw pie chart - Category breakdown
+// Draw category bubble chart
 async function drawPieChart() {
   try {
     const res = await fetch(API_BASE, { headers: getAuthHeaders() });
@@ -1070,13 +1123,18 @@ async function drawPieChart() {
     // Apply date filter
     expenses = filterExpensesByDate(expenses);
 
+    const bubbleContainer = document.getElementById('bubbleChart');
+    const legendContainer = document.getElementById('pieLegend');
+    if (!bubbleContainer || !legendContainer) return;
+
+    bubbleContainer.style.width = '100%';
+    bubbleContainer.style.height = '100%';
+    bubbleContainer.style.position = 'relative';
+    bubbleContainer.style.overflow = 'hidden';
+
     if (expenses.length === 0) {
-      // Show empty state
-      const ctx = document.getElementById("pieChart");
-      if (ctx) {
-        if (pieChartInstance) pieChartInstance.destroy();
-        pieChartInstance = null;
-      }
+      bubbleContainer.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">No category data for selected range</div>';
+      legendContainer.innerHTML = '';
       return;
     }
 
@@ -1087,117 +1145,239 @@ async function drawPieChart() {
       categoryMap[cat] = (categoryMap[cat] || 0) + parseFloat(e.amount || 0);
     });
 
-    const categoryKeys = Object.keys(categoryMap);
-    const data = Object.values(categoryMap);
-    
-    // Format labels - just use the proper names without icons since Chart.js doesn't support HTML
-    const labels = categoryKeys.map(key => {
-      const display = getCategoryDisplay(key);
-      return display.label;
-    });
-    
-    // Use category-specific colors from centralized mapping
-    const colors = categoryKeys.map(key => {
-      return CATEGORY_COLORS[key] || CATEGORY_COLORS.uncategorized;
-    });
+    let chartCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
 
-    const ctx = document.getElementById("pieChart");
-    if (!ctx) return;
-
-    // Destroy previous chart instance
-    if (pieChartInstance) {
-      pieChartInstance.destroy();
+    // Apply outlier filtering to category chart when enabled
+    if (excludeOutliers && chartCategories.length >= 3) {
+      const outlierInfo = detectOutliers(chartCategories.map(([, value]) => value));
+      if (outlierInfo.hasOutliers) {
+        chartCategories = chartCategories.filter(([, value]) => {
+          return value >= outlierInfo.lowerBound && value <= outlierInfo.upperBound;
+        });
+      }
     }
 
-    // Check if dark mode is enabled
+    const totalAmount = chartCategories.reduce((sum, [, value]) => sum + value, 0);
+    const visibleCategories = chartCategories.filter(([category]) => !hiddenBubbleCategories.has(category));
+
     const isDarkMode = document.documentElement.classList.contains('dark');
-    const textColor = isDarkMode ? '#E5E7EB' : '#111827';
+    bubbleContainer.innerHTML = '';
+    ensureBubbleFloatingStyles();
 
-    pieChartInstance = new Chart(ctx, {
-      type: "pie",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            data: data,
-            backgroundColor: colors.slice(0, labels.length),
-            borderWidth: 2,
-            borderColor: isDarkMode ? '#374151' : '#ffffff'
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          title: {
-            display: true,
-            text: 'Expenses by Category',
-            font: { size: 16, weight: 'bold' },
-            color: textColor
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((value / total) * 100).toFixed(1);
-                return `${label}: ₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })} (${percentage}%)`;
-              }
+    const bubbleBoard = document.createElement('div');
+    bubbleBoard.className = 'relative w-full h-full rounded-2xl overflow-hidden';
+    bubbleBoard.style.position = 'relative';
+    bubbleBoard.style.width = '100%';
+    bubbleBoard.style.height = '100%';
+    bubbleBoard.style.overflow = 'hidden';
+    bubbleBoard.style.borderRadius = '0';
+    bubbleBoard.style.background = 'transparent';
+
+    const title = document.createElement('div');
+    title.className = 'absolute left-4 top-3 text-sm font-semibold tracking-wide';
+    title.style.color = isDarkMode ? '#e5e7eb' : '#1f2937';
+    title.textContent = 'Category Share';
+    bubbleBoard.appendChild(title);
+
+    if (visibleCategories.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'absolute inset-0 flex items-center justify-center text-sm';
+      empty.style.color = isDarkMode ? '#9ca3af' : '#6b7280';
+      empty.textContent = 'All categories are hidden. Click a legend item to show again.';
+      bubbleBoard.appendChild(empty);
+    } else {
+      const parentWidth = bubbleContainer.parentElement ? bubbleContainer.parentElement.clientWidth : 0;
+      const parentHeight = bubbleContainer.parentElement ? bubbleContainer.parentElement.clientHeight : 0;
+      const boardWidth = bubbleContainer.clientWidth || parentWidth || 320;
+      const boardHeight = bubbleContainer.clientHeight || parentHeight || 400;
+      const edgePadding = 4;
+      const titleSafeTop = 36;
+      const plotWidth = Math.max(120, boardWidth - edgePadding * 2);
+      const plotHeight = Math.max(120, boardHeight - titleSafeTop - edgePadding);
+
+      const getScaledValue = (value) => {
+        if (useLogScale) {
+          return Math.log10(value + 1);
+        }
+        return value;
+      };
+
+      const maxValue = getScaledValue(visibleCategories[0][1] || 1);
+      const area = plotWidth * plotHeight;
+      const targetPerBubble = area / Math.max(visibleCategories.length, 1);
+      const maxBubbleDiameter = Math.max(28, Math.min(180, Math.sqrt(targetPerBubble) * 1.45));
+      const minBubbleDiameter = Math.max(14, Math.min(48, maxBubbleDiameter * 0.34));
+
+      const placed = [];
+      const cx = boardWidth / 2;
+      const cy = titleSafeTop + (plotHeight / 2);
+
+      const overlapsPlaced = (x, y, r) => {
+        for (const p of placed) {
+          const dx = x - p.x;
+          const dy = y - p.y;
+          const minDist = r + p.r - 2;
+          if ((dx * dx) + (dy * dy) < (minDist * minDist)) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      const withinBounds = (x, y, r) => {
+        return (
+          x >= edgePadding + r &&
+          x <= boardWidth - edgePadding - r &&
+          y >= titleSafeTop + r &&
+          y <= boardHeight - edgePadding - r
+        );
+      };
+
+      visibleCategories.forEach(([category, value], index) => {
+        const display = getCategoryDisplay(category);
+        const percentage = (value / totalAmount) * 100;
+        const scaledValue = getScaledValue(value);
+        const relative = maxValue > 0 ? Math.sqrt(scaledValue / maxValue) : 0;
+        const diameter = Math.max(minBubbleDiameter, Math.min(maxBubbleDiameter, minBubbleDiameter + relative * (maxBubbleDiameter - minBubbleDiameter)));
+        const color = display.color || CATEGORY_COLORS.uncategorized;
+        const textColor = getContrastTextColor(color);
+        const radius = diameter / 2;
+        const maxDrift = Math.max(1, Math.min(2, diameter * 0.02));
+
+        let centerX = cx;
+        let centerY = cy;
+        let foundSpot = false;
+
+        if (index === 0) {
+          centerX = Math.max(edgePadding + radius + maxDrift, Math.min(boardWidth - edgePadding - radius - maxDrift, cx));
+          centerY = Math.max(titleSafeTop + radius + maxDrift, Math.min(boardHeight - edgePadding - radius - maxDrift, cy));
+          foundSpot = true;
+        } else {
+          const maxSearchRadius = Math.max(plotWidth, plotHeight) * 0.8;
+          for (let ring = 0; ring <= 28 && !foundSpot; ring++) {
+            const radial = (ring / 28) * maxSearchRadius;
+            const attempts = 20;
+            for (let a = 0; a < attempts; a++) {
+              const angle = (Math.PI * 2 * a) / attempts + (ring * 0.17);
+              const candidateX = cx + Math.cos(angle) * radial;
+              const candidateY = cy + Math.sin(angle) * radial;
+              if (!withinBounds(candidateX, candidateY, radius + maxDrift)) continue;
+              if (overlapsPlaced(candidateX, candidateY, radius + maxDrift)) continue;
+              centerX = candidateX;
+              centerY = candidateY;
+              foundSpot = true;
+              break;
             }
-          },
-          legend: {
-            display: false  // Hide default legend, we'll create custom HTML legend
           }
-        },
-      },
-    });
+        }
 
-    // Create custom HTML legend with Font Awesome icons
-    const legendContainer = document.getElementById('pieLegend');
-    if (legendContainer) {
-      const total = data.reduce((a, b) => a + b, 0);
-      legendContainer.innerHTML = categoryKeys.map((key, index) => {
-        const display = getCategoryDisplay(key);
-        const value = data[index];
-        const percentage = ((value / total) * 100).toFixed(1);
-        const color = colors[index % colors.length];
-        
-        return `
-          <div class="legend-item flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors" data-index="${index}">
-            <div style="width: 16px; height: 16px; background-color: ${color}; border-radius: 3px; flex-shrink: 0;"></div>
-            <span class="text-gray-700 dark:text-gray-300 text-sm">${display.icon} ${display.label}</span>
-            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">${percentage}%</span>
-          </div>
-        `;
-      }).join('');
+        if (!foundSpot) {
+          centerX = Math.max(edgePadding + radius + maxDrift, Math.min(boardWidth - edgePadding - radius - maxDrift, cx + (Math.random() - 0.5) * plotWidth * 0.6));
+          centerY = Math.max(titleSafeTop + radius + maxDrift, Math.min(boardHeight - edgePadding - radius - maxDrift, cy + (Math.random() - 0.5) * plotHeight * 0.6));
+        }
 
-      // Add click handlers to legend items to toggle visibility
-      legendContainer.querySelectorAll('.legend-item').forEach((item, index) => {
-        item.addEventListener('click', () => {
-          const meta = pieChartInstance.getDatasetMeta(0);
-          const segment = meta.data[index];
-          
-          // Toggle visibility
-          segment.hidden = !segment.hidden;
-          
-          // Update legend item opacity
-          if (segment.hidden) {
-            item.style.opacity = '0.3';
-            item.style.textDecoration = 'line-through';
-          } else {
-            item.style.opacity = '1';
-            item.style.textDecoration = 'none';
-          }
-          
-          // Update the chart
-          pieChartInstance.update();
-        });
+        placed.push({ x: centerX, y: centerY, r: radius + maxDrift });
+
+        const bubble = document.createElement('div');
+        bubble.className = 'absolute flex flex-col items-center justify-center text-center rounded-full floating-bubble';
+        bubble.style.left = `${Math.round(centerX)}px`;
+        bubble.style.top = `${Math.round(centerY)}px`;
+        bubble.style.width = `${diameter}px`;
+        bubble.style.height = `${diameter}px`;
+        bubble.style.display = 'flex';
+        bubble.style.alignItems = 'center';
+        bubble.style.justifyContent = 'center';
+        bubble.style.borderRadius = '50%';
+        bubble.style.overflow = 'hidden';
+        bubble.style.clipPath = 'circle(50% at 50% 50%)';
+        bubble.style.backgroundColor = color;
+        bubble.style.border = `2px solid ${hexToRgba(color, 0.95)}`;
+        bubble.style.setProperty('--drift-x-start', `${(Math.random() * maxDrift * 2 - maxDrift).toFixed(2)}px`);
+        bubble.style.setProperty('--drift-y-start', `${(Math.random() * maxDrift * 2 - maxDrift).toFixed(2)}px`);
+        bubble.style.setProperty('--drift-x-mid', `${(Math.random() * maxDrift * 2 - maxDrift).toFixed(2)}px`);
+        bubble.style.setProperty('--drift-y-mid', `${(Math.random() * maxDrift * 2 - maxDrift).toFixed(2)}px`);
+        bubble.style.animationDuration = `${(6 + Math.random() * 6).toFixed(2)}s`;
+        bubble.style.animationDelay = `${(-Math.random() * 6).toFixed(2)}s`;
+        bubble.title = `${display.label}: ₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })} (${percentage.toFixed(1)}%)`;
+
+        const percentEl = document.createElement('div');
+        percentEl.className = 'font-bold';
+        percentEl.style.color = textColor;
+        percentEl.style.fontSize = diameter > 160 ? '2.2rem' : diameter > 110 ? '1.5rem' : '1rem';
+        percentEl.style.width = '100%';
+        percentEl.style.textAlign = 'center';
+        percentEl.style.lineHeight = '1';
+        percentEl.textContent = `${percentage.toFixed(1)}%`;
+
+        bubble.appendChild(percentEl);
+        bubbleBoard.appendChild(bubble);
       });
     }
+
+    bubbleContainer.appendChild(bubbleBoard);
+
+    legendContainer.innerHTML = '';
+    const legendGrid = document.createElement('div');
+    legendGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2';
+
+    chartCategories.forEach(([category, value]) => {
+      const display = getCategoryDisplay(category);
+      const color = display.color || CATEGORY_COLORS.uncategorized;
+      const percentage = ((value / totalAmount) * 100).toFixed(1);
+      const isHidden = hiddenBubbleCategories.has(category);
+
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'w-full text-left p-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-600';
+      item.style.opacity = isHidden ? '0.4' : '1';
+
+      const rowTop = document.createElement('div');
+      rowTop.className = 'flex items-center gap-2 min-w-0';
+
+      const iconBadge = document.createElement('span');
+      iconBadge.className = 'inline-flex items-center justify-center rounded-lg';
+      iconBadge.style.width = '28px';
+      iconBadge.style.height = '28px';
+      iconBadge.style.backgroundColor = color;
+      iconBadge.style.color = '#ffffff';
+      iconBadge.style.flexShrink = '0';
+      iconBadge.innerHTML = display.icon || '<i class="fas fa-circle"></i>';
+
+      const label = document.createElement('span');
+      label.className = 'text-sm font-semibold';
+      label.style.color = isDarkMode ? '#ffffff' : color;
+      label.style.whiteSpace = 'nowrap';
+      label.style.overflow = 'hidden';
+      label.style.textOverflow = 'ellipsis';
+      label.style.minWidth = '0';
+      label.textContent = display.label;
+
+      const amount = document.createElement('span');
+      amount.className = 'text-sm text-gray-700 dark:text-gray-300 ml-auto';
+      amount.style.flexShrink = '0';
+      amount.style.color = isDarkMode ? '#ffffff' : '#374151';
+      amount.textContent = `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+
+      rowTop.appendChild(iconBadge);
+      rowTop.appendChild(label);
+      rowTop.appendChild(amount);
+
+      item.appendChild(rowTop);
+      item.addEventListener('click', () => {
+        if (hiddenBubbleCategories.has(category)) {
+          hiddenBubbleCategories.delete(category);
+        } else {
+          hiddenBubbleCategories.add(category);
+        }
+        drawPieChart();
+      });
+
+      legendGrid.appendChild(item);
+    });
+
+    legendContainer.appendChild(legendGrid);
   } catch (err) {
-    console.error('Error drawing pie chart:', err);
+    console.error('Error drawing category bubble chart:', err);
   }
 }
 
@@ -1345,6 +1525,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeDatePickers(); // Initialize flatpickr date pickers first
   loadExpenses();
   updateCharts(); // This will call updateExpenseDates which will refresh the calendars
+
+  window.addEventListener('resize', () => {
+    if (bubbleResizeTimer) {
+      clearTimeout(bubbleResizeTimer);
+    }
+    bubbleResizeTimer = setTimeout(() => {
+      drawPieChart();
+    }, 120);
+  });
   
   // Check if we're editing an expense
   const urlParams = new URLSearchParams(window.location.search);
