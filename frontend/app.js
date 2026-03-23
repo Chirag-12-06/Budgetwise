@@ -310,6 +310,16 @@ function initializeDateFilters() {
     });
   }
 
+  // Helper function to reset chart options
+  function resetChartOptions() {
+    excludeOutliers = false;
+    useLogScale = false;
+    const excludeOutliersCheckbox = document.getElementById('excludeOutliers');
+    const useLogScaleCheckbox = document.getElementById('useLogScale');
+    if (excludeOutliersCheckbox) excludeOutliersCheckbox.checked = false;
+    if (useLogScaleCheckbox) useLogScaleCheckbox.checked = false;
+  }
+
   // All Time
   if (allTimeBtn) {
     allTimeBtn.addEventListener('click', () => {
@@ -317,6 +327,7 @@ function initializeDateFilters() {
       customDateFrom = null;
       customDateTo = null;
       updateButtonStyles('allTime');
+      resetChartOptions();
       updateCharts();
     });
   }
@@ -328,6 +339,7 @@ function initializeDateFilters() {
       customDateFrom = null;
       customDateTo = null;
       updateButtonStyles('thisMonth');
+      resetChartOptions();
       updateCharts();
     });
   }
@@ -339,6 +351,7 @@ function initializeDateFilters() {
       customDateFrom = null;
       customDateTo = null;
       updateButtonStyles('lastMonth');
+      resetChartOptions();
       updateCharts();
     });
   }
@@ -350,6 +363,7 @@ function initializeDateFilters() {
       customDateFrom = null;
       customDateTo = null;
       updateButtonStyles('thisYear');
+      resetChartOptions();
       updateCharts();
     });
   }
@@ -365,6 +379,7 @@ function initializeDateFilters() {
         customDateFrom = from || null;
         customDateTo = to || null;
         updateButtonStyles(null); // Deselect all quick filters
+        resetChartOptions();
         updateCharts();
       }
     });
@@ -473,6 +488,9 @@ function initializeCustomSelect() {
       `;
       categoryInput.value = value;
       categoryMenu.classList.add('hidden');
+      
+      // Mark category as manually selected
+      categoryInput.dataset.manuallySelected = 'true';
     });
   });
 }
@@ -508,6 +526,10 @@ async function addExpense() {
     if (!response.ok) throw new Error('Failed to add expense');
     setStatus('Expense added successfully.');
     document.getElementById('expenseForm').reset();
+    const categoryInput = document.getElementById('category');
+    if (categoryInput) {
+      categoryInput.dataset.manuallySelected = 'false';
+    }
     document.getElementById('categorySelect').innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
     await loadExpenses();
     await updateCharts();
@@ -845,8 +867,24 @@ function updateTotalSpending(expenses) {
   
   if (!displayDiv || !amountSpan || !periodSpan) return;
   
+  // Apply outlier filtering if enabled
+  let filteredExpenses = expenses;
+  if (excludeOutliers && expenses.length > 0) {
+    const amounts = expenses.map(e => parseFloat(e.amount || 0));
+    const outlierInfo = detectOutliers(amounts);
+    if (outlierInfo.hasOutliers) {
+      filteredExpenses = expenses.filter(e => {
+        const amount = parseFloat(e.amount || 0);
+        return !outlierInfo.outliers.includes(amount);
+      });
+    }
+  }
+  
   // Calculate total
-  const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+  const total = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+  
+  // Use filtered count if outliers are excluded, otherwise use all expenses
+  const displayCount = excludeOutliers ? filteredExpenses.length : expenses.length;
   
   // Show/hide based on whether a filter is active
   if (dateFilterMode !== 'allTime' || expenses.length > 0) {
@@ -856,24 +894,24 @@ function updateTotalSpending(expenses) {
     // Set period text
     let periodText = '';
     if (dateFilterMode === 'allTime') {
-      periodText = `All time (${expenses.length} expenses)`;
+      periodText = `All time (${displayCount} expenses)`;
     } else if (dateFilterMode === 'thisMonth') {
       const now = new Date();
       const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      periodText = `${monthNames[now.getMonth()]} ${now.getFullYear()} (${expenses.length} expenses)`;
+      periodText = `${monthNames[now.getMonth()]} ${now.getFullYear()} (${displayCount} expenses)`;
     } else if (dateFilterMode === 'lastMonth') {
       const now = new Date();
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      periodText = `${monthNames[lastMonth.getMonth()]} ${lastMonth.getFullYear()} (${expenses.length} expenses)`;
+      periodText = `${monthNames[lastMonth.getMonth()]} ${lastMonth.getFullYear()} (${displayCount} expenses)`;
     } else if (dateFilterMode === 'thisYear') {
       const now = new Date();
-      periodText = `${now.getFullYear()} (${expenses.length} expenses)`;
+      periodText = `${now.getFullYear()} (${displayCount} expenses)`;
     } else if (dateFilterMode === 'custom') {
       const parts = [];
       if (customDateFrom) parts.push(`from ${customDateFrom}`);
       if (customDateTo) parts.push(`to ${customDateTo}`);
-      periodText = `${parts.join(' ')} (${expenses.length} expenses)`;
+      periodText = `${parts.join(' ')} (${displayCount} expenses)`;
     }
     periodSpan.textContent = periodText;
   } else {
@@ -1468,13 +1506,25 @@ function setupAutoPrediction() {
       const title = titleInput.value.trim();
       const amount = amountInput.value;
       
+      // Check if category was manually selected - don't override it
+      const isManuallySelected = categoryInput.dataset.manuallySelected === 'true';
+      
       if (title.length < 3) {
-        // Reset category if title is too short
-        if (lastPredictedCategory) {
+        // Reset category if title is too short, only if it was predicted before
+        if (lastPredictedCategory && !isManuallySelected) {
           categoryInput.value = '';
           categorySelect.innerHTML = `<span><i class="fas fa-tags mr-2"></i>Category</span>`;
           lastPredictedCategory = null;
         }
+        // Reset manually selected flag since title is being cleared
+        if (!title) {
+          categoryInput.dataset.manuallySelected = 'false';
+        }
+        return;
+      }
+      
+      // Skip prediction if user has manually selected a category
+      if (isManuallySelected) {
         return;
       }
       
