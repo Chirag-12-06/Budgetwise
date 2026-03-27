@@ -2,7 +2,8 @@
 module.exports = {
   content: [
     "./screen/*.html",
-    "./app.js"
+    "./*.js",
+    "./js/*.js",
   ],
   darkMode: 'class',
   theme: {

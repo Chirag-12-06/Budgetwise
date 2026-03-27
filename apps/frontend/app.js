@@ -30,48 +30,8 @@ function getAuthHeaders(includeJson = false) {
   return headers;
 }
 
-// Centralized category color mapping
-const CATEGORY_COLORS = {
-  'dining': '#f97316',
-  'groceries': '#22c55e',
-  'fruits': '#ef4444',
-  'snacks': '#d97706',
-  'liquor': '#9333ea',
-  'juices': '#eab308',
-  'beverages': '#14b8a6',
-  'movies': '#db2777',
-  'membership': '#6366f1',
-  'hobbies': '#f43f5e',
-  'sports': '#ea580c',
-  'rent': '#2563eb',
-  'electronics': '#475569',
-  'furniture': '#b45309',
-  'maintenance': '#4b5563',
-  'supplies': '#06b6d4',
-  'pets': '#65a30d',
-  'services': '#8b5cf6',
-  'childcare': '#f9a8d4',
-  'clothing': '#d946ef',
-  'health': '#dc2626',
-  'personal': '#0ea5e9',
-  'education': '#1d4ed8',
-  'taxes': '#047857',
-  'insurance': '#0f766e',
-  'fuel': '#b91c1c',
-  'parking': '#4f46e5',
-  'cab': '#ca8a04',
-  'flight': '#0284c7',
-  'bicycle': '#16a34a',
-  'bus': '#c2410c',
-  'metro': '#7e22ce',
-  'train': '#334155',
-  'electricity': '#eab308',
-  'water': '#3b82f6',
-  'cleaning': '#0891b2',
-  'gas': '#f97316',
-  'internet': '#4338ca',
-  'phone': '#15803d',
-  'uncategorized': '#6b7280'
+const CATEGORY_COLORS = window.CATEGORY_COLORS || {
+  uncategorized: "#6b7280",
 };
 
 // Detect outliers using IQR (Interquartile Range) method
