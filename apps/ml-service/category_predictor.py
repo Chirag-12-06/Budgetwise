@@ -3,6 +3,7 @@ import pickle
 import os
 import json
 from difflib import SequenceMatcher
+from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
@@ -21,13 +22,16 @@ class CategoryPredictor:
         self.load_model()
         self.load_user_preferences()
         
-        # Load category mappings from JSON file
-        with open('category_keywords.json', 'r') as f:
+        base_dir = Path(__file__).resolve().parent
+        shared_dir = base_dir.parent / 'shared'
+
+        # Load category mappings from shared JSON file
+        with open(shared_dir / 'category_keywords.json', 'r', encoding='utf-8') as f:
             self.keyword_map = json.load(f)
         
         # Load regional keywords
         try:
-            with open('regional_keywords.json', 'r') as f:
+            with open(base_dir / 'regional_keywords.json', 'r', encoding='utf-8') as f:
                 regional_data = json.load(f)
                 # Flatten all regional keywords into main map
                 for lang, keywords in regional_data.items():

@@ -10,6 +10,8 @@ let customDateTo = null;
 let expenseDates = new Set(); // Track dates with expenses
 let flatpickrInstances = {}; // Store flatpickr instances
 let isModelTrained = false; // Track if ML model is trained
+let sharedCategoryKeywords = {};
+let sharedCategoryKeywordsPromise = null;
 
 function getAuthToken() {
   return localStorage.getItem('bw-token') || '';
@@ -1647,6 +1649,7 @@ async function processReceipt() {
   
   try {
     progressText.textContent = 'Initializing OCR...';
+    await loadSharedCategoryKeywords();
     
     const { data: { text } } = await Tesseract.recognize(file, 'eng', {
       logger: (m) => {
@@ -1805,71 +1808,55 @@ function capitalizeWords(str) {
     .join(' ');
 }
 
+function loadSharedCategoryKeywords() {
+  if (Object.keys(sharedCategoryKeywords).length > 0) {
+    return Promise.resolve(sharedCategoryKeywords);
+  }
+
+  if (!sharedCategoryKeywordsPromise) {
+    sharedCategoryKeywordsPromise = fetch('/shared/category_keywords.json')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to load shared category keywords');
+        }
+        return response.json();
+      })
+      .then((keywords) => {
+        sharedCategoryKeywords = keywords;
+        return sharedCategoryKeywords;
+      })
+      .catch((error) => {
+        console.error('Error loading shared category keywords:', error);
+        sharedCategoryKeywords = {};
+        return sharedCategoryKeywords;
+      });
+  }
+
+  return sharedCategoryKeywordsPromise;
+}
+
 function suggestCategoryFromName(itemName) {
-  const name = itemName.toLowerCase();
-  
-  // Food & Dining - More comprehensive patterns
-  if (/(pizza|burger|sandwich|paneer|tandoori|masala|curry|dal|roti|naan|paratha|dosa|idli|vada|samosa|pakora|chaat|pav\s*bhaji|chole|biryani|pulao|fried\s*rice|chicken|mutton|fish|prawn|egg|seafood|meal|lunch|dinner|breakfast|roll|wrap|kebab|tikka)/i.test(name)) return 'dining';
-  
-  // Groceries - Vegetables, staples, cooking items
-  if (/(vegetable|veggie|sabzi|carrot|potato|aloo|tomato|onion|pyaz|cabbage|patta\s*gobi|cauliflower|phool\s*gobi|spinach|palak|broccoli|capsicum|shimla\s*mirch|beans|peas|matar|corn|bhutta|ladyfinger|bhindi|brinjal|baingan|pumpkin|kaddu|radish|mooli|ginger|adrak|garlic|lehsun|chilli|mirch|coriander|dhaniya|mint|pudina|flour|atta|rice|chawal|dal|lentil|oil|tel|ghee|salt|namak|sugar|chini|spice|masala)/i.test(name)) return 'groceries';
-  
-  // Fruits
-  if (/(apple|seb|banana|kela|orange|santra|grape|angoor|mango|aam|papaya|papita|watermelon|tarbooz|pineapple|ananas|guava|amrud|pomegranate|anar|lychee|litchi|berry|ber|strawberry|kiwi|dragon\s*fruit|melon|kharbuja|coconut|nariyal|fruit)/i.test(name)) return 'fruits';
-  
-  // Snacks
-  if (/(coffee|tea|chai|latte|espresso|cappuccino|mocha|snack|namkeen|chips|biscuit|cookie|kurkure|mixture|sev|bhujia|cake|pastry|donut|muffin|brownie|wafer|maggi|noodles|instant|popcorn|corn\s*flakes|oats|bread|pav|bun|toast)/i.test(name)) return 'snacks';
-  
-  // Drinks - Alcoholic
-  if (/(beer|wine|whisky|whiskey|vodka|rum|gin|brandy|scotch|tequila|alcohol|liquor|cocktail|mocktail|champagne)/i.test(name)) return 'liquor';
-  
-  // Juices
-  if (/(juice|ras|fresh|smoothie|shake|lassi|milkshake|cold\s*coffee|frappe)/i.test(name)) return 'juices';
-  
-  // Non-alcoholic beverages
-  if (/(coke|pepsi|sprite|fanta|limca|thums\s*up|maaza|frooti|slice|tropicana|real|minute\s*maid|soda|club\s*soda|tonic|water|mineral\s*water|kinley|bisleri|aquafina|soft\s*drink|cold\s*drink|beverage|energy\s*drink|red\s*bull|monster|gatorade)/i.test(name)) return 'beverages';
-  
-  // Entertainment
-  if (/(movie|cinema|ticket|show|film|entertainment|netflix|prime|hotstar|disney|subscription|ott|spotify|youtube|gaming|game)/i.test(name)) return 'movies';
-  
-  // Membership & Subscriptions
-  if (/(membership|gym|fitness|club|subscription|annual|monthly|premium|pro|plan)/i.test(name)) return 'membership';
-  
-  // Sports & Recreation
-  if (/(sports|cricket|football|badminton|tennis|swimming|yoga|equipment|ball|bat|racket|jersey|shoes\s*sport)/i.test(name)) return 'sports';
-  
-  // Transportation
-  if (/(petrol|diesel|fuel|gas|cng|pump)/i.test(name)) return 'fuel';
-  if (/(uber|ola|rapido|taxi|cab|auto|rickshaw|ride|fare)/i.test(name)) return 'cab';
-  if (/(metro|subway|rapid|dmrc)/i.test(name)) return 'metro';
-  if (/(bus|volvo|transit|dtc)/i.test(name)) return 'bus';
-  if (/(train|railway|irctc|ticket|reservation)/i.test(name)) return 'train';
-  if (/(flight|airline|air\s*india|indigo|spicejet|vistara|go\s*air|airways)/i.test(name)) return 'flight';
-  if (/(parking|toll|fastag)/i.test(name)) return 'parking';
-  
-  // Utilities
-  if (/(electricity|power|electric|bill|bijli)/i.test(name)) return 'electricity';
-  if (/(internet|wifi|broadband|fiber|jio|airtel|act)/i.test(name)) return 'internet';
-  if (/(phone|mobile|recharge|prepaid|postpaid|sim|data)/i.test(name)) return 'phone';
-  if (/(water|jal|municipal)/i.test(name)) return 'water';
-  if (/(lpg|cylinder|gas|indane|bharat\s*gas|hp\s*gas)/i.test(name)) return 'gas';
-  
-  // Personal Care & Health
-  if (/(shampoo|conditioner|soap|face\s*wash|body\s*wash|toothpaste|toothbrush|cream|lotion|powder|deo|deodorant|perfume|cologne|razor|shave|trimmer|comb|oil\s*hair)/i.test(name)) return 'personal';
-  if (/(medicine|tablet|capsule|syrup|injection|pharmacy|medical|doctor|hospital|clinic|test|health|checkup|fever|pain|antibiotic|vitamin|supplement)/i.test(name)) return 'health';
-  
-  // Clothing & Accessories
-  if (/(shirt|t-shirt|tshirt|jeans|pant|trouser|dress|skirt|kurta|kurti|saree|salwar|suit|jacket|sweater|hoodie|blazer|shoes|sandal|slipper|chappal|belt|watch|bag|purse|wallet|sunglasses|cap|hat|sock|tie|scarf|dupatta|clothing|garment|apparel|fashion)/i.test(name)) return 'clothing';
-  
-  // Electronics & Home
-  if (/(laptop|computer|mobile|phone|tablet|ipad|charger|cable|earphone|headphone|speaker|tv|television|ac|air\s*conditioner|fan|cooler|refrigerator|fridge|washing\s*machine|microwave|oven|mixer|grinder|iron|electronic)/i.test(name)) return 'electronics';
-  if (/(furniture|sofa|chair|table|bed|mattress|cupboard|almirah|shelf|rack|curtain|blind|carpet|rug|cushion|pillow|decor)/i.test(name)) return 'furniture';
-  
-  // Education
-  if (/(book|notebook|pen|pencil|eraser|scale|compass|calculator|bag\s*school|uniform|fee|tuition|course|class|exam|study|stationery|education)/i.test(name)) return 'education';
-  
-  // Default
-  return 'uncategorized';
+  const normalizedName = ` ${itemName.toLowerCase().trim()} `;
+  let bestMatch = null;
+
+  for (const [keyword, category] of Object.entries(sharedCategoryKeywords)) {
+    const normalizedKeyword = keyword.toLowerCase().trim();
+
+    if (!normalizedKeyword) {
+      continue;
+    }
+
+    if (
+      normalizedName.includes(` ${normalizedKeyword} `) ||
+      normalizedName.includes(normalizedKeyword)
+    ) {
+      if (!bestMatch || normalizedKeyword.length > bestMatch.keyword.length) {
+        bestMatch = { keyword: normalizedKeyword, category };
+      }
+    }
+  }
+
+  return bestMatch ? bestMatch.category : 'uncategorized';
 }
 
 function displayOCRItems(items, currency = 'INR') {

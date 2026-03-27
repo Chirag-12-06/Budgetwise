@@ -23,7 +23,28 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend")));
+app.use("/shared", express.static(path.join(__dirname, "../shared")));
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/screen/index.html"));
+});
+
+app.get("/index.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/screen/index.html"));
+});
+
+app.get("/auth.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/screen/auth.html"));
+});
+
+app.get("/expenses.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/screen/expenses.html"));
+});
+
+app.get("/analytics.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/screen/analytics.html"));
+});
 
 
 // ✅ API routes
@@ -90,7 +111,7 @@ app.post("/api/train-model", async (req, res) => {
 
 // ✅ Fallback to index.html for any unknown route
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+  res.sendFile(path.join(__dirname, "../frontend/screen/index.html"));
 });
 
 // ✅ Start server
