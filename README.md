@@ -58,7 +58,8 @@ A full-stack expense tracking application with AI-powered category prediction, r
 
 ```
 Budgetwise/
-├── frontend/                 # React/Vanilla JS frontend
+├── apps/
+│   ├── frontend/             # Vanilla JS frontend
 │   ├── index.html           # Add expense page
 │   ├── expenses.html        # View/edit expenses page
 │   ├── analytics.html       # Analytics dashboard
@@ -67,7 +68,7 @@ Budgetwise/
 │   ├── css/                # Stylesheets (Tailwind CSS)
 │   └── js/                 # Utility scripts
 │
-├── expense-tracker-backend/  # Node.js/Express backend
+│   ├── backend/              # Node.js/Express backend
 │   ├── server.js           # Express server setup
 │   ├── routes/             # API route handlers
 │   ├── controllers/        # Business logic
@@ -76,11 +77,14 @@ Budgetwise/
 │   ├── config/             # Database configuration
 │   └── prisma/             # Prisma schema & migrations
 │
-└── ml-service/             # Python ML service
+│   └── ml-service/          # Python ML service
     ├── app.py             # Flask application
     ├── category_predictor.py  # ML prediction logic
     ├── category_keywords.json # Category mapping
     └── requirements.txt    # Python dependencies
+│
+├── README.md
+└── .gitignore
 ```
 
 ---
@@ -109,7 +113,7 @@ cd budgetwise
 
 ```bash
 # Navigate to backend directory
-cd expense-tracker-backend
+cd apps/backend
 
 # Install dependencies
 npm install
@@ -131,7 +135,7 @@ node server.js
 
 ```bash
 # Navigate to ml-service directory (from root)
-cd ml-service
+cd apps/ml-service
 
 # Create and activate Python virtual environment
 python -m venv venv
@@ -149,7 +153,7 @@ python app.py
 
 ```bash
 # Navigate to frontend directory (from root)
-cd frontend
+cd apps/frontend
 
 # Install dependencies
 npm install
@@ -322,14 +326,14 @@ CREATE TABLE expenses (
 - Ensure database and user exist
 
 ### Frontend not loading CSS
-- Run `npm run dev` in frontend directory
+- Run `npm run dev` in `apps/frontend`
 - Clear browser cache
 - Check Tailwind CSS build output
 
 ### ML service not predicting
 - Ensure Flask service is running on port 5001
 - Check model is trained with sufficient data
-- Verify `category_keywords.json` exists in ml-service
+- Verify `category_keywords.json` exists in `apps/ml-service`
 
 ### CORS errors
 - Verify frontend URL is in CORS whitelist in backend

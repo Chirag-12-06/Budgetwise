@@ -1,3 +1,3 @@
-commands for backend npx prisma studio
-commands for frontend node server.js
-commands for ml service python app.py
+commands for backend: cd apps/backend && npx prisma studio
+commands for frontend pages are served by backend: cd apps/backend && node server.js
+commands for ml service: cd apps/ml-service && python app.py
