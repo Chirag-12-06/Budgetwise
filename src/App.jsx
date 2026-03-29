@@ -5,6 +5,7 @@ import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import Navbar from "./layout/Navbar";
 
 const LOGIN = "login";
 const DASHBOARD = "dashboard";
@@ -238,21 +239,7 @@ function App() {
 
           {user ? (
             <section className="dashboard-panel">
-              <div className="dashboard-head">
-                <div>
-                  <p className="welcome-label">Welcome back</p>
-                  <h2>{user.name || user.email || "Budgetwise user"}</h2>
-                  <p className="subtle">The app now has a basic dashboard view and a dedicated expenses view.</p>
-                </div>
-                <div className="nav-actions">
-                  <div className="view-toggle" role="tablist" aria-label="App view">
-                    <button className={view === DASHBOARD ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setView(DASHBOARD)}>Dashboard</button>
-                    <button className={view === EXPENSES ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setView(EXPENSES)}>Expenses</button>
-                    <button className={view === ANALYTICS ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setView(ANALYTICS)}>Analytics</button>
-                  </div>
-                  <button className="secondary-button" type="button" onClick={handleLogout}>Log Out</button>
-                </div>
-              </div>
+<Navbar user={user} view={view} setView={setView} handleLogout={handleLogout} />
 
               {view === DASHBOARD ? (
                 <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} />
