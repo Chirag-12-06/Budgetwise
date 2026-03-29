@@ -4,6 +4,10 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 node_modules/
 **/node_modules/
@@ -11,6 +15,14 @@ node_modules/
 dist/
 build/
 coverage/
+.vite/
+*.tsbuildinfo
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 __pycache__/
 *.py[cod]
@@ -21,3 +33,9 @@ venv/
 .vscode/
 
 server/generated/prisma/
+
+apps/ml-service/model.pkl
+apps/ml-service/user_preferences_*.json
+apps/ml-service/__pycache__/
+apps/ml-service/*.pyc
+apps/ml-service/.pytest_cache/
