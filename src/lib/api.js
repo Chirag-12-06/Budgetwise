@@ -53,6 +53,20 @@ export async function createExpense(payload) {
   });
 }
 
+export async function trainExpenseModel() {
+  return apiRequest("/train-model", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function predictExpenseCategory({ title, amount }) {
+  return apiRequest("/predict-category", {
+    method: "POST",
+    body: JSON.stringify({ title, amount }),
+  });
+}
+
 export async function updateExpense(id, payload) {
   return apiRequest(`/expenses/${id}`, {
     method: "PUT",

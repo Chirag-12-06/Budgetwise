@@ -2,10 +2,13 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import { PrismaClient } from "@prisma/client";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import { requireAuth } from "./middleware/authMiddleware.js";
 
 const app = express();
+const prisma = new PrismaClient();
 
 // ✅ Enable CORS for your frontend (Live Server or direct file)
 app.use(
@@ -52,30 +55,19 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/auth", authRoutes);
 
 // ✅ ML training endpoint
-app.post("/api/train-model", async (req, res) => {
+app.post("/api/train-model", requireAuth, async (req, res) => {
   try {
     console.log('📥 Training request received');
     const fetch = (await import('node-fetch')).default;
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    const userId = String(req.user.id);
     
-    // Fetch authenticated user's expenses from database
-    const expensesResponse = await fetch('http://localhost:5000/api/expenses', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    // Fetch authenticated user's expenses from database directly
+    const expenses = await prisma.expense.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: "asc" },
     });
-    
-    if (!expensesResponse.ok) {
-      throw new Error('Failed to fetch expenses from database');
-    }
-    
-    const expenses = await expensesResponse.json();
-    console.log(`📊 Found ${expenses.length} expenses for authenticated user: ${token}`);
+
+    console.log(`📊 Found ${expenses.length} expenses for authenticated user: ${userId}`);
     
     if (expenses.length < 10) {
       return res.status(400).json({ 
@@ -91,7 +83,7 @@ app.post("/api/train-model", async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         expenses,
-        user_id: token
+        user_id: userId
       })
     });
     
@@ -105,6 +97,38 @@ app.post("/api/train-model", async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('❌ Training error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ ML prediction endpoint
+app.post("/api/predict-category", requireAuth, async (req, res) => {
+  try {
+    const { title = "", amount = 0 } = req.body || {};
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    const fetch = (await import("node-fetch")).default;
+    const mlResponse = await fetch("http://127.0.0.1:5001/api/predict-category", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: String(title).trim(),
+        amount: Number(amount) || 0,
+        user_id: String(req.user.id),
+      }),
+    });
+
+    if (!mlResponse.ok) {
+      const errorText = await mlResponse.text();
+      throw new Error(`ML service error: ${errorText}`);
+    }
+
+    const result = await mlResponse.json();
+    res.json(result);
+  } catch (error) {
+    console.error("❌ Prediction error:", error);
     res.status(500).json({ error: error.message });
   }
 });
