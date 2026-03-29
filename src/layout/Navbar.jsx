@@ -1,12 +1,8 @@
+import Button from "../components/button";
+
 const DASHBOARD = "dashboard";
 const EXPENSES = "expenses";
 const ANALYTICS = "analytics";
-
-const navLinkClasses =
-  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors";
-const activeLinkClasses = "bg-indigo-600 text-white shadow-sm";
-const inactiveLinkClasses =
-  "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700";
 
 export default function Navbar({ user, view, setView, handleLogout, dark, setDark }) {
   return (
@@ -18,30 +14,36 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2" role="tablist" aria-label="App view">
-              <button
-                className={`${navLinkClasses} ${view === DASHBOARD ? activeLinkClasses : inactiveLinkClasses}`}
-                type="button"
+              <Button
+                variant="nav"
+                active={view === DASHBOARD}
                 onClick={() => setView(DASHBOARD)}
+                role="tab"
+                aria-selected={view === DASHBOARD}
               >
                 <i className="fas fa-plus-circle" aria-hidden="true" />
                 Add Expense
-              </button>
-              <button
-                className={`${navLinkClasses} ${view === EXPENSES ? activeLinkClasses : inactiveLinkClasses}`}
-                type="button"
+              </Button>
+              <Button
+                variant="nav"
+                active={view === EXPENSES}
                 onClick={() => setView(EXPENSES)}
+                role="tab"
+                aria-selected={view === EXPENSES}
               >
                 <i className="fas fa-list" aria-hidden="true" />
                 Expenses
-              </button>
-              <button
-                className={`${navLinkClasses} ${view === ANALYTICS ? activeLinkClasses : inactiveLinkClasses}`}
-                type="button"
+              </Button>
+              <Button
+                variant="nav"
+                active={view === ANALYTICS}
                 onClick={() => setView(ANALYTICS)}
+                role="tab"
+                aria-selected={view === ANALYTICS}
               >
                 <i className="fas fa-chart-line" aria-hidden="true" />
                 Analytics
-              </button>
+              </Button>
             </div>
 
             <button

@@ -1,12 +1,9 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
+import Button from "../components/button";
 
 const panelCardClasses =
   "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
-const baseTabClasses =
-  "rounded-md px-4 py-2 text-sm font-medium transition-colors";
-const activeTabClasses = "bg-indigo-600 text-white";
-const inactiveTabClasses = "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700";
 const inputClasses =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 
@@ -34,34 +31,30 @@ export default function AnalyticsPage({
         </div>
         <div className="mb-5 grid gap-4">
           <div className="flex flex-wrap gap-3">
-            <button
-              className={`${baseTabClasses} ${dateFilterMode === "allTime" ? activeTabClasses : inactiveTabClasses}`}
-              type="button"
+            <Button
+              active={dateFilterMode === "allTime"}
               onClick={() => setDateFilterMode("allTime")}
             >
               All Time
-            </button>
-            <button
-              className={`${baseTabClasses} ${dateFilterMode === "thisMonth" ? activeTabClasses : inactiveTabClasses}`}
-              type="button"
+            </Button>
+            <Button
+              active={dateFilterMode === "thisMonth"}
               onClick={() => setDateFilterMode("thisMonth")}
             >
               This Month
-            </button>
-            <button
-              className={`${baseTabClasses} ${dateFilterMode === "lastMonth" ? activeTabClasses : inactiveTabClasses}`}
-              type="button"
+            </Button>
+            <Button
+              active={dateFilterMode === "lastMonth"}
               onClick={() => setDateFilterMode("lastMonth")}
             >
               Last Month
-            </button>
-            <button
-              className={`${baseTabClasses} ${dateFilterMode === "thisYear" ? activeTabClasses : inactiveTabClasses}`}
-              type="button"
+            </Button>
+            <Button
+              active={dateFilterMode === "thisYear"}
               onClick={() => setDateFilterMode("thisYear")}
             >
               This Year
-            </button>
+            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="grid gap-2">
@@ -82,13 +75,9 @@ export default function AnalyticsPage({
                 onChange={(event) => setCustomDateTo(event.target.value)}
               />
             </label>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-              type="button"
-              onClick={applyCustomDateRange}
-            >
+            <Button variant="outline" onClick={applyCustomDateRange}>
               Apply
-            </button>
+            </Button>
           </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -117,27 +106,24 @@ export default function AnalyticsPage({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                className={`${baseTabClasses} ${analyticsGroupBy === "daily" ? activeTabClasses : inactiveTabClasses}`}
-                type="button"
+              <Button
+                active={analyticsGroupBy === "daily"}
                 onClick={() => setAnalyticsGroupBy("daily")}
               >
                 Daily
-              </button>
-              <button
-                className={`${baseTabClasses} ${analyticsGroupBy === "monthly" ? activeTabClasses : inactiveTabClasses}`}
-                type="button"
+              </Button>
+              <Button
+                active={analyticsGroupBy === "monthly"}
                 onClick={() => setAnalyticsGroupBy("monthly")}
               >
                 Monthly
-              </button>
-              <button
-                className={`${baseTabClasses} ${analyticsGroupBy === "yearly" ? activeTabClasses : inactiveTabClasses}`}
-                type="button"
+              </Button>
+              <Button
+                active={analyticsGroupBy === "yearly"}
                 onClick={() => setAnalyticsGroupBy("yearly")}
               >
                 Yearly
-              </button>
+              </Button>
             </div>
           </div>
           {trendData.length ? (

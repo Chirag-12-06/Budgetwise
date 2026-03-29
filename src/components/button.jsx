@@ -1,0 +1,44 @@
+const baseButtonClasses =
+  "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900";
+
+const variantClasses = {
+  filterIdle:
+    "border border-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700",
+  filterActive: "bg-indigo-600 text-white",
+  outline:
+    "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600",
+  navIdle:
+    "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700",
+  navActive: "bg-indigo-600 text-white shadow-sm",
+};
+
+export default function Button({
+  children,
+  type = "button",
+  onClick,
+  active = false,
+  variant = "filter",
+  className = "",
+  ...rest
+}) {
+  let stateClasses = variantClasses.filterIdle;
+
+  if (variant === "outline") {
+    stateClasses = variantClasses.outline;
+  } else if (variant === "nav") {
+    stateClasses = active ? variantClasses.navActive : variantClasses.navIdle;
+  } else if (active) {
+    stateClasses = variantClasses.filterActive;
+  }
+
+  return (
+    <button
+      className={`${baseButtonClasses} ${stateClasses} ${className}`.trim()}
+      type={type}
+      onClick={onClick}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
