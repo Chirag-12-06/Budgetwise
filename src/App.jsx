@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createExpense, fetchExpenses, getTodayDate, removeExpense } from "./lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser } from "./lib/auth";
 import { formatTrendLabel } from "./utils/date";
+import { applyDateFilter, validateCustomDateRange } from "./utils/dateFilters";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import ExpensesPage from "./pages/ExpensesPage";
@@ -25,6 +26,7 @@ function App() {
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState("daily");
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
+  const [dateRangeError, setDateRangeError] = useState("");
   const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
   const [expenses, setExpenses] = useState([]);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
@@ -147,51 +149,37 @@ function App() {
     setDateFilterMode("allTime");
     setCustomDateFrom("");
     setCustomDateTo("");
+    setDateRangeError("");
     setMode(LOGIN);
     showStatus("Logged out", "success");
   }
 
-  function applyDateFilter(list) {
-    if (dateFilterMode === "allTime") return list;
-    const now = new Date();
-    let startDate = null;
-    let endDate = null;
-    if (dateFilterMode === "thisMonth") {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    } else if (dateFilterMode === "lastMonth") {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    } else if (dateFilterMode === "thisYear") {
-      startDate = new Date(now.getFullYear(), 0, 1);
-      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-    } else if (dateFilterMode === "custom") {
-      if (customDateFrom) {
-        startDate = new Date(customDateFrom);
-        startDate.setHours(0, 0, 0, 0);
-      }
-      if (customDateTo) {
-        endDate = new Date(customDateTo);
-        endDate.setHours(23, 59, 59, 999);
-      }
+  function handleDateFilterModeChange(mode) {
+    setDateFilterMode(mode);
+    setDateRangeError("");
+  }
+
+  function handleCustomDateFromChange(value) {
+    setCustomDateFrom(value);
+    if (dateRangeError) {
+      setDateRangeError("");
     }
-    return list.filter((expense) => {
-      const expenseDate = new Date(expense.createdAt);
-      if (startDate && expenseDate < startDate) return false;
-      if (endDate && expenseDate > endDate) return false;
-      return true;
-    });
+  }
+
+  function handleCustomDateToChange(value) {
+    setCustomDateTo(value);
+    if (dateRangeError) {
+      setDateRangeError("");
+    }
   }
 
   function applyCustomDateRange() {
-    if (!customDateFrom && !customDateTo) {
-      showStatus("Choose at least one date to apply a custom range", "error");
+    const validationError = validateCustomDateRange(customDateFrom, customDateTo);
+    if (validationError) {
+      setDateRangeError(validationError);
       return;
     }
-    if (customDateFrom && customDateTo && new Date(customDateFrom) > new Date(customDateTo)) {
-      showStatus("From date cannot be later than To date", "error");
-      return;
-    }
+    setDateRangeError("");
     setDateFilterMode("custom");
   }
 
@@ -202,7 +190,10 @@ function App() {
     return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
   }).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const latestExpenses = [...expenses].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)).slice(0, 5);
-  const filteredExpenses = applyDateFilter([...expenses].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)));
+  const filteredExpenses = applyDateFilter(
+    [...expenses].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
+    { dateFilterMode, customDateFrom, customDateTo },
+  );
   const emptyFilteredState = filteredExpenses.length === 0 && expenses.length > 0;
   const analyticsExpenses = filteredExpenses;
   const analyticsTotal = analyticsExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
@@ -257,9 +248,9 @@ function App() {
               {view === DASHBOARD ? (
                 <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} />
               ) : view === EXPENSES ? (
-                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={setDateFilterMode} customDateFrom={customDateFrom} setCustomDateFrom={setCustomDateFrom} customDateTo={customDateTo} setCustomDateTo={setCustomDateTo} applyCustomDateRange={applyCustomDateRange} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} expenses={expenses} />
+                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} expenses={expenses} />
               ) : (
-                <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={setDateFilterMode} customDateFrom={customDateFrom} setCustomDateFrom={setCustomDateFrom} customDateTo={customDateTo} setCustomDateTo={setCustomDateTo} applyCustomDateRange={applyCustomDateRange} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} />
+                <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} />
               )}
             </section>
           ) : (

@@ -16,6 +16,7 @@ export default function ExpensesPage({
   customDateTo,
   setCustomDateTo,
   applyCustomDateRange,
+  dateRangeError,
   filteredExpenses,
   loadingExpenses,
   emptyFilteredState,
@@ -73,6 +74,11 @@ export default function ExpensesPage({
             Apply
           </Button>
         </div>
+        {dateRangeError ? (
+          <p className="text-sm font-semibold text-red-600 dark:text-red-300">
+            {dateRangeError}
+          </p>
+        ) : null}
       </div>
 
       {filteredExpenses.length ? (

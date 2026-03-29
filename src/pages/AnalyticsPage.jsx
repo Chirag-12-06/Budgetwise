@@ -15,6 +15,7 @@ export default function AnalyticsPage({
   customDateTo,
   setCustomDateTo,
   applyCustomDateRange,
+  dateRangeError,
   analyticsTotal,
   categoryTotals,
   analyticsExpenses,
@@ -77,6 +78,11 @@ export default function AnalyticsPage({
               Apply
             </Button>
           </div>
+          {dateRangeError ? (
+            <p className="text-sm font-semibold text-red-600 dark:text-red-300">
+              {dateRangeError}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           <article className={panelCardClasses}>
