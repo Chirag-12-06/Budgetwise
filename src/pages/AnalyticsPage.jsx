@@ -1,13 +1,13 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import Button from "../components/button";
+import Calendar from "../components/calendar";
 
 const panelCardClasses =
   "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
-const inputClasses =
-  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 
 export default function AnalyticsPage({
+  expenses,
   dateFilterMode,
   setDateFilterMode,
   customDateFrom,
@@ -59,18 +59,16 @@ export default function AnalyticsPage({
           <div className="flex flex-wrap items-center gap-3">
             <label className="grid gap-2">
               <span className="text-[0.92rem] font-semibold">From</span>
-              <input
-                className={inputClasses}
-                type="date"
+              <Calendar
+                expenses={expenses}
                 value={customDateFrom}
                 onChange={(event) => setCustomDateFrom(event.target.value)}
               />
             </label>
             <label className="grid gap-2">
               <span className="text-[0.92rem] font-semibold">To</span>
-              <input
-                className={inputClasses}
-                type="date"
+              <Calendar
+                expenses={expenses}
                 value={customDateTo}
                 onChange={(event) => setCustomDateTo(event.target.value)}
               />

@@ -5,18 +5,19 @@ import {
   CATEGORY_OPTIONS,
   getCategoryDisplay,
 } from "../lib/categoryConfig";
+import Calendar from "../components/calendar";
 
 const shellClasses =
   "rounded-2xl bg-slate-800/95 p-5 shadow-lg ring-1 ring-white/5 md:p-6";
 const fieldClasses =
   "h-13 w-full rounded-xl border border-slate-600 bg-slate-700/80 px-4 text-lg text-white placeholder:text-slate-300 focus:border-indigo-500 focus:outline-none";
-const dateFieldClasses = `${fieldClasses} min-h-[3.25rem]`;
 const submitButtonClasses =
   "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
 export default function DashboardPage({
+  expenses,
   expenseForm,
   setExpenseForm,
   handleAddExpense,
@@ -195,9 +196,9 @@ export default function DashboardPage({
           placeholder="Amount"
         />
 
-        <input
-          className={dateFieldClasses}
-          type="date"
+        <Calendar
+          className="min-h-[3.25rem] rounded-xl border-slate-600 bg-slate-700/80 px-4 text-lg text-white focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
+          expenses={expenses}
           value={expenseForm.date}
           onChange={(event) =>
             setExpenseForm((current) => ({ ...current, date: event.target.value }))

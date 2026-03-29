@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createExpense, fetchExpenses, getTodayDate, removeExpense } from "./lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser } from "./lib/auth";
+import { formatTrendLabel } from "./utils/date";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import ExpensesPage from "./pages/ExpensesPage";
@@ -224,7 +225,12 @@ function App() {
     accumulator[key] = (accumulator[key] || 0) + Number(expense.amount || 0);
     return accumulator;
   }, {});
-  const trendData = Object.entries(groupedTrendMap).sort(([left], [right]) => left.localeCompare(right)).map(([label, value]) => ({ label, value }));
+  const trendData = Object.entries(groupedTrendMap)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([label, value]) => ({
+      label: formatTrendLabel(label, analyticsGroupBy),
+      value,
+    }));
   const maxTrendValue = trendData.reduce((max, item) => (item.value > max ? item.value : max), 0);
 
   return (
@@ -251,9 +257,9 @@ function App() {
               {view === DASHBOARD ? (
                 <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} />
               ) : view === EXPENSES ? (
-                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={setDateFilterMode} customDateFrom={customDateFrom} setCustomDateFrom={setCustomDateFrom} customDateTo={customDateTo} setCustomDateTo={setCustomDateTo} applyCustomDateRange={applyCustomDateRange} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} />
+                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={setDateFilterMode} customDateFrom={customDateFrom} setCustomDateFrom={setCustomDateFrom} customDateTo={customDateTo} setCustomDateTo={setCustomDateTo} applyCustomDateRange={applyCustomDateRange} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} expenses={expenses} />
               ) : (
-                <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={setDateFilterMode} customDateFrom={customDateFrom} setCustomDateFrom={setCustomDateFrom} customDateTo={customDateTo} setCustomDateTo={setCustomDateTo} applyCustomDateRange={applyCustomDateRange} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} />
+                <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={setDateFilterMode} customDateFrom={customDateFrom} setCustomDateFrom={setCustomDateFrom} customDateTo={customDateTo} setCustomDateTo={setCustomDateTo} applyCustomDateRange={applyCustomDateRange} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} />
               )}
             </section>
           ) : (
