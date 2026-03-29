@@ -1,94 +1,92 @@
-import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, CATEGORY_OPTIONS, getCategoryDisplay } from "../lib/categoryConfig";
+import { CATEGORY_OPTIONS } from "../lib/categoryConfig";
 
-const panelCardClasses =
-  "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
-const inputClasses =
-  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
-const primaryButtonClasses =
-  "rounded-md border-0 bg-indigo-600 px-4 py-2 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
+const shellClasses =
+  "rounded-2xl bg-slate-800/95 p-5 shadow-lg ring-1 ring-white/5 md:p-6";
+const fieldClasses =
+  "h-13 w-full rounded-xl border border-slate-600 bg-slate-700/80 px-4 text-lg text-white placeholder:text-slate-300 focus:border-indigo-500 focus:outline-none";
+const dateFieldClasses = `${fieldClasses} min-h-[3.25rem]`;
+const submitButtonClasses =
+  "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
+const scanButtonClasses =
+  "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
 export default function DashboardPage({
-  totalSpent,
-  monthSpent,
-  expenses,
-  latestExpenses,
-  loadingExpenses,
   expenseForm,
   setExpenseForm,
   handleAddExpense,
   submitting,
 }) {
   return (
-    <>
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-            <div>
-              <h3>Add Expense</h3>
-            </div>
-          </div>
-          <form className="grid gap-4" onSubmit={handleAddExpense}>
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">Title</span>
-              <input
-                className={inputClasses}
-                type="text"
-                value={expenseForm.title}
-                onChange={(event) =>
-                  setExpenseForm((current) => ({ ...current, title: event.target.value }))
-                }
-                required
-                placeholder="Dinner with friends"
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">Amount</span>
-              <input
-                className={inputClasses}
-                type="number"
-                min="0"
-                step="0.01"
-                value={expenseForm.amount}
-                onChange={(event) =>
-                  setExpenseForm((current) => ({ ...current, amount: event.target.value }))
-                }
-                required
-                placeholder="450"
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">Category</span>
-              <select
-                className={inputClasses}
-                value={expenseForm.category}
-                onChange={(event) =>
-                  setExpenseForm((current) => ({ ...current, category: event.target.value }))
-                }
-              >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">Date</span>
-              <input
-                className={inputClasses}
-                type="date"
-                value={expenseForm.date}
-                onChange={(event) =>
-                  setExpenseForm((current) => ({ ...current, date: event.target.value }))
-                }
-              />
-            </label>
-            <button className={primaryButtonClasses} type="submit" disabled={submitting}>
-              {submitting ? "Saving..." : "Add Expense"}
-            </button>
-          </form>
+    <section className={`${shellClasses} mx-auto w-full max-w-[760px]`}>
+      <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h2 className="text-2xl font-bold text-white md:text-3xl">Add New Expense</h2>
+        <button className={scanButtonClasses} type="button">
+          <i className="fas fa-camera" aria-hidden="true" />
+          <span>Scan Receipt</span>
+        </button>
       </div>
-      
-    </>
+
+      <form className="grid gap-7" onSubmit={handleAddExpense}>
+        <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+          <label className="relative">
+            <i className="fas fa-tags pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-white" aria-hidden="true" />
+            <select
+              className={`${fieldClasses} appearance-none pl-12`}
+              value={expenseForm.category}
+              onChange={(event) =>
+                setExpenseForm((current) => ({ ...current, category: event.target.value }))
+              }
+              required
+            >
+              <option value="" disabled>
+                Category
+              </option>
+              {CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <input
+            className={fieldClasses}
+            type="text"
+            value={expenseForm.title}
+            onChange={(event) =>
+              setExpenseForm((current) => ({ ...current, title: event.target.value }))
+            }
+            required
+            placeholder="Title"
+          />
+        </div>
+
+        <input
+          className={fieldClasses}
+          type="number"
+          min="0"
+          step="0.01"
+          value={expenseForm.amount}
+          onChange={(event) =>
+            setExpenseForm((current) => ({ ...current, amount: event.target.value }))
+          }
+          required
+          placeholder="Amount"
+        />
+
+        <input
+          className={dateFieldClasses}
+          type="date"
+          value={expenseForm.date}
+          onChange={(event) =>
+            setExpenseForm((current) => ({ ...current, date: event.target.value }))
+          }
+        />
+
+        <button className={submitButtonClasses} type="submit" disabled={submitting}>
+          {submitting ? "Saving..." : "Add Expense"}
+        </button>
+      </form>
+    </section>
   );
 }

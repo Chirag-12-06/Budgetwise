@@ -27,7 +27,7 @@ function App() {
   const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
   const [expenses, setExpenses] = useState([]);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [expenseForm, setExpenseForm] = useState({ title: "", amount: "", category: "dining", date: getTodayDate() });
+  const [expenseForm, setExpenseForm] = useState({ title: "", amount: "", category: "", date: getTodayDate() });
   const [signupForm, setSignupForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
 
   useEffect(() => {
@@ -114,7 +114,7 @@ function App() {
     try {
       const created = await createExpense({ title: expenseForm.title.trim(), amount: expenseForm.amount, category: expenseForm.category, date: expenseForm.date });
       setExpenses((current) => [created, ...current].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)));
-      setExpenseForm((current) => ({ ...current, title: "", amount: "", date: getTodayDate() }));
+      setExpenseForm((current) => ({ ...current, title: "", amount: "", category: "", date: getTodayDate() }));
       showStatus("Expense added successfully", "success");
     } catch (error) {
       showStatus(error.message || "Unable to add expense", "error");
@@ -141,7 +141,7 @@ function App() {
     setExpenses([]);
     setLoginForm({ email: "", password: "" });
     setSignupForm({ name: "", email: "", password: "", confirmPassword: "" });
-    setExpenseForm({ title: "", amount: "", category: "dining", date: getTodayDate() });
+    setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
     setView(DASHBOARD);
     setDateFilterMode("allTime");
     setCustomDateFrom("");
@@ -238,7 +238,7 @@ function App() {
           className={`mx-auto w-full ${user ? "" : "max-w-xl"}`}
         >
           {user ? (
-            <section className="grid gap-5">
+            <section className="grid gap-12">
               <Navbar
                 user={user}
                 view={view}
