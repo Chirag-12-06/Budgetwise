@@ -6,6 +6,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import Navbar from "./layout/Navbar";
+import StatusBanner from "./layout/StatusBanner";
 
 const LOGIN = "login";
 const DASHBOARD = "dashboard";
@@ -234,12 +235,16 @@ function App() {
           <header className="auth-header">
             <p className="eyebrow">Budgetwise React</p>
             <h1>{user ? "Dashboard Migration" : "Start the migration without breaking the working app."}</h1>
-            <p className="subtle">{user ? "This first React slice uses your real backend for auth and expenses." : "This React shell currently handles authentication and stores the same auth keys as the existing frontend."}</p>
+            <p className="subtle">
+              {user
+                ? "This first React slice uses your real backend for auth and expenses."
+                : "This React shell currently handles authentication and stores the same auth keys as the existing frontend."}
+            </p>
           </header>
 
           {user ? (
             <section className="dashboard-panel">
-<Navbar user={user} view={view} setView={setView} handleLogout={handleLogout} />
+              <Navbar user={user} view={view} setView={setView} handleLogout={handleLogout} />
 
               {view === DASHBOARD ? (
                 <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} />
@@ -253,7 +258,7 @@ function App() {
             <AuthPage mode={mode} setMode={setMode} handleLogin={handleLogin} handleSignup={handleSignup} loginForm={loginForm} setLoginForm={setLoginForm} signupForm={signupForm} setSignupForm={setSignupForm} submitting={submitting} />
           )}
 
-          {status ? <div className={status.type === "error" ? "status error" : "status success"}>{status.message}</div> : null}
+          <StatusBanner status={status} />
         </section>
       </main>
     </div>
