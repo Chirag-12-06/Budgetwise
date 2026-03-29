@@ -23,7 +23,7 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../apps/frontend")));
-app.use("/shared", express.static(path.join(__dirname, "../apps/shared")));
+app.use("/data", express.static(path.join(__dirname, "../data")));
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {

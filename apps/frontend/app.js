@@ -1827,7 +1827,7 @@ function loadSharedCategoryKeywords() {
   }
 
   if (!sharedCategoryKeywordsPromise) {
-    sharedCategoryKeywordsPromise = fetch('/shared/category_keywords.json')
+    sharedCategoryKeywordsPromise = fetch('/data/category_keywords.json')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to load shared category keywords');

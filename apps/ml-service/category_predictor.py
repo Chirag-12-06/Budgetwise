@@ -23,10 +23,10 @@ class CategoryPredictor:
         self.load_user_preferences()
         
         base_dir = Path(__file__).resolve().parent
-        shared_dir = base_dir.parent / 'shared'
+        data_dir = base_dir.parent.parent / 'data'
 
         # Load category mappings from shared JSON file
-        with open(shared_dir / 'category_keywords.json', 'r', encoding='utf-8') as f:
+        with open(data_dir / 'category_keywords.json', 'r', encoding='utf-8') as f:
             self.keyword_map = json.load(f)
         
         # Load regional keywords
