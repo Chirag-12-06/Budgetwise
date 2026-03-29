@@ -1,6 +1,15 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 
+const panelCardClasses =
+  "rounded-[22px] border border-slate-400/20 bg-white/60 p-4 dark:bg-slate-950/50";
+const baseTabClasses =
+  "rounded-full border border-slate-400/35 px-4 py-2.5 font-semibold text-inherit transition-colors";
+const activeTabClasses = "border-blue-600 bg-blue-600 text-white";
+const inactiveTabClasses = "bg-transparent hover:bg-slate-400/10";
+const inputClasses =
+  "w-full rounded-[14px] border border-slate-400/35 bg-white/70 px-4 py-3.5 text-inherit dark:bg-slate-950/45";
+
 export default function AnalyticsPage({
   dateFilterMode,
   setDateFilterMode,
@@ -19,66 +28,186 @@ export default function AnalyticsPage({
   topCategories,
 }) {
   return (
-    <section className="analytics-stack">
-      <section className="panel-card">
-        <div className="panel-head"><div><h3>Analytics</h3><p className="subtle">A first React analytics screen using your live expense data.</p></div></div>
-        <div className="filter-stack">
-          <div className="quick-filters">
-            <button className={dateFilterMode === "allTime" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setDateFilterMode("allTime")}>All Time</button>
-            <button className={dateFilterMode === "thisMonth" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setDateFilterMode("thisMonth")}>This Month</button>
-            <button className={dateFilterMode === "lastMonth" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setDateFilterMode("lastMonth")}>Last Month</button>
-            <button className={dateFilterMode === "thisYear" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setDateFilterMode("thisYear")}>This Year</button>
-          </div>
-          <div className="custom-filter-row">
-            <label className="inline-field"><span>From</span><input type="date" value={customDateFrom} onChange={(event) => setCustomDateFrom(event.target.value)} /></label>
-            <label className="inline-field"><span>To</span><input type="date" value={customDateTo} onChange={(event) => setCustomDateTo(event.target.value)} /></label>
-            <button className="secondary-button" type="button" onClick={applyCustomDateRange}>Apply</button>
+    <section className="grid gap-4">
+      <section className={panelCardClasses}>
+        <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
+          <div>
+            <h3>Analytics</h3>
+            <p className="text-slate-500 dark:text-slate-300">
+              A first React analytics screen using your live expense data.
+            </p>
           </div>
         </div>
-        <div className="stat-grid">
-          <article className="stat-card"><span>Total Spending</span><strong>{formatCurrency(analyticsTotal)}</strong></article>
-          <article className="stat-card"><span>Tracked Categories</span><strong>{Object.keys(categoryTotals).length}</strong></article>
-          <article className="stat-card"><span>Visible Entries</span><strong>{analyticsExpenses.length}</strong></article>
+        <div className="mb-5 grid gap-4">
+          <div className="flex flex-wrap gap-3">
+            <button
+              className={`${baseTabClasses} ${dateFilterMode === "allTime" ? activeTabClasses : inactiveTabClasses}`}
+              type="button"
+              onClick={() => setDateFilterMode("allTime")}
+            >
+              All Time
+            </button>
+            <button
+              className={`${baseTabClasses} ${dateFilterMode === "thisMonth" ? activeTabClasses : inactiveTabClasses}`}
+              type="button"
+              onClick={() => setDateFilterMode("thisMonth")}
+            >
+              This Month
+            </button>
+            <button
+              className={`${baseTabClasses} ${dateFilterMode === "lastMonth" ? activeTabClasses : inactiveTabClasses}`}
+              type="button"
+              onClick={() => setDateFilterMode("lastMonth")}
+            >
+              Last Month
+            </button>
+            <button
+              className={`${baseTabClasses} ${dateFilterMode === "thisYear" ? activeTabClasses : inactiveTabClasses}`}
+              type="button"
+              onClick={() => setDateFilterMode("thisYear")}
+            >
+              This Year
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="grid gap-2">
+              <span className="text-[0.92rem] font-semibold">From</span>
+              <input
+                className={inputClasses}
+                type="date"
+                value={customDateFrom}
+                onChange={(event) => setCustomDateFrom(event.target.value)}
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-[0.92rem] font-semibold">To</span>
+              <input
+                className={inputClasses}
+                type="date"
+                value={customDateTo}
+                onChange={(event) => setCustomDateTo(event.target.value)}
+              />
+            </label>
+            <button
+              className="rounded-2xl border border-slate-400/35 bg-transparent px-4 py-4 font-bold text-inherit"
+              type="button"
+              onClick={applyCustomDateRange}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <article className={panelCardClasses}>
+            <span className="mb-2 block text-slate-500 dark:text-slate-300">Total Spending</span>
+            <strong className="text-[1.3rem]">{formatCurrency(analyticsTotal)}</strong>
+          </article>
+          <article className={panelCardClasses}>
+            <span className="mb-2 block text-slate-500 dark:text-slate-300">Tracked Categories</span>
+            <strong className="text-[1.3rem]">{Object.keys(categoryTotals).length}</strong>
+          </article>
+          <article className={panelCardClasses}>
+            <span className="mb-2 block text-slate-500 dark:text-slate-300">Visible Entries</span>
+            <strong className="text-[1.3rem]">{analyticsExpenses.length}</strong>
+          </article>
         </div>
       </section>
 
-      <div className="analytics-grid">
-        <section className="panel-card">
-          <div className="panel-head"><div><h3>Trend</h3><p className="subtle">A lightweight chart grouped by time period.</p></div><div className="view-toggle"><button className={analyticsGroupBy === "daily" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setAnalyticsGroupBy("daily")}>Daily</button><button className={analyticsGroupBy === "monthly" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setAnalyticsGroupBy("monthly")}>Monthly</button><button className={analyticsGroupBy === "yearly" ? "mini-tab active" : "mini-tab"} type="button" onClick={() => setAnalyticsGroupBy("yearly")}>Yearly</button></div></div>
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className={panelCardClasses}>
+          <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
+            <div>
+              <h3>Trend</h3>
+              <p className="text-slate-500 dark:text-slate-300">
+                A lightweight chart grouped by time period.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                className={`${baseTabClasses} ${analyticsGroupBy === "daily" ? activeTabClasses : inactiveTabClasses}`}
+                type="button"
+                onClick={() => setAnalyticsGroupBy("daily")}
+              >
+                Daily
+              </button>
+              <button
+                className={`${baseTabClasses} ${analyticsGroupBy === "monthly" ? activeTabClasses : inactiveTabClasses}`}
+                type="button"
+                onClick={() => setAnalyticsGroupBy("monthly")}
+              >
+                Monthly
+              </button>
+              <button
+                className={`${baseTabClasses} ${analyticsGroupBy === "yearly" ? activeTabClasses : inactiveTabClasses}`}
+                type="button"
+                onClick={() => setAnalyticsGroupBy("yearly")}
+              >
+                Yearly
+              </button>
+            </div>
+          </div>
           {trendData.length ? (
-            <div className="trend-chart">
+            <div className="grid min-h-[22rem] auto-rows-auto grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] items-end gap-3.5 pt-4">
               {trendData.slice(-10).map((item) => (
-                <div className="trend-bar-wrap" key={item.label}>
-                  <div className="trend-value">{formatCurrency(item.value)}</div>
-                  <div className="trend-bar" style={{ height: `${maxTrendValue ? (item.value / maxTrendValue) * 100 : 0}%` }} />
-                  <div className="trend-label">{item.label}</div>
+                <div className="grid min-h-[20rem] grid-rows-[auto_1fr_auto] items-end gap-2" key={item.label}>
+                  <div className="text-[0.82rem] text-slate-500 dark:text-slate-300">
+                    {formatCurrency(item.value)}
+                  </div>
+                  <div
+                    className="w-full min-h-3 rounded-t-[18px] rounded-b-[8px] bg-[linear-gradient(180deg,#2563eb_0%,#0f766e_100%)]"
+                    style={{ height: `${maxTrendValue ? (item.value / maxTrendValue) * 100 : 0}%` }}
+                  />
+                  <div className="text-[0.82rem] text-slate-500 dark:text-slate-300">{item.label}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="empty-state">No analytics data available for the selected range.</div>
+            <div className="py-6 text-slate-500 dark:text-slate-300">
+              No analytics data available for the selected range.
+            </div>
           )}
         </section>
 
-        <section className="panel-card">
-          <div className="panel-head"><div><h3>Category Breakdown</h3><p className="subtle">Top categories by total spend.</p></div></div>
+        <section className={panelCardClasses}>
+          <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
+            <div>
+              <h3>Category Breakdown</h3>
+              <p className="text-slate-500 dark:text-slate-300">Top categories by total spend.</p>
+            </div>
+          </div>
           {topCategories.length ? (
-            <div className="category-list">
+            <div className="grid gap-4">
               {topCategories.map(([categoryKey, total]) => {
                 const category = getCategoryDisplay(categoryKey);
                 const color = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.uncategorized;
                 const percent = analyticsTotal ? (total / analyticsTotal) * 100 : 0;
                 return (
-                  <div className="category-row" key={categoryKey}>
-                    <div className="category-row-head"><div className="category-name"><span className="expense-dot" style={{ backgroundColor: color }} /><strong>{category.label}</strong></div><span>{formatCurrency(total)}</span></div>
-                    <div className="progress-track"><div className="progress-fill" style={{ width: `${percent}%`, backgroundColor: color }} /></div>
-                    <div className="category-meta">{percent.toFixed(1)}% of selected spending</div>
+                  <div className="grid gap-2" key={categoryKey}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-start gap-3">
+                        <span
+                          className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_6px_rgba(148,163,184,0.1)]"
+                          style={{ backgroundColor: color }}
+                        />
+                        <strong>{category.label}</strong>
+                      </div>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                    <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-slate-400/15">
+                      <div
+                        className="h-full rounded-[inherit]"
+                        style={{ width: `${percent}%`, backgroundColor: color }}
+                      />
+                    </div>
+                    <div className="text-[0.82rem] text-slate-500 dark:text-slate-300">
+                      {percent.toFixed(1)}% of selected spending
+                    </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="empty-state">No category data available yet.</div>
+            <div className="py-6 text-slate-500 dark:text-slate-300">No category data available yet.</div>
           )}
         </section>
       </div>
