@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import Chart from "chart.js/auto";
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import Button from "../components/button";
@@ -5,6 +7,214 @@ import Calendar from "../components/calendar";
 
 const panelCardClasses =
   "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
+
+function hexToRgba(hex, alpha = 1) {
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
+    return `rgba(107, 114, 128, ${alpha})`;
+  }
+
+  const normalized =
+    hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+  const value = Number.parseInt(normalized.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function getContrastTextColor(hex) {
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
+    return "#ffffff";
+  }
+
+  const normalized =
+    hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+  const value = Number.parseInt(normalized.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance >= 160 ? "#111827" : "#ffffff";
+}
+
+function createSeededRandom(seedInput) {
+  let seed = 0;
+  for (let index = 0; index < seedInput.length; index += 1) {
+    seed = (seed * 31 + seedInput.charCodeAt(index)) % 2147483647;
+  }
+
+  if (seed <= 0) {
+    seed += 2147483646;
+  }
+
+  return () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+}
+
+function detectOutliers(data) {
+  const values = data
+    .map((value) => Number(value || 0))
+    .filter((value) => Number.isFinite(value));
+
+  if (values.length < 2) {
+    return { outliers: [], upperBound: null, lowerBound: null, hasOutliers: false };
+  }
+
+  if (values.length <= 3) {
+    const sorted = [...values].sort((left, right) => left - right);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    const range = max - min;
+
+    if (min > 0 && max / min > 10) {
+      return {
+        outliers: [max],
+        upperBound: min * 10,
+        lowerBound: 0,
+        hasOutliers: true,
+      };
+    }
+
+    if (min > 0 && range > min * 5) {
+      return {
+        outliers: [max],
+        upperBound: min * 5,
+        lowerBound: 0,
+        hasOutliers: true,
+      };
+    }
+
+    return {
+      outliers: [],
+      upperBound: max,
+      lowerBound: min,
+      hasOutliers: false,
+    };
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  const outliers = values.filter((value) => value < lowerBound || value > upperBound);
+
+  return {
+    outliers,
+    upperBound,
+    lowerBound,
+    hasOutliers: outliers.length > 0,
+  };
+}
+
+function isWithinOutlierBounds(value, outlierInfo) {
+  if (!outlierInfo?.hasOutliers) return true;
+  return value >= outlierInfo.lowerBound && value <= outlierInfo.upperBound;
+}
+
+function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) {
+  if (!categories.length || width <= 0 || height <= 0 || totalAmount <= 0) {
+    return [];
+  }
+
+  const scaleValue = (value) => {
+    const numeric = Number(value || 0);
+    if (useLogScale) {
+      return Math.log10(Math.max(0, numeric) + 1);
+    }
+    return numeric;
+  };
+
+  const edgePadding = 8;
+  const titleSafeTop = 40;
+  const plotWidth = Math.max(120, width - edgePadding * 2);
+  const plotHeight = Math.max(120, height - titleSafeTop - edgePadding);
+  const area = plotWidth * plotHeight;
+  const scaledMaxValue = Math.max(...categories.map(([, value]) => scaleValue(value)), 1);
+  const targetPerBubble = area / Math.max(categories.length, 1);
+  const maxBubbleDiameter = Math.max(34, Math.min(178, Math.sqrt(targetPerBubble) * 1.45));
+  const minBubbleDiameter = Math.max(20, Math.min(64, maxBubbleDiameter * 0.34));
+
+  const centerX = width / 2;
+  const centerY = titleSafeTop + plotHeight / 2;
+  const maxSearchRadius = Math.max(plotWidth, plotHeight) * 0.75;
+  const placed = [];
+
+  const withinBounds = (x, y, radius) =>
+    x >= edgePadding + radius
+    && x <= width - edgePadding - radius
+    && y >= titleSafeTop + radius
+    && y <= height - edgePadding - radius;
+
+  const overlapsPlaced = (x, y, radius) =>
+    placed.some((point) => {
+      const dx = x - point.x;
+      const dy = y - point.y;
+      const minDistance = radius + point.r + 4;
+      return dx * dx + dy * dy < minDistance * minDistance;
+    });
+
+  return categories.map(([categoryKey, value], index) => {
+    const numericValue = Number(value || 0);
+    const scaledValue = scaleValue(numericValue);
+    const relative = scaledMaxValue > 0 ? Math.sqrt(scaledValue / scaledMaxValue) : 0;
+    const diameter = Math.max(
+      minBubbleDiameter,
+      Math.min(maxBubbleDiameter, minBubbleDiameter + relative * (maxBubbleDiameter - minBubbleDiameter)),
+    );
+
+    const radius = diameter / 2;
+    const random = createSeededRandom(categoryKey);
+    let x = centerX;
+    let y = centerY;
+    let foundSpot = false;
+
+    if (index === 0 && withinBounds(x, y, radius)) {
+      foundSpot = true;
+    }
+
+    for (let ring = 0; !foundSpot && ring <= 30; ring += 1) {
+      const ringDistance = (ring / 30) * maxSearchRadius;
+      const attempts = 22;
+      for (let step = 0; step < attempts; step += 1) {
+        const angle = (Math.PI * 2 * step) / attempts + random() * 0.35;
+        const candidateX = centerX + Math.cos(angle) * ringDistance;
+        const candidateY = centerY + Math.sin(angle) * ringDistance;
+        if (!withinBounds(candidateX, candidateY, radius)) continue;
+        if (overlapsPlaced(candidateX, candidateY, radius)) continue;
+        x = candidateX;
+        y = candidateY;
+        foundSpot = true;
+        break;
+      }
+    }
+
+    if (!foundSpot) {
+      const randomX =
+        edgePadding + radius + random() * Math.max(1, width - edgePadding * 2 - radius * 2);
+      const randomY =
+        titleSafeTop + radius + random() * Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
+      x = randomX;
+      y = randomY;
+    }
+
+    placed.push({ x, y, r: radius });
+
+    return {
+      categoryKey,
+      value: numericValue,
+      percent: (numericValue / totalAmount) * 100,
+      x,
+      y,
+      diameter,
+      animationDuration: (6 + random() * 6).toFixed(2),
+      animationDelay: (-random() * 6).toFixed(2),
+    };
+  });
+}
 
 export default function AnalyticsPage({
   expenses,
@@ -22,37 +232,335 @@ export default function AnalyticsPage({
   analyticsGroupBy,
   setAnalyticsGroupBy,
   trendData,
-  maxTrendValue,
-  topCategories,
 }) {
+  const lineCanvasRef = useRef(null);
+  const lineChartRef = useRef(null);
+  const bubbleBoardRef = useRef(null);
+  const [bubbleBoardSize, setBubbleBoardSize] = useState({ width: 0, height: 0 });
+  const [hiddenBubbleCategories, setHiddenBubbleCategories] = useState([]);
+  const [excludeOutliers, setExcludeOutliers] = useState(false);
+  const [useLogScale, setUseLogScale] = useState(false);
+
+  const isDarkMode =
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+
+  const trendPoints = useMemo(
+    () =>
+      (trendData || [])
+        .map((point) => ({
+          label: point.label,
+          value: Number(point.value || 0),
+        }))
+        .filter((point) => Number.isFinite(point.value) && point.value >= 0),
+    [trendData],
+  );
+
+  const trendOutlierInfo = useMemo(
+    () => detectOutliers(trendPoints.map((point) => point.value)),
+    [trendPoints],
+  );
+
+  const visibleTrendPoints = useMemo(() => {
+    if (!excludeOutliers || !trendOutlierInfo.hasOutliers) {
+      return trendPoints;
+    }
+
+    return trendPoints.filter((point) => isWithinOutlierBounds(point.value, trendOutlierInfo));
+  }, [trendPoints, excludeOutliers, trendOutlierInfo]);
+
+  const expenseAmountOutlierInfo = useMemo(
+    () => detectOutliers(analyticsExpenses.map((expense) => Number(expense.amount || 0))),
+    [analyticsExpenses],
+  );
+
+  const displayedAnalyticsExpenses = useMemo(() => {
+    if (!excludeOutliers || !expenseAmountOutlierInfo.hasOutliers) {
+      return analyticsExpenses;
+    }
+
+    return analyticsExpenses.filter((expense) => {
+      const amount = Number(expense.amount || 0);
+      return isWithinOutlierBounds(amount, expenseAmountOutlierInfo);
+    });
+  }, [analyticsExpenses, excludeOutliers, expenseAmountOutlierInfo]);
+
+  const displayedAnalyticsTotal = useMemo(
+    () => displayedAnalyticsExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
+    [displayedAnalyticsExpenses],
+  );
+
+  const rawCategoryEntries = useMemo(
+    () =>
+      Object.entries(categoryTotals || {})
+        .map(([key, value]) => [key, Number(value || 0)])
+        .filter(([, value]) => value > 0)
+        .sort((left, right) => right[1] - left[1]),
+    [categoryTotals],
+  );
+
+  const categoryOutlierInfo = useMemo(
+    () => detectOutliers(rawCategoryEntries.map(([, value]) => value)),
+    [rawCategoryEntries],
+  );
+
+  const chartCategories = useMemo(() => {
+    if (
+      excludeOutliers
+      && rawCategoryEntries.length >= 3
+      && categoryOutlierInfo.hasOutliers
+    ) {
+      return rawCategoryEntries.filter(([, value]) => isWithinOutlierBounds(value, categoryOutlierInfo));
+    }
+
+    return rawCategoryEntries;
+  }, [rawCategoryEntries, excludeOutliers, categoryOutlierInfo]);
+
+  const totalCategoryAmount = useMemo(
+    () => chartCategories.reduce((sum, [, value]) => sum + value, 0),
+    [chartCategories],
+  );
+
+  const visibleCategories = useMemo(
+    () => chartCategories.filter(([key]) => !hiddenBubbleCategories.includes(key)),
+    [chartCategories, hiddenBubbleCategories],
+  );
+
+  const bubbleLayout = useMemo(
+    () =>
+      buildBubbleLayout(
+        visibleCategories,
+        bubbleBoardSize.width,
+        bubbleBoardSize.height,
+        totalCategoryAmount,
+        useLogScale,
+      ),
+    [visibleCategories, bubbleBoardSize, totalCategoryAmount, useLogScale],
+  );
+
+  const outlierWarningText = useMemo(() => {
+    if (excludeOutliers || !trendOutlierInfo.hasOutliers || !trendPoints.length) {
+      return "";
+    }
+
+    const maxOutlier = Math.max(...trendOutlierInfo.outliers);
+    const count = trendOutlierInfo.outliers.length;
+    return `Found ${count} outlier value${count > 1 ? "s" : ""} out of ${trendPoints.length} data points. Highest outlier: ${formatCurrency(maxOutlier)}. This may affect chart readability.`;
+  }, [excludeOutliers, trendOutlierInfo, trendPoints]);
+
+  useEffect(() => {
+    const board = bubbleBoardRef.current;
+    if (!board) {
+      return undefined;
+    }
+
+    const updateSize = () => {
+      setBubbleBoardSize({
+        width: Math.round(board.clientWidth),
+        height: Math.round(board.clientHeight),
+      });
+    };
+
+    updateSize();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateSize);
+      return () => {
+        window.removeEventListener("resize", updateSize);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateSize();
+    });
+
+    resizeObserver.observe(board);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const canvas = lineCanvasRef.current;
+    if (!canvas) {
+      return undefined;
+    }
+
+    if (lineChartRef.current) {
+      lineChartRef.current.destroy();
+      lineChartRef.current = null;
+    }
+
+    if (!visibleTrendPoints.length) {
+      return undefined;
+    }
+
+    const labels = visibleTrendPoints.map((point) => point.label);
+    const rawValues = visibleTrendPoints.map((point) => Number(point.value || 0));
+    const values = useLogScale
+      ? rawValues.map((value) => (value <= 0 ? 0.01 : value))
+      : rawValues;
+
+    let chartTitle = "Expense Trend";
+    if (analyticsGroupBy === "daily") chartTitle = "Daily Expense Trend";
+    else if (analyticsGroupBy === "monthly") chartTitle = "Monthly Expense Trend";
+    else if (analyticsGroupBy === "yearly") chartTitle = "Yearly Expense Trend";
+
+    const textColor = isDarkMode ? "#e5e7eb" : "#111827";
+    const gridColor = isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(0, 0, 0, 0.1)";
+    const lineColor = isDarkMode ? "#818cf8" : "#4f46e5";
+    const maxAmount = Math.max(...values);
+
+    lineChartRef.current = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: `${analyticsGroupBy.charAt(0).toUpperCase() + analyticsGroupBy.slice(1)} Spending`,
+            data: values,
+            borderColor: lineColor,
+            backgroundColor: isDarkMode ? "rgba(129, 140, 248, 0.15)" : "rgba(79, 70, 229, 0.1)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: "#ffffff",
+            pointBorderColor: lineColor,
+            pointBorderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: chartTitle,
+            color: textColor,
+            font: { size: 16, weight: "bold" },
+          },
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            mode: "index",
+            intersect: false,
+            callbacks: {
+              label: (context) => {
+                const originalValue = rawValues[context.dataIndex] ?? context.parsed.y;
+                return `Amount: ${formatCurrency(originalValue)}`;
+              },
+            },
+          },
+        },
+        interaction: {
+          intersect: false,
+        },
+        scales: {
+          y: {
+            type: useLogScale ? "logarithmic" : "linear",
+            beginAtZero: !useLogScale,
+            ...(useLogScale
+              ? {
+                suggestedMax: maxAmount,
+                min: 0.01,
+                afterBuildTicks: (scale) => {
+                  if (!scale.ticks.some((tick) => tick.value === maxAmount)) {
+                    scale.ticks.push({ value: maxAmount });
+                    scale.ticks.sort((left, right) => left.value - right.value);
+                  }
+                },
+              }
+              : {}),
+            ticks: {
+              color: textColor,
+              callback: (value) => formatCurrency(value),
+              maxTicksLimit: useLogScale ? 10 : 8,
+              autoSkip: false,
+            },
+            grid: {
+              color: gridColor,
+            },
+          },
+          x: {
+            offset: true,
+            ticks: {
+              color: textColor,
+              maxRotation: 45,
+              minRotation: 45,
+            },
+            grid: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    return () => {
+      if (lineChartRef.current) {
+        lineChartRef.current.destroy();
+        lineChartRef.current = null;
+      }
+    };
+  }, [visibleTrendPoints, analyticsGroupBy, isDarkMode, useLogScale]);
+
+  useEffect(() => {
+    setHiddenBubbleCategories((current) =>
+      current.filter((categoryKey) => chartCategories.some(([key]) => key === categoryKey)),
+    );
+  }, [chartCategories]);
+
+  function toggleBubbleCategory(categoryKey) {
+    setHiddenBubbleCategories((current) =>
+      current.includes(categoryKey)
+        ? current.filter((value) => value !== categoryKey)
+        : [...current, categoryKey],
+    );
+  }
+
+  function resetChartOptions() {
+    setExcludeOutliers(false);
+    setUseLogScale(false);
+  }
+
+  function handleQuickDateMode(mode) {
+    resetChartOptions();
+    setDateFilterMode(mode);
+  }
+
+  function handleApplyDateRange() {
+    resetChartOptions();
+    applyCustomDateRange();
+  }
+
   return (
     <section className="grid gap-4">
       <section className={panelCardClasses}>
-        <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-        </div>
         <div className="mb-5 grid gap-4">
           <div className="flex flex-wrap gap-3">
             <Button
               active={dateFilterMode === "allTime"}
-              onClick={() => setDateFilterMode("allTime")}
+              onClick={() => handleQuickDateMode("allTime")}
             >
               All Time
             </Button>
             <Button
               active={dateFilterMode === "thisMonth"}
-              onClick={() => setDateFilterMode("thisMonth")}
+              onClick={() => handleQuickDateMode("thisMonth")}
             >
               This Month
             </Button>
             <Button
               active={dateFilterMode === "lastMonth"}
-              onClick={() => setDateFilterMode("lastMonth")}
+              onClick={() => handleQuickDateMode("lastMonth")}
             >
               Last Month
             </Button>
             <Button
               active={dateFilterMode === "thisYear"}
-              onClick={() => setDateFilterMode("thisYear")}
+              onClick={() => handleQuickDateMode("thisYear")}
             >
               This Year
             </Button>
@@ -74,7 +582,7 @@ export default function AnalyticsPage({
                 onChange={(event) => setCustomDateTo(event.target.value)}
               />
             </label>
-            <Button variant="outline" onClick={applyCustomDateRange}>
+            <Button variant="outline" onClick={handleApplyDateRange}>
               Apply
             </Button>
           </div>
@@ -87,67 +595,129 @@ export default function AnalyticsPage({
         <div className="grid gap-4 lg:grid-cols-3">
           <article className={panelCardClasses}>
             <span className="mb-2 block text-gray-500 dark:text-gray-300">Total Spending</span>
-            <strong className="text-[1.3rem]">{formatCurrency(analyticsTotal)}</strong>
+            <strong className="text-[1.3rem]">
+              {excludeOutliers ? formatCurrency(displayedAnalyticsTotal) : formatCurrency(analyticsTotal)}
+            </strong>
           </article>
           <article className={panelCardClasses}>
             <span className="mb-2 block text-gray-500 dark:text-gray-300">Tracked Categories</span>
-            <strong className="text-[1.3rem]">{Object.keys(categoryTotals).length}</strong>
+            <strong className="text-[1.3rem]">{chartCategories.length}</strong>
           </article>
           <article className={panelCardClasses}>
             <span className="mb-2 block text-gray-500 dark:text-gray-300">Visible Entries</span>
-            <strong className="text-[1.3rem]">{analyticsExpenses.length}</strong>
+            <strong className="text-[1.3rem]">{displayedAnalyticsExpenses.length}</strong>
           </article>
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <section className={panelCardClasses}>
+        <div className="flex w-full justify-end">
+          <div className="flex flex-wrap items-center rounded-lg border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/40">
+              <label className="flex cursor-pointer items-center gap-2 px-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <input
+                  checked={excludeOutliers}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  type="checkbox"
+                  onChange={(event) => setExcludeOutliers(event.target.checked)}
+                />
+                Exclude Outliers
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 border-l border-gray-300 px-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-300">
+                <input
+                  checked={useLogScale}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  type="checkbox"
+                  onChange={(event) => setUseLogScale(event.target.checked)}
+                />
+                Log Scale
+              </label>
+          </div>
+        </div>
+
+        {outlierWarningText ? (
+          <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/25">
+            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Outliers Detected</h4>
+            <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">{outlierWarningText}</p>
+            <p className="mt-2 text-xs text-yellow-700/90 dark:text-yellow-500">
+              Tip: Enable Exclude Outliers or Log Scale for better visualization.
+            </p>
+          </div>
+        ) : null}
+
+        {visibleTrendPoints.length ? (
+          <div className="h-[24rem] pt-4">
+            <canvas ref={lineCanvasRef} />
+          </div>
+        ) : (
+          <div className="py-6 text-gray-500 dark:text-gray-300">
+            No analytics data available for the selected range.
+          </div>
+        )}
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <section className={panelCardClasses}>
           <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-            <div>
-              <h3>Trend</h3>
-              <p className="text-gray-500 dark:text-gray-300">
-                A lightweight chart grouped by time period.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                active={analyticsGroupBy === "daily"}
-                onClick={() => setAnalyticsGroupBy("daily")}
-              >
-                Daily
-              </Button>
-              <Button
-                active={analyticsGroupBy === "monthly"}
-                onClick={() => setAnalyticsGroupBy("monthly")}
-              >
-                Monthly
-              </Button>
-              <Button
-                active={analyticsGroupBy === "yearly"}
-                onClick={() => setAnalyticsGroupBy("yearly")}
-              >
-                Yearly
-              </Button>
-            </div>
           </div>
-          {trendData.length ? (
-            <div className="grid min-h-[22rem] auto-rows-auto grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] items-end gap-3.5 pt-4">
-              {trendData.slice(-10).map((item) => (
-                <div className="grid min-h-[20rem] grid-rows-[auto_1fr_auto] items-end gap-2" key={item.label}>
-                  <div className="text-[0.82rem] text-gray-500 dark:text-gray-300">
-                    {formatCurrency(item.value)}
-                  </div>
-                  <div
-                    className="w-full min-h-3 rounded-t-[18px] rounded-b-[8px] bg-[linear-gradient(180deg,#2563eb_0%,#0f766e_100%)]"
-                    style={{ height: `${maxTrendValue ? (item.value / maxTrendValue) * 100 : 0}%` }}
-                  />
-                  <div className="text-[0.82rem] text-gray-500 dark:text-gray-300">{item.label}</div>
+
+          {chartCategories.length ? (
+            <div className="pt-3">
+              <div
+                className="relative h-[24rem] w-full overflow-hidden rounded-2xl"
+                ref={bubbleBoardRef}
+              >
+                <div
+                  className="pointer-events-none absolute left-4 top-3 text-sm font-semibold tracking-wide"
+                  style={{ color: isDarkMode ? "#e5e7eb" : "#1f2937" }}
+                >
+                  Category Share
                 </div>
-              ))}
+
+                {visibleCategories.length ? (
+                  bubbleLayout.map((bubble) => {
+                    const categoryDisplay = getCategoryDisplay(bubble.categoryKey);
+                    const bubbleColor =
+                      CATEGORY_COLORS[bubble.categoryKey] || CATEGORY_COLORS.uncategorized;
+                    const textColor = getContrastTextColor(bubbleColor);
+                    const badgeFontSize =
+                      bubble.diameter > 160 ? "2.2rem" : bubble.diameter > 110 ? "1.5rem" : "1rem";
+
+                    return (
+                      <div
+                        className="floating-bubble absolute flex items-center justify-center rounded-full text-center"
+                        key={bubble.categoryKey}
+                        style={{
+                          left: `${Math.round(bubble.x)}px`,
+                          top: `${Math.round(bubble.y)}px`,
+                          width: `${Math.round(bubble.diameter)}px`,
+                          height: `${Math.round(bubble.diameter)}px`,
+                          backgroundColor: bubbleColor,
+                          border: `2px solid ${hexToRgba(bubbleColor, 0.95)}`,
+                          color: textColor,
+                          animationDuration: `${bubble.animationDuration}s`,
+                          animationDelay: `${bubble.animationDelay}s`,
+                        }}
+                        title={`${categoryDisplay.label}: ${formatCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
+                      >
+                        <span
+                          className="pointer-events-none w-full px-2 font-bold leading-none"
+                          style={{ fontSize: badgeFontSize }}
+                        >
+                          {bubble.percent.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-300">
+                    All categories are hidden. Click a category in the legend to show it again.
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="py-6 text-gray-500 dark:text-gray-300">
-              No analytics data available for the selected range.
+              No category data available for the selected range.
             </div>
           )}
         </section>
@@ -156,24 +726,37 @@ export default function AnalyticsPage({
           <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
             <div>
               <h3>Category Breakdown</h3>
-              <p className="text-gray-500 dark:text-gray-300">Top categories by total spend.</p>
             </div>
           </div>
-          {topCategories.length ? (
-            <div className="grid gap-4">
-              {topCategories.map(([categoryKey, total]) => {
+
+          {chartCategories.length ? (
+            <div className="grid gap-3">
+              {chartCategories.map(([categoryKey, total]) => {
                 const category = getCategoryDisplay(categoryKey);
                 const color = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.uncategorized;
-                const percent = analyticsTotal ? (total / analyticsTotal) * 100 : 0;
+                const percent = totalCategoryAmount ? (total / totalCategoryAmount) * 100 : 0;
+                const isHidden = hiddenBubbleCategories.includes(categoryKey);
+
                 return (
-                  <div className="grid gap-2" key={categoryKey}>
+                  <button
+                    className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
+                      isHidden
+                        ? "opacity-45"
+                        : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                    key={categoryKey}
+                    type="button"
+                    onClick={() => toggleBubbleCategory(categoryKey)}
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center justify-start gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <span
-                          className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_6px_rgba(148,163,184,0.1)]"
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
                           style={{ backgroundColor: color }}
-                        />
-                        <strong>{category.label}</strong>
+                        >
+                          <i className={category.icon} aria-hidden="true" />
+                        </span>
+                        <strong className="truncate">{category.label}</strong>
                       </div>
                       <span>{formatCurrency(total)}</span>
                     </div>
@@ -183,10 +766,7 @@ export default function AnalyticsPage({
                         style={{ width: `${percent}%`, backgroundColor: color }}
                       />
                     </div>
-                    <div className="text-[0.82rem] text-gray-500 dark:text-gray-300">
-                      {percent.toFixed(1)}% of selected spending
-                    </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
