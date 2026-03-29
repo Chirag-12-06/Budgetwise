@@ -53,6 +53,13 @@ export async function createExpense(payload) {
   });
 }
 
+export async function updateExpense(id, payload) {
+  return apiRequest(`/expenses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function removeExpense(id) {
   return apiRequest(`/expenses/${id}`, {
     method: "DELETE",

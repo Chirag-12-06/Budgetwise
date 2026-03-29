@@ -20,6 +20,7 @@ export default function ExpensesPage({
   filteredExpenses,
   loadingExpenses,
   emptyFilteredState,
+  handleStartEditExpense,
   handleDeleteExpense,
 }) {
   return (
@@ -91,10 +92,12 @@ export default function ExpensesPage({
                 className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 border-b border-slate-400/20 py-3.5 last:border-b-0 max-sm:grid-cols-1"
                 key={expense.id}
               >
-                <div
-                  className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_6px_rgba(148,163,184,0.1)]"
+                <span
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm"
                   style={{ backgroundColor: color }}
-                />
+                >
+                  <i className={category.icon} aria-hidden="true" />
+                </span>
                 <div className="grid gap-1">
                   <strong>{expense.title}</strong>
                   <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
@@ -105,11 +108,22 @@ export default function ExpensesPage({
                 <div className="font-bold">{formatCurrency(expense.amount)}</div>
                 <div className="flex items-center gap-3 max-sm:w-full max-sm:flex-wrap">
                   <button
-                    className="rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+                    aria-label={`Edit ${expense.title}`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-600 text-white transition-colors hover:bg-emerald-500"
+                    title="Edit expense"
+                    type="button"
+                    onClick={() => handleStartEditExpense(expense)}
+                  >
+                    <i className="fas fa-pen" aria-hidden="true" />
+                  </button>
+                  <button
+                    aria-label={`Delete ${expense.title}`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-red-500 text-white transition-colors hover:bg-red-600"
+                    title="Delete expense"
                     type="button"
                     onClick={() => handleDeleteExpense(expense.id)}
                   >
-                    Delete
+                    <i className="fas fa-trash" aria-hidden="true" />
                   </button>
                 </div>
               </article>

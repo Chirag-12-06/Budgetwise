@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createExpense, fetchExpenses, getTodayDate, removeExpense } from "./lib/api";
+import { createExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "./lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser } from "./lib/auth";
 import { formatTrendLabel } from "./utils/date";
 import { applyDateFilter, validateCustomDateRange } from "./utils/dateFilters";
@@ -29,6 +29,7 @@ function App() {
   const [dateRangeError, setDateRangeError] = useState("");
   const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
   const [expenses, setExpenses] = useState([]);
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [expenseForm, setExpenseForm] = useState({ title: "", amount: "", category: "", date: getTodayDate() });
   const [signupForm, setSignupForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
@@ -114,16 +115,59 @@ function App() {
     event.preventDefault();
     setSubmitting(true);
     setStatus(null);
+
+    const payload = {
+      title: expenseForm.title.trim(),
+      amount: expenseForm.amount,
+      category: expenseForm.category,
+      date: expenseForm.date,
+    };
+
     try {
-      const created = await createExpense({ title: expenseForm.title.trim(), amount: expenseForm.amount, category: expenseForm.category, date: expenseForm.date });
-      setExpenses((current) => [created, ...current].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)));
+      if (editingExpenseId !== null) {
+        const updated = await updateExpense(editingExpenseId, payload);
+        setExpenses((current) =>
+          current
+            .map((expense) => (expense.id === editingExpenseId ? updated : expense))
+            .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
+        );
+        showStatus("Expense updated successfully", "success");
+      } else {
+        const created = await createExpense(payload);
+        setExpenses((current) =>
+          [created, ...current].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
+        );
+        showStatus("Expense added successfully", "success");
+      }
+
       setExpenseForm((current) => ({ ...current, title: "", amount: "", category: "", date: getTodayDate() }));
-      showStatus("Expense added successfully", "success");
+      setEditingExpenseId(null);
     } catch (error) {
-      showStatus(error.message || "Unable to add expense", "error");
+      showStatus(
+        error.message || (editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense"),
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleStartEditExpense(expense) {
+    const dateValue = expense?.createdAt ? String(expense.createdAt).split("T")[0] : getTodayDate();
+    setEditingExpenseId(expense.id);
+    setExpenseForm({
+      title: expense.title || "",
+      amount: expense.amount !== undefined && expense.amount !== null ? String(expense.amount) : "",
+      category: expense.category || "",
+      date: dateValue,
+    });
+    setView(DASHBOARD);
+    setStatus(null);
+  }
+
+  function handleCancelEditExpense() {
+    setEditingExpenseId(null);
+    setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
   }
 
   async function handleDeleteExpense(id) {
@@ -132,6 +176,9 @@ function App() {
     try {
       await removeExpense(id);
       setExpenses((current) => current.filter((expense) => expense.id !== id));
+      if (id === editingExpenseId) {
+        handleCancelEditExpense();
+      }
       showStatus("Expense deleted successfully", "success");
     } catch (error) {
       showStatus(error.message || "Failed to delete expense", "error");
@@ -145,6 +192,7 @@ function App() {
     setLoginForm({ email: "", password: "" });
     setSignupForm({ name: "", email: "", password: "", confirmPassword: "" });
     setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
+    setEditingExpenseId(null);
     setView(DASHBOARD);
     setDateFilterMode("allTime");
     setCustomDateFrom("");
@@ -246,9 +294,9 @@ function App() {
               />
 
               {view === DASHBOARD ? (
-                <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} />
+                <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} isEditingExpense={editingExpenseId !== null} handleCancelEditExpense={handleCancelEditExpense} />
               ) : view === EXPENSES ? (
-                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} expenses={expenses} />
+                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} handleStartEditExpense={handleStartEditExpense} expenses={expenses} />
               ) : (
                 <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} />
               )}

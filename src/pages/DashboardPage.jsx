@@ -13,6 +13,10 @@ const fieldClasses =
   "h-13 w-full rounded-xl border border-slate-600 bg-slate-700/80 px-4 text-lg text-white placeholder:text-slate-300 focus:border-indigo-500 focus:outline-none";
 const submitButtonClasses =
   "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
+const updateButtonClasses =
+  "w-full rounded-xl bg-emerald-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-70";
+const cancelButtonClasses =
+  "w-full rounded-xl bg-red-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-70";
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
@@ -22,6 +26,8 @@ export default function DashboardPage({
   setExpenseForm,
   handleAddExpense,
   submitting,
+  isEditingExpense,
+  handleCancelEditExpense,
 }) {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const categoryDropdownRef = useRef(null);
@@ -63,7 +69,9 @@ export default function DashboardPage({
   return (
     <section className={`${shellClasses} mx-auto w-full max-w-[760px]`}>
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-2xl font-bold text-white md:text-3xl">Add New Expense</h2>
+        <h2 className="text-2xl font-bold text-white md:text-3xl">
+          {isEditingExpense ? "Edit Expense" : "Add New Expense"}
+        </h2>
         <button className={scanButtonClasses} type="button">
           <i className="fas fa-camera" aria-hidden="true" />
           <span>Scan Receipt</span>
@@ -205,9 +213,25 @@ export default function DashboardPage({
           }
         />
 
-        <button className={submitButtonClasses} type="submit" disabled={submitting}>
-          {submitting ? "Saving..." : "Add Expense"}
-        </button>
+        {isEditingExpense ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button className={updateButtonClasses} type="submit" disabled={submitting}>
+              {submitting ? "Saving..." : "Update Expense"}
+            </button>
+            <button
+              className={cancelButtonClasses}
+              type="button"
+              onClick={handleCancelEditExpense}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button className={submitButtonClasses} type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : "Add Expense"}
+          </button>
+        )}
       </form>
     </section>
   );
