@@ -2,13 +2,13 @@ import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 
 const panelCardClasses =
-  "rounded-[22px] border border-slate-400/20 bg-white/60 p-4 dark:bg-slate-950/50";
+  "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
 const baseTabClasses =
-  "rounded-full border border-slate-400/35 px-4 py-2.5 font-semibold text-inherit transition-colors";
-const activeTabClasses = "border-blue-600 bg-blue-600 text-white";
-const inactiveTabClasses = "bg-transparent hover:bg-slate-400/10";
+  "rounded-md px-4 py-2 text-sm font-medium transition-colors";
+const activeTabClasses = "bg-indigo-600 text-white";
+const inactiveTabClasses = "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700";
 const inputClasses =
-  "w-full rounded-[14px] border border-slate-400/35 bg-white/70 px-4 py-3.5 text-inherit dark:bg-slate-950/45";
+  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 
 export default function ExpensesPage({
   dateFilterMode,
@@ -26,12 +26,6 @@ export default function ExpensesPage({
   return (
     <section className={panelCardClasses}>
       <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-        <div>
-          <h3>All Expenses</h3>
-          <p className="text-slate-500 dark:text-slate-300">
-            The first React version of your expense history screen.
-          </p>
-        </div>
       </div>
       <div className="mb-5 grid gap-4">
         <div className="flex flex-wrap gap-3">
@@ -84,7 +78,7 @@ export default function ExpensesPage({
             />
           </label>
           <button
-            className="rounded-2xl border border-slate-400/35 bg-transparent px-4 py-4 font-bold text-inherit"
+            className="rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             type="button"
             onClick={applyCustomDateRange}
           >
@@ -109,7 +103,7 @@ export default function ExpensesPage({
                 />
                 <div className="grid gap-1">
                   <strong>{expense.title}</strong>
-                  <span className="text-[0.92rem] text-slate-500 dark:text-slate-300">
+                  <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
                     {category.label} •{" "}
                     {new Date(expense.createdAt).toLocaleDateString("en-IN", {
                       year: "numeric",
@@ -121,7 +115,7 @@ export default function ExpensesPage({
                 <div className="font-bold">{formatCurrency(expense.amount)}</div>
                 <div className="flex items-center gap-3 max-sm:w-full max-sm:flex-wrap">
                   <button
-                    className="rounded-2xl border border-red-700/30 bg-transparent px-4 py-4 font-bold text-red-700"
+                    className="rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
                     type="button"
                     onClick={() => handleDeleteExpense(expense.id)}
                   >
@@ -133,7 +127,7 @@ export default function ExpensesPage({
           })}
         </div>
       ) : (
-        <div className="py-6 text-slate-500 dark:text-slate-300">
+        <div className="py-6 text-gray-500 dark:text-gray-300">
           {loadingExpenses
             ? "Loading expenses..."
             : emptyFilteredState

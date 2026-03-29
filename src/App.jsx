@@ -229,40 +229,24 @@ function App() {
 
   return (
     <div
-      className={`min-h-screen transition-[background,color] duration-200 ${
-        dark
-          ? "bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.18),transparent_26%),linear-gradient(135deg,#0f172a_0%,#111827_45%,#172554_100%)] text-slate-100"
-          : "bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_32%),linear-gradient(135deg,#fdf2f8_0%,#eef2ff_45%,#ecfeff_100%)] text-slate-800"
+      className={`min-h-screen transition-colors duration-200 ${
+        dark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
       }`}
     >
-      <button
-        className={`fixed top-6 right-6 rounded-full px-4 py-3 backdrop-blur-xl ${
-          dark ? "bg-white/10" : "bg-slate-900/10"
-        }`}
-        type="button"
-        onClick={() => setDark((value) => !value)}
-      >
-        {dark ? "Light" : "Dark"}
-      </button>
-      <main className="grid min-h-screen place-items-center p-4 sm:p-8">
+      <main className="min-h-screen px-4 pb-8">
         <section
-          className={`w-full rounded-[28px] p-6 backdrop-blur-2xl sm:p-8 ${
-            user ? "max-w-[74rem]" : "max-w-[32rem]"
-          } ${dark ? "bg-slate-950/80 shadow-[0_28px_60px_rgba(2,6,23,0.45)]" : "bg-white/80 shadow-[0_28px_60px_rgba(15,23,42,0.16)]"}`}
+          className={`mx-auto w-full ${user ? "" : "max-w-xl"}`}
         >
-          <header>
-            <p className="mb-3 text-[0.78rem] font-bold uppercase tracking-[0.14em] text-blue-600">Budgetwise React</p>
-            <h1 className="m-0 leading-none">{user ? "Dashboard Migration" : "Start the migration without breaking the working app."}</h1>
-            <p className="text-slate-500 dark:text-slate-300">
-              {user
-                ? "This first React slice uses your real backend for auth and expenses."
-                : "This React shell currently handles authentication and stores the same auth keys as the existing frontend."}
-            </p>
-          </header>
-
           {user ? (
-            <section className="dashboard-panel">
-              <Navbar user={user} view={view} setView={setView} handleLogout={handleLogout} />
+            <section className="grid gap-5">
+              <Navbar
+                user={user}
+                view={view}
+                setView={setView}
+                handleLogout={handleLogout}
+                dark={dark}
+                setDark={setDark}
+              />
 
               {view === DASHBOARD ? (
                 <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} />

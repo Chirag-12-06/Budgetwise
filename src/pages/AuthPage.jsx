@@ -2,15 +2,15 @@ const LOGIN = "login";
 const SIGNUP = "signup";
 
 const authTabClasses =
-  "rounded-2xl px-4 py-3.5 transition-colors";
-const activeAuthTabClasses = "bg-blue-600 text-white";
-const inactiveAuthTabClasses = "bg-slate-400/15 text-inherit";
+  "rounded-md px-4 py-3 transition-colors";
+const activeAuthTabClasses = "bg-indigo-600 text-white";
+const inactiveAuthTabClasses = "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white";
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
 const fieldInputClasses =
-  "w-full rounded-[14px] border border-slate-400/35 bg-white/70 px-4 py-3.5 text-inherit dark:bg-slate-950/45";
+  "w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 const primaryButtonClasses =
-  "rounded-2xl border-0 bg-[linear-gradient(135deg,#2563eb_0%,#0f766e_100%)] px-4 py-4 font-bold text-white disabled:cursor-wait disabled:opacity-70";
+  "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
 
 export default function AuthPage({
   mode,

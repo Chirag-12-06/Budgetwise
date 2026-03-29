@@ -2,13 +2,13 @@ import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 
 const panelCardClasses =
-  "rounded-[22px] border border-slate-400/20 bg-white/60 p-4 dark:bg-slate-950/50";
+  "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
 const baseTabClasses =
-  "rounded-full border border-slate-400/35 px-4 py-2.5 font-semibold text-inherit transition-colors";
-const activeTabClasses = "border-blue-600 bg-blue-600 text-white";
-const inactiveTabClasses = "bg-transparent hover:bg-slate-400/10";
+  "rounded-md px-4 py-2 text-sm font-medium transition-colors";
+const activeTabClasses = "bg-indigo-600 text-white";
+const inactiveTabClasses = "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700";
 const inputClasses =
-  "w-full rounded-[14px] border border-slate-400/35 bg-white/70 px-4 py-3.5 text-inherit dark:bg-slate-950/45";
+  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 
 export default function AnalyticsPage({
   dateFilterMode,
@@ -31,12 +31,6 @@ export default function AnalyticsPage({
     <section className="grid gap-4">
       <section className={panelCardClasses}>
         <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-          <div>
-            <h3>Analytics</h3>
-            <p className="text-slate-500 dark:text-slate-300">
-              A first React analytics screen using your live expense data.
-            </p>
-          </div>
         </div>
         <div className="mb-5 grid gap-4">
           <div className="flex flex-wrap gap-3">
@@ -89,7 +83,7 @@ export default function AnalyticsPage({
               />
             </label>
             <button
-              className="rounded-2xl border border-slate-400/35 bg-transparent px-4 py-4 font-bold text-inherit"
+              className="rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               type="button"
               onClick={applyCustomDateRange}
             >
@@ -99,15 +93,15 @@ export default function AnalyticsPage({
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           <article className={panelCardClasses}>
-            <span className="mb-2 block text-slate-500 dark:text-slate-300">Total Spending</span>
+            <span className="mb-2 block text-gray-500 dark:text-gray-300">Total Spending</span>
             <strong className="text-[1.3rem]">{formatCurrency(analyticsTotal)}</strong>
           </article>
           <article className={panelCardClasses}>
-            <span className="mb-2 block text-slate-500 dark:text-slate-300">Tracked Categories</span>
+            <span className="mb-2 block text-gray-500 dark:text-gray-300">Tracked Categories</span>
             <strong className="text-[1.3rem]">{Object.keys(categoryTotals).length}</strong>
           </article>
           <article className={panelCardClasses}>
-            <span className="mb-2 block text-slate-500 dark:text-slate-300">Visible Entries</span>
+            <span className="mb-2 block text-gray-500 dark:text-gray-300">Visible Entries</span>
             <strong className="text-[1.3rem]">{analyticsExpenses.length}</strong>
           </article>
         </div>
@@ -118,7 +112,7 @@ export default function AnalyticsPage({
           <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
             <div>
               <h3>Trend</h3>
-              <p className="text-slate-500 dark:text-slate-300">
+              <p className="text-gray-500 dark:text-gray-300">
                 A lightweight chart grouped by time period.
               </p>
             </div>
@@ -150,19 +144,19 @@ export default function AnalyticsPage({
             <div className="grid min-h-[22rem] auto-rows-auto grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] items-end gap-3.5 pt-4">
               {trendData.slice(-10).map((item) => (
                 <div className="grid min-h-[20rem] grid-rows-[auto_1fr_auto] items-end gap-2" key={item.label}>
-                  <div className="text-[0.82rem] text-slate-500 dark:text-slate-300">
+                  <div className="text-[0.82rem] text-gray-500 dark:text-gray-300">
                     {formatCurrency(item.value)}
                   </div>
                   <div
                     className="w-full min-h-3 rounded-t-[18px] rounded-b-[8px] bg-[linear-gradient(180deg,#2563eb_0%,#0f766e_100%)]"
                     style={{ height: `${maxTrendValue ? (item.value / maxTrendValue) * 100 : 0}%` }}
                   />
-                  <div className="text-[0.82rem] text-slate-500 dark:text-slate-300">{item.label}</div>
+                  <div className="text-[0.82rem] text-gray-500 dark:text-gray-300">{item.label}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="py-6 text-slate-500 dark:text-slate-300">
+            <div className="py-6 text-gray-500 dark:text-gray-300">
               No analytics data available for the selected range.
             </div>
           )}
@@ -172,7 +166,7 @@ export default function AnalyticsPage({
           <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
             <div>
               <h3>Category Breakdown</h3>
-              <p className="text-slate-500 dark:text-slate-300">Top categories by total spend.</p>
+              <p className="text-gray-500 dark:text-gray-300">Top categories by total spend.</p>
             </div>
           </div>
           {topCategories.length ? (
@@ -193,13 +187,13 @@ export default function AnalyticsPage({
                       </div>
                       <span>{formatCurrency(total)}</span>
                     </div>
-                    <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-slate-400/15">
+                    <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                       <div
                         className="h-full rounded-[inherit]"
                         style={{ width: `${percent}%`, backgroundColor: color }}
                       />
                     </div>
-                    <div className="text-[0.82rem] text-slate-500 dark:text-slate-300">
+                    <div className="text-[0.82rem] text-gray-500 dark:text-gray-300">
                       {percent.toFixed(1)}% of selected spending
                     </div>
                   </div>
@@ -207,7 +201,7 @@ export default function AnalyticsPage({
               })}
             </div>
           ) : (
-            <div className="py-6 text-slate-500 dark:text-slate-300">No category data available yet.</div>
+            <div className="py-6 text-gray-500 dark:text-gray-300">No category data available yet.</div>
           )}
         </section>
       </div>
