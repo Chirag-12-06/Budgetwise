@@ -30,6 +30,22 @@ function getAuthHeaders(includeJson = false) {
   return headers;
 }
 
+function handleUnauthorized() {
+  localStorage.removeItem('bw-token');
+  localStorage.removeItem('bw-user');
+  localStorage.removeItem('bw-user-id');
+  window.location.href = 'auth.html';
+}
+
+if (typeof window.logout !== 'function') {
+  window.logout = function logout() {
+    localStorage.removeItem('bw-user');
+    localStorage.removeItem('bw-token');
+    localStorage.removeItem('bw-user-id');
+    window.location.href = 'auth.html';
+  };
+}
+
 const CATEGORY_COLORS = window.CATEGORY_COLORS || {
   uncategorized: "#6b7280",
 };
@@ -485,6 +501,10 @@ async function addExpense() {
       })
     });
 
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!response.ok) throw new Error('Failed to add expense');
     setStatus('Expense added successfully.');
     document.getElementById('expenseForm').reset();
@@ -507,6 +527,10 @@ async function loadExpenses() {
   try {
     setStatus('');
     const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!res.ok) throw new Error('Failed to fetch expenses');
     const expenses = await res.json();
 
@@ -564,6 +588,10 @@ async function deleteExpense(id) {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!res.ok) throw new Error('Failed to delete');
     setStatus('Deleted successfully.');
     await loadExpenses();
@@ -577,6 +605,10 @@ async function editExpense(id) {
   try {
     // Use getExpenses to fetch all expenses, then find the one we need
     const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!res.ok) throw new Error('Failed to fetch expenses');
     const expenses = await res.json();
     
@@ -653,6 +685,10 @@ async function updateExpense(id) {
       })
     });
 
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!response.ok) throw new Error('Failed to update expense');
     setStatus('Expense updated successfully.');
     
@@ -885,6 +921,10 @@ function updateTotalSpending(expenses) {
 async function drawLineChart() {
   try {
     const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!res.ok) throw new Error('Failed to fetch expenses');
     let expenses = await res.json();
 
@@ -1117,6 +1157,10 @@ function getCategoryDisplay(categoryValue) {
 async function drawPieChart() {
   try {
     const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!res.ok) throw new Error('Failed to fetch expenses');
     let expenses = await res.json();
 
@@ -1526,7 +1570,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Display user name
   const userNameEl = document.getElementById('userName');
   if (userNameEl) {
-    userNameEl.textContent = window.getUserName();
+    if (typeof window.getUserName === 'function') {
+      userNameEl.textContent = window.getUserName();
+    } else {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('bw-user') || '{}');
+        userNameEl.textContent = storedUser.name || '';
+      } catch (_err) {
+        userNameEl.textContent = '';
+      }
+    }
   }
   
   initializeDarkMode(); // Initialize dark mode first
@@ -1877,3 +1930,7 @@ function fillFormWithItem(item) {
   
   setStatus('Item details filled! Review and click "Add Expense"');
 }
+
+window.addExpense = addExpense;
+window.deleteExpense = deleteExpense;
+window.editExpense = editExpense;

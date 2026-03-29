@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
@@ -9,8 +10,30 @@ export const requireAuth = async (req, res, next) => {
       ? authHeader.slice("Bearer ".length).trim()
       : "";
 
-    const userId = Number(token);
-    if (!token || Number.isNaN(userId)) {
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    let userId = Number(token);
+
+    // Support both the older plain user-id token and the newer JWT token.
+    if (Number.isNaN(userId)) {
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      let payload;
+      try {
+        payload = jwt.verify(token, jwtSecret);
+      } catch (_error) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      userId = Number(payload.sub);
+    }
+
+    if (Number.isNaN(userId)) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
