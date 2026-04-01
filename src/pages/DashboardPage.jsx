@@ -168,7 +168,7 @@ export default function DashboardPage({
       </div>
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
-        <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+        <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
           <div className="relative" ref={categoryDropdownRef}>
             <button
               className={`${fieldClasses} flex items-center justify-between gap-2 px-3 text-left`}
@@ -188,14 +188,14 @@ export default function DashboardPage({
                   >
                     <i className={selectedCategory.icon} aria-hidden="true" />
                   </span>
-                  <span className="truncate">{selectedCategory.label}</span>
+                  <span className="text-base">{selectedCategory.label}</span>
                 </span>
               ) : (
                 <span className="flex min-w-0 items-center gap-3 text-slate-300">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-600/90 text-sm text-slate-200">
                     <i className="fas fa-tags" aria-hidden="true" />
                   </span>
-                  <span className="truncate">Category</span>
+                  <span className="text-base">Category</span>
                 </span>
               )}
               <i

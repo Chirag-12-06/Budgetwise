@@ -54,6 +54,8 @@
         "numpy",
         "panera",
         "prtc",
+        "pycache",
+        "pytest",
         "rapido",
         "rideshare",
         "scikit",
