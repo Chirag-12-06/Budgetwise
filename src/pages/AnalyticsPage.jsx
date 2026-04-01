@@ -565,7 +565,7 @@ export default function AnalyticsPage({
               This Year
             </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <label className="grid gap-2">
               <span className="text-[0.92rem] font-semibold">From</span>
               <Calendar
@@ -582,7 +582,7 @@ export default function AnalyticsPage({
                 onChange={(event) => setCustomDateTo(event.target.value)}
               />
             </label>
-            <Button variant="outline" onClick={handleApplyDateRange}>
+            <Button className="self-end" variant="outline" onClick={handleApplyDateRange}>
               Apply
             </Button>
           </div>
