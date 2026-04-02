@@ -71,6 +71,25 @@ function App() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!status || !user) {
+      return undefined;
+    }
+
+    if (view !== DASHBOARD) {
+      setStatus(null);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setStatus(null);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [status, user, view]);
+
   function showStatus(message, type) {
     setStatus({ message, type });
   }
@@ -305,7 +324,7 @@ function App() {
             <AuthPage mode={mode} setMode={setMode} handleLogin={handleLogin} handleSignup={handleSignup} loginForm={loginForm} setLoginForm={setLoginForm} signupForm={signupForm} setSignupForm={setSignupForm} submitting={submitting} />
           )}
 
-          <StatusBanner status={status} />
+          {!user || view === DASHBOARD ? <StatusBanner status={status} /> : null}
         </section>
       </main>
     </div>
