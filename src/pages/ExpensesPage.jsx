@@ -44,7 +44,7 @@ export default function ExpensesPage({
             const color = CATEGORY_COLORS[expense.category] || CATEGORY_COLORS.uncategorized;
             return (
               <article
-                className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 border-b border-slate-400/20 py-3.5 last:border-b-0 max-sm:grid-cols-1"
+                className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 border-b border-gray-200 py-3.5 last:border-b-0 dark:border-slate-400/20 max-sm:grid-cols-1"
                 key={expense.id}
               >
                 <span

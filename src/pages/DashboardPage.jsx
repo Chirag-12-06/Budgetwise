@@ -9,9 +9,9 @@ import { predictExpenseCategory, trainExpenseModel } from "../lib/api";
 import Calendar from "../components/calendar";
 
 const shellClasses =
-  "rounded-2xl bg-slate-800/95 p-5 shadow-lg ring-1 ring-white/5 md:p-6";
+  "rounded-2xl bg-white p-5 shadow-lg ring-1 ring-black/5 dark:bg-slate-800/95 dark:ring-white/5 md:p-6";
 const fieldClasses =
-  "h-13 w-full rounded-xl border border-slate-600 bg-slate-700/80 px-4 text-lg text-white placeholder:text-slate-300 focus:border-indigo-500 focus:outline-none";
+  "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
 const submitButtonClasses =
   "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
 const updateButtonClasses =
@@ -179,7 +179,7 @@ export default function DashboardPage({
   return (
     <section className={`${shellClasses} mx-auto w-full max-w-190`}>
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-2xl font-bold text-white md:text-3xl">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
           {isEditingExpense ? "Edit Expense" : "Add New Expense"}
         </h2>
         <button className={scanButtonClasses} type="button">
@@ -212,15 +212,15 @@ export default function DashboardPage({
                   <span className="text-base">{selectedCategory.label}</span>
                 </span>
               ) : (
-                <span className="flex min-w-0 items-center gap-3 text-slate-300">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-600/90 text-sm text-slate-200">
+                <span className="flex min-w-0 items-center gap-3 text-gray-500 dark:text-slate-300">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-200 text-sm text-gray-600 dark:bg-slate-600/90 dark:text-slate-200">
                     <i className="fas fa-tags" aria-hidden="true" />
                   </span>
                   <span className="text-base">Category</span>
                 </span>
               )}
               <i
-                className={`fas ${isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-slate-300`}
+                className={`fas ${isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-gray-500 dark:text-slate-300`}
                 aria-hidden="true"
               />
             </button>
@@ -247,13 +247,13 @@ export default function DashboardPage({
             </select>
 
             {isCategoryMenuOpen ? (
-              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-800/95 p-2 shadow-2xl backdrop-blur">
+              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-2xl backdrop-blur dark:border-slate-600 dark:bg-slate-800/95">
                 {CATEGORY_GROUPS.map((group) => (
                   <section
-                    className="border-b border-slate-600/70 py-1.5 last:border-b-0"
+                    className="border-b border-gray-200 py-1.5 last:border-b-0 dark:border-slate-600/70"
                     key={group.label}
                   >
-                    <p className="px-2 pb-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-slate-300">
+                    <p className="px-2 pb-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-slate-300">
                       {group.label}
                     </p>
                     <div className="grid gap-1">
@@ -266,8 +266,8 @@ export default function DashboardPage({
                           <button
                             className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
                               isSelected
-                                ? "bg-indigo-500/25 text-white"
-                                : "text-slate-100 hover:bg-slate-700/80"
+                                ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-500/25 dark:text-white"
+                                : "text-gray-700 hover:bg-gray-100 dark:text-slate-100 dark:hover:bg-slate-700/80"
                             }`}
                             key={option.value}
                             type="button"
@@ -316,7 +316,7 @@ export default function DashboardPage({
         />
 
         <Calendar
-          className="min-h-13 rounded-xl border-slate-600 bg-slate-700/80 px-4 text-lg text-white focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
+          className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
           expenses={expenses}
           value={expenseForm.date}
           onChange={(event) =>
