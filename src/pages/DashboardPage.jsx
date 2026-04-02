@@ -124,6 +124,27 @@ export default function DashboardPage({
   }, [expenseForm.title, expenseForm.amount, expenseForm.category, isEditingExpense]);
 
   useEffect(() => {
+    if (isEditingExpense || categoryManuallySelected) {
+      return;
+    }
+
+    if (expenseForm.title.trim().length > 0 || !expenseForm.category) {
+      return;
+    }
+
+    setExpenseForm((current) => {
+      if (current.title.trim().length > 0 || !current.category) {
+        return current;
+      }
+
+      return {
+        ...current,
+        category: "",
+      };
+    });
+  }, [expenseForm.title, expenseForm.category, categoryManuallySelected, isEditingExpense, setExpenseForm]);
+
+  useEffect(() => {
     if (!isCategoryMenuOpen) {
       return undefined;
     }
@@ -156,7 +177,7 @@ export default function DashboardPage({
   }
 
   return (
-    <section className={`${shellClasses} mx-auto w-full max-w-[760px]`}>
+    <section className={`${shellClasses} mx-auto w-full max-w-190`}>
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-white md:text-3xl">
           {isEditingExpense ? "Edit Expense" : "Add New Expense"}
@@ -295,7 +316,7 @@ export default function DashboardPage({
         />
 
         <Calendar
-          className="min-h-[3.25rem] rounded-xl border-slate-600 bg-slate-700/80 px-4 text-lg text-white focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
+          className="min-h-13 rounded-xl border-slate-600 bg-slate-700/80 px-4 text-lg text-white focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
           expenses={expenses}
           value={expenseForm.date}
           onChange={(event) =>
