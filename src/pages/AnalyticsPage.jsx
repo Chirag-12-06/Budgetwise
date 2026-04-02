@@ -120,6 +120,8 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
     return [];
   }
 
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
   const scaleValue = (value) => {
     const numeric = Number(value || 0);
     if (useLogScale) {
@@ -136,7 +138,9 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
   const scaledMaxValue = Math.max(...categories.map(([, value]) => scaleValue(value)), 1);
   const targetPerBubble = area / Math.max(categories.length, 1);
   const maxBubbleDiameter = Math.max(34, Math.min(178, Math.sqrt(targetPerBubble) * 1.45));
-  const minBubbleDiameter = Math.max(20, Math.min(64, maxBubbleDiameter * 0.34));
+  const minBubbleDiameter = useLogScale
+    ? Math.max(14, Math.min(52, maxBubbleDiameter * 0.28))
+    : Math.max(20, Math.min(64, maxBubbleDiameter * 0.34));
 
   const centerX = width / 2;
   const centerY = titleSafeTop + plotHeight / 2;
@@ -157,7 +161,7 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
       return dx * dx + dy * dy < minDistance * minDistance;
     });
 
-  return categories.map(([categoryKey, value], index) => {
+  const bubbles = categories.map(([categoryKey, value], index) => {
     const numericValue = Number(value || 0);
     const scaledValue = scaleValue(numericValue);
     const relative = scaledMaxValue > 0 ? Math.sqrt(scaledValue / scaledMaxValue) : 0;
@@ -193,12 +197,23 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
     }
 
     if (!foundSpot) {
-      const randomX =
-        edgePadding + radius + random() * Math.max(1, width - edgePadding * 2 - radius * 2);
-      const randomY =
-        titleSafeTop + radius + random() * Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
-      x = randomX;
-      y = randomY;
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        const candidateX =
+          edgePadding + radius + random() * Math.max(1, width - edgePadding * 2 - radius * 2);
+        const candidateY =
+          titleSafeTop + radius + random() * Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
+        if (!withinBounds(candidateX, candidateY, radius)) continue;
+        if (overlapsPlaced(candidateX, candidateY, radius)) continue;
+        x = candidateX;
+        y = candidateY;
+        foundSpot = true;
+        break;
+      }
+    }
+
+    if (!foundSpot) {
+      x = edgePadding + radius + random() * Math.max(1, width - edgePadding * 2 - radius * 2);
+      y = titleSafeTop + radius + random() * Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
     }
 
     placed.push({ x, y, r: radius });
@@ -209,11 +224,50 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
       percent: (numericValue / totalAmount) * 100,
       x,
       y,
+      r: radius,
       diameter,
       animationDuration: (6 + random() * 6).toFixed(2),
       animationDelay: (-random() * 6).toFixed(2),
     };
   });
+
+  for (let iteration = 0; iteration < 120; iteration += 1) {
+    let moved = false;
+
+    for (let i = 0; i < bubbles.length; i += 1) {
+      for (let j = i + 1; j < bubbles.length; j += 1) {
+        const bubbleA = bubbles[i];
+        const bubbleB = bubbles[j];
+        const dx = bubbleB.x - bubbleA.x;
+        const dy = bubbleB.y - bubbleA.y;
+        const distance = Math.hypot(dx, dy);
+        const minDistance = bubbleA.r + bubbleB.r + 2;
+
+        if (distance >= minDistance) continue;
+
+        const normX = distance === 0 ? 1 : dx / distance;
+        const normY = distance === 0 ? 0 : dy / distance;
+        const overlap = (minDistance - Math.max(distance, 0.0001)) / 2;
+
+        bubbleA.x -= normX * overlap;
+        bubbleA.y -= normY * overlap;
+        bubbleB.x += normX * overlap;
+        bubbleB.y += normY * overlap;
+        moved = true;
+      }
+    }
+
+    for (const bubble of bubbles) {
+      bubble.x = clamp(bubble.x, edgePadding + bubble.r, width - edgePadding - bubble.r);
+      bubble.y = clamp(bubble.y, titleSafeTop + bubble.r, height - edgePadding - bubble.r);
+    }
+
+    if (!moved) {
+      break;
+    }
+  }
+
+  return bubbles.map(({ r, ...bubble }) => bubble);
 }
 
 export default function AnalyticsPage({
@@ -332,9 +386,9 @@ export default function AnalyticsPage({
         bubbleBoardSize.width,
         bubbleBoardSize.height,
         totalCategoryAmount,
-        useLogScale,
+        false,
       ),
-    [visibleCategories, bubbleBoardSize, totalCategoryAmount, useLogScale],
+    [visibleCategories, bubbleBoardSize, totalCategoryAmount],
   );
 
   const outlierWarningText = useMemo(() => {
@@ -409,6 +463,11 @@ export default function AnalyticsPage({
     const gridColor = isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(0, 0, 0, 0.1)";
     const lineColor = isDarkMode ? "#818cf8" : "#4f46e5";
     const maxAmount = Math.max(...values);
+    const minPositiveAmount = values.reduce(
+      (min, value) => (value > 0 && value < min ? value : min),
+      Number.POSITIVE_INFINITY,
+    );
+    const logScaleMin = Number.isFinite(minPositiveAmount) ? minPositiveAmount : 0.01;
 
     lineChartRef.current = new Chart(canvas, {
       type: "line",
@@ -464,20 +523,51 @@ export default function AnalyticsPage({
             ...(useLogScale
               ? {
                 suggestedMax: maxAmount,
-                min: 0.01,
+                min: logScaleMin,
                 afterBuildTicks: (scale) => {
                   if (!scale.ticks.some((tick) => tick.value === maxAmount)) {
                     scale.ticks.push({ value: maxAmount });
                     scale.ticks.sort((left, right) => left.value - right.value);
+                  }
+
+                  if (scale.ticks.length > 10) {
+                    const first = scale.ticks[0];
+                    const last = scale.ticks[scale.ticks.length - 1];
+                    const step = Math.ceil((scale.ticks.length - 2) / 8);
+                    const middle = scale.ticks
+                      .slice(1, -1)
+                      .filter((_, index) => index % step === 0)
+                      .slice(0, 8);
+                    scale.ticks = [first, ...middle, last];
                   }
                 },
               }
               : {}),
             ticks: {
               color: textColor,
-              callback: (value) => formatCurrency(value),
-              maxTicksLimit: useLogScale ? 10 : 8,
-              autoSkip: false,
+              callback: (value) => {
+                const numericValue = Number(value);
+                if (!Number.isFinite(numericValue)) {
+                  return "";
+                }
+
+                if (useLogScale) {
+                  const logValue = Math.log10(numericValue);
+                  const isPowerOfTen = Math.abs(logValue - Math.round(logValue)) < 1e-8;
+                  const isMinValue =
+                    Math.abs(numericValue - logScaleMin) <= Math.max(1, logScaleMin) * 1e-8;
+                  const isMaxValue =
+                    Math.abs(numericValue - maxAmount) <= Math.max(1, maxAmount) * 1e-8;
+
+                  if (!isPowerOfTen && !isMinValue && !isMaxValue) {
+                    return "";
+                  }
+                }
+
+                return formatCurrency(numericValue);
+              },
+              maxTicksLimit: useLogScale ? 8 : 8,
+              autoSkip: true,
             },
             grid: {
               color: gridColor,
@@ -645,7 +735,7 @@ export default function AnalyticsPage({
         ) : null}
 
         {visibleTrendPoints.length ? (
-          <div className="h-[24rem] pt-4">
+          <div className="h-96 pt-4">
             <canvas ref={lineCanvasRef} />
           </div>
         ) : (
@@ -663,7 +753,7 @@ export default function AnalyticsPage({
           {chartCategories.length ? (
             <div className="pt-3">
               <div
-                className="relative h-[24rem] w-full overflow-hidden rounded-2xl"
+                className="relative h-96 w-full overflow-hidden rounded-2xl"
                 ref={bubbleBoardRef}
               >
                 <div
