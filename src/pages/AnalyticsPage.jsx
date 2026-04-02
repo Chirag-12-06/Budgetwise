@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Chart from "chart.js/auto";
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
-import Button from "../components/button";
-import Calendar from "../components/calendar";
+import DateFilterPanel from "../components/dateFilterPanel";
 
 const panelCardClasses =
   "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
@@ -628,76 +627,24 @@ export default function AnalyticsPage({
   return (
     <section className="grid gap-4">
       <section className={panelCardClasses}>
-        <div className="mb-5 grid gap-4">
-          <div className="flex flex-wrap gap-3">
-            <Button
-              active={dateFilterMode === "allTime"}
-              onClick={() => handleQuickDateMode("allTime")}
-            >
-              All Time
-            </Button>
-            <Button
-              active={dateFilterMode === "thisMonth"}
-              onClick={() => handleQuickDateMode("thisMonth")}
-            >
-              This Month
-            </Button>
-            <Button
-              active={dateFilterMode === "lastMonth"}
-              onClick={() => handleQuickDateMode("lastMonth")}
-            >
-              Last Month
-            </Button>
-            <Button
-              active={dateFilterMode === "thisYear"}
-              onClick={() => handleQuickDateMode("thisYear")}
-            >
-              This Year
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">From</span>
-              <Calendar
-                expenses={expenses}
-                value={customDateFrom}
-                onChange={(event) => setCustomDateFrom(event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">To</span>
-              <Calendar
-                expenses={expenses}
-                value={customDateTo}
-                onChange={(event) => setCustomDateTo(event.target.value)}
-              />
-            </label>
-            <Button className="self-end" variant="outline" onClick={handleApplyDateRange}>
-              Apply
-            </Button>
-          </div>
-          {dateRangeError ? (
-            <p className="text-sm font-semibold text-red-600 dark:text-red-300">
-              {dateRangeError}
-            </p>
-          ) : null}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <article className={panelCardClasses}>
-            <span className="mb-2 block text-gray-500 dark:text-gray-300">Total Spending</span>
-            <strong className="text-[1.3rem]">
-              {excludeOutliers ? formatCurrency(displayedAnalyticsTotal) : formatCurrency(analyticsTotal)}
-            </strong>
-          </article>
-          <article className={panelCardClasses}>
-            <span className="mb-2 block text-gray-500 dark:text-gray-300">Tracked Categories</span>
-            <strong className="text-[1.3rem]">{chartCategories.length}</strong>
-          </article>
-          <article className={panelCardClasses}>
-            <span className="mb-2 block text-gray-500 dark:text-gray-300">Visible Entries</span>
-            <strong className="text-[1.3rem]">{displayedAnalyticsExpenses.length}</strong>
-          </article>
-        </div>
+        <DateFilterPanel
+          className="grid gap-4"
+          expenses={expenses}
+          dateFilterMode={dateFilterMode}
+          onDateFilterModeChange={handleQuickDateMode}
+          customDateFrom={customDateFrom}
+          onCustomDateFromChange={setCustomDateFrom}
+          customDateTo={customDateTo}
+          onCustomDateToChange={setCustomDateTo}
+          onApplyDateRange={handleApplyDateRange}
+          dateRangeError={dateRangeError}
+          summaryExpenses={displayedAnalyticsExpenses}
+          summaryTotalSpending={
+            excludeOutliers ? formatCurrency(displayedAnalyticsTotal) : formatCurrency(analyticsTotal)
+          }
+          summaryTrackedCategories={chartCategories.length}
+          summaryVisibleEntries={displayedAnalyticsExpenses.length}
+        />
       </section>
 
       <section className={panelCardClasses}>

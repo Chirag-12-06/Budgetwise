@@ -1,7 +1,6 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
-import Button from "../components/button";
-import Calendar from "../components/calendar";
+import DateFilterPanel from "../components/dateFilterPanel";
 import { formatDateDMY } from "../utils/date";
 
 const panelCardClasses =
@@ -25,62 +24,18 @@ export default function ExpensesPage({
 }) {
   return (
     <section className={panelCardClasses}>
-      <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-      </div>
-      <div className="mb-5 grid gap-4">
-        <div className="flex flex-wrap gap-3">
-          <Button
-            active={dateFilterMode === "allTime"}
-            onClick={() => setDateFilterMode("allTime")}
-          >
-            All Time
-          </Button>
-          <Button
-            active={dateFilterMode === "thisMonth"}
-            onClick={() => setDateFilterMode("thisMonth")}
-          >
-            This Month
-          </Button>
-          <Button
-            active={dateFilterMode === "lastMonth"}
-            onClick={() => setDateFilterMode("lastMonth")}
-          >
-            Last Month
-          </Button>
-          <Button
-            active={dateFilterMode === "thisYear"}
-            onClick={() => setDateFilterMode("thisYear")}
-          >
-            This Year
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-2">
-            <span className="text-[0.92rem] font-semibold">From</span>
-            <Calendar
-              expenses={expenses}
-              value={customDateFrom}
-              onChange={(event) => setCustomDateFrom(event.target.value)}
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-[0.92rem] font-semibold">To</span>
-            <Calendar
-              expenses={expenses}
-              value={customDateTo}
-              onChange={(event) => setCustomDateTo(event.target.value)}
-            />
-          </label>
-          <Button className="self-end" variant="outline" onClick={applyCustomDateRange}>
-            Apply
-          </Button>
-        </div>
-        {dateRangeError ? (
-          <p className="text-sm font-semibold text-red-600 dark:text-red-300">
-            {dateRangeError}
-          </p>
-        ) : null}
-      </div>
+      <DateFilterPanel
+        expenses={expenses}
+        dateFilterMode={dateFilterMode}
+        onDateFilterModeChange={setDateFilterMode}
+        customDateFrom={customDateFrom}
+        onCustomDateFromChange={setCustomDateFrom}
+        customDateTo={customDateTo}
+        onCustomDateToChange={setCustomDateTo}
+        onApplyDateRange={applyCustomDateRange}
+        dateRangeError={dateRangeError}
+        summaryExpenses={filteredExpenses}
+      />
 
       {filteredExpenses.length ? (
         <div className="grid gap-3.5">
