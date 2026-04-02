@@ -820,45 +820,47 @@ export default function AnalyticsPage({
           </div>
 
           {chartCategories.length ? (
-            <div className="grid gap-3">
-              {chartCategories.map(([categoryKey, total]) => {
-                const category = getCategoryDisplay(categoryKey);
-                const color = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.uncategorized;
-                const percent = totalCategoryAmount ? (total / totalCategoryAmount) * 100 : 0;
-                const isHidden = hiddenBubbleCategories.includes(categoryKey);
+            <div className="max-h-96 overflow-y-auto pr-1 hide-scrollbar">
+              <div className="grid gap-3">
+                {chartCategories.map(([categoryKey, total]) => {
+                  const category = getCategoryDisplay(categoryKey);
+                  const color = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.uncategorized;
+                  const percent = totalCategoryAmount ? (total / totalCategoryAmount) * 100 : 0;
+                  const isHidden = hiddenBubbleCategories.includes(categoryKey);
 
-                return (
-                  <button
-                    className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
-                      isHidden
-                        ? "opacity-45"
-                        : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
-                    key={categoryKey}
-                    type="button"
-                    onClick={() => toggleBubbleCategory(categoryKey)}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span
-                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
-                          style={{ backgroundColor: color }}
-                        >
-                          <i className={category.icon} aria-hidden="true" />
-                        </span>
-                        <strong className="truncate">{category.label}</strong>
+                  return (
+                    <button
+                      className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
+                        isHidden
+                          ? "opacity-45"
+                          : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
+                      key={categoryKey}
+                      type="button"
+                      onClick={() => toggleBubbleCategory(categoryKey)}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span
+                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
+                            style={{ backgroundColor: color }}
+                          >
+                            <i className={category.icon} aria-hidden="true" />
+                          </span>
+                          <strong className="truncate">{category.label}</strong>
+                        </div>
+                        <span>{formatCurrency(total)}</span>
                       </div>
-                      <span>{formatCurrency(total)}</span>
-                    </div>
-                    <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                      <div
-                        className="h-full rounded-[inherit]"
-                        style={{ width: `${percent}%`, backgroundColor: color }}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                        <div
+                          className="h-full rounded-[inherit]"
+                          style={{ width: `${percent}%`, backgroundColor: color }}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <div className="py-6 text-gray-500 dark:text-gray-300">No category data available yet.</div>
