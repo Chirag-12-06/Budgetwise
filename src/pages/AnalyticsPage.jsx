@@ -362,7 +362,24 @@ export default function AnalyticsPage({
       && rawCategoryEntries.length >= 3
       && categoryOutlierInfo.hasOutliers
     ) {
-      return rawCategoryEntries.filter(([, value]) => isWithinOutlierBounds(value, categoryOutlierInfo));
+      const upperBound = Number(categoryOutlierInfo.upperBound);
+      if (!Number.isFinite(upperBound)) {
+        return rawCategoryEntries;
+      }
+
+      const highestCategoryValue = Number(rawCategoryEntries[0]?.[1] || 0);
+      const secondHighestCategoryValue = Number(rawCategoryEntries[1]?.[1] || 0);
+      const extremeHighCutoff = Math.max(
+        upperBound * 2,
+        secondHighestCategoryValue > 0 ? secondHighestCategoryValue * 4 : upperBound * 2,
+      );
+
+      // Keep regular categories visible and only hide very large spikes.
+      if (highestCategoryValue <= extremeHighCutoff) {
+        return rawCategoryEntries;
+      }
+
+      return rawCategoryEntries.filter(([, value]) => Number(value) <= extremeHighCutoff);
     }
 
     return rawCategoryEntries;
