@@ -6,10 +6,10 @@ Budgetwise is an expense tracker with a React frontend, a Node/Express API, and 
 
 - Root React app: `./`
 - Active backend API for React: `./server`
-- ML service: `./apps/ml-service`
+- ML service: `./ml-service`
 - Legacy reference implementation: `./apps/frontend` and `./apps/backend`
 
-If you are working on the current React app, use the root app plus `server` and `apps/ml-service`.
+If you are working on the current React app, use the root app plus `server` and `ml-service`.
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@ Backend runs at:
 From repository root:
 
 ```bash
-cd apps/ml-service
+cd ml-service
 python -m venv .venv
 ```
 
@@ -132,16 +132,16 @@ Do not manually edit files in `dist`.
 ### Prediction not showing
 
 1. Ensure `server/server.js` is running on port 5000.
-2. Ensure `apps/ml-service/app.py` is running on port 5001.
+2. Ensure `ml-service/app.py` is running on port 5001.
 3. Re-login if API calls return 401.
 4. Restart backend after backend code changes.
 
 ### Vite page reload loop from ML model updates
 
-Model artifact updates (such as `apps/ml-service/model.pkl`) can trigger reloads if watched by Vite.
+Model artifact updates (such as `ml-service/model.pkl`) can trigger reloads if watched by Vite.
 The project is configured to ignore ML artifacts in Vite watch settings and `.gitignore`.
 
 ## Notes
 
 - `apps/frontend` and `apps/backend` are legacy/reference copies.
-- For current React development, prefer root app + `server` + `apps/ml-service`.
+- For current React development, prefer root app + `server` + `ml-service`.

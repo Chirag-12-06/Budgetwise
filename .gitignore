@@ -34,8 +34,8 @@ venv/
 
 server/generated/prisma/
 
-apps/ml-service/model.pkl
-apps/ml-service/user_preferences_*.json
-apps/ml-service/__pycache__/
-apps/ml-service/*.pyc
-apps/ml-service/.pytest_cache/
+ml-service/model.pkl
+ml-service/user_preferences_*.json
+ml-service/__pycache__/
+ml-service/*.pyc
+ml-service/.pytest_cache/
