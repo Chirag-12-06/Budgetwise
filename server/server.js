@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
 import expenseRoutes from "./routes/expenseRoutes.js";
@@ -23,30 +24,27 @@ app.use(
 // ✅ Handle ES modules dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const frontendDistPath = path.join(__dirname, "../dist");
+const frontendIndexPath = path.join(frontendDistPath, "index.html");
+
+function sendFrontendIndex(res) {
+  if (!existsSync(frontendIndexPath)) {
+    res.status(404).send("Frontend build not found. Run `npm run build` in repository root.");
+    return;
+  }
+
+  res.sendFile(frontendIndexPath);
+}
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../apps/frontend")));
+if (existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+}
 app.use("/data", express.static(path.join(__dirname, "../src/data")));
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../apps/frontend/screen/index.html"));
-});
-
-app.get("/index.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "../apps/frontend/screen/index.html"));
-});
-
-app.get("/auth.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "../apps/frontend/screen/auth.html"));
-});
-
-app.get("/expenses.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "../apps/frontend/screen/expenses.html"));
-});
-
-app.get("/analytics.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "../apps/frontend/screen/analytics.html"));
+app.get(["/", "/index.html", "/auth.html", "/expenses.html", "/analytics.html"], (_req, res) => {
+  sendFrontendIndex(res);
 });
 
 
@@ -135,7 +133,11 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
 
 // ✅ Fallback to index.html for any unknown route
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "../apps/frontend/screen/index.html"));
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({ error: "API route not found" });
+  }
+
+  sendFrontendIndex(res);
 });
 
 // ✅ Start server

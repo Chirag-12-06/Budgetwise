@@ -7,7 +7,6 @@ Budgetwise is an expense tracker with a React frontend, a Node/Express API, and 
 - Root React app: `./`
 - Active backend API for React: `./server`
 - ML service: `./ml-service`
-- Legacy reference implementation: `./apps/frontend` and `./apps/backend`
 
 If you are working on the current React app, use the root app plus `server` and `ml-service`.
 
@@ -143,5 +142,4 @@ The project is configured to ignore ML artifacts in Vite watch settings and `.gi
 
 ## Notes
 
-- `apps/frontend` and `apps/backend` are legacy/reference copies.
 - For current React development, prefer root app + `server` + `ml-service`.
