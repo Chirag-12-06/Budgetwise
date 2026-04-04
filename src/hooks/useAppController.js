@@ -78,18 +78,18 @@ export default function useAppController() {
   }, [user]);
 
   useEffect(() => {
-    if (!status || !user) {
+    if (!status) {
       return undefined;
     }
 
-    if (view !== DASHBOARD) {
+    if (user && view !== DASHBOARD) {
       setStatus(null);
       return undefined;
     }
 
     const timeoutId = window.setTimeout(() => {
       setStatus(null);
-    }, 3000);
+    }, 3200);
 
     return () => {
       window.clearTimeout(timeoutId);

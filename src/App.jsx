@@ -90,7 +90,7 @@ function App() {
               )}
             </section>
           ) : (
-            <AuthPage mode={mode} setMode={setMode} handleLogin={handleLogin} handleSignup={handleSignup} loginForm={loginForm} setLoginForm={setLoginForm} signupForm={signupForm} setSignupForm={setSignupForm} submitting={submitting} />
+            <AuthPage mode={mode} setMode={setMode} handleLogin={handleLogin} handleSignup={handleSignup} loginForm={loginForm} setLoginForm={setLoginForm} signupForm={signupForm} setSignupForm={setSignupForm} submitting={submitting} dark={dark} setDark={setDark} />
           )}
 
           {!user || view === DASHBOARD ? <StatusBanner status={status} /> : null}

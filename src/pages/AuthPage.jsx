@@ -22,9 +22,27 @@ export default function AuthPage({
   signupForm,
   setSignupForm,
   submitting,
+  dark,
+  setDark,
 }) {
   return (
     <>
+      <div className="flex justify-end pt-4">
+        <button
+          className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-800 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+          type="button"
+          onClick={() => setDark((value) => !value)}
+        >
+          {dark ? "☀️" : "🌙"}
+        </button>
+      </div>
+
+      <header className="pt-8 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Welcome to</p>
+        <h1 className="mt-2 text-4xl font-black tracking-tight text-gray-900 dark:text-white">Budgetwise</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track every rupee, every day.</p>
+      </header>
+
       <div className="my-6 grid grid-cols-2 gap-3" role="tablist" aria-label="Authentication mode">
         <button
           className={`${authTabClasses} ${mode === LOGIN ? activeAuthTabClasses : inactiveAuthTabClasses}`}
