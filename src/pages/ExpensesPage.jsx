@@ -1,6 +1,6 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
-import DateFilterPanel from "../components/dateFilterPanel";
+import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import { formatDateDMY } from "../utils/date";
 
 const panelCardClasses =
@@ -21,11 +21,16 @@ export default function ExpensesPage({
   emptyFilteredState,
   handleStartEditExpense,
   handleDeleteExpense,
+  categoryFilterExpenses,
+  selectedCategoryFilters,
+  onCategoryFilterToggle,
+  onClearCategoryFilters,
 }) {
   return (
     <section className={panelCardClasses}>
-      <DateFilterPanel
+      <ExpenseFilterPanel
         expenses={expenses}
+        categoryFilterExpenses={categoryFilterExpenses}
         dateFilterMode={dateFilterMode}
         onDateFilterModeChange={setDateFilterMode}
         customDateFrom={customDateFrom}
@@ -34,6 +39,9 @@ export default function ExpensesPage({
         onCustomDateToChange={setCustomDateTo}
         onApplyDateRange={applyCustomDateRange}
         dateRangeError={dateRangeError}
+        selectedCategoryFilters={selectedCategoryFilters}
+        onCategoryFilterToggle={onCategoryFilterToggle}
+        onClearCategoryFilters={onClearCategoryFilters}
         summaryExpenses={filteredExpenses}
       />
 

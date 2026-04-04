@@ -15,6 +15,7 @@ export default function useAppController() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [dateFilterMode, setDateFilterMode] = useState("allTime");
+  const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState("daily");
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
@@ -104,7 +105,7 @@ export default function useAppController() {
       const data = await loginUser(loginForm);
       setUser(data.user);
       setView(DASHBOARD);
-      showStatus("Login successful. Your React dashboard is ready.", "success");
+      showStatus("Login successful", "success");
     } catch (error) {
       showStatus(error.message || "Login failed", "error");
     } finally {
@@ -124,7 +125,7 @@ export default function useAppController() {
       const data = await signupUser(signupForm);
       setUser(data.user);
       setView(DASHBOARD);
-      showStatus("Account created successfully. Your React dashboard is ready.", "success");
+      showStatus("Account created successfully.", "success");
     } catch (error) {
       showStatus(error.message || "Signup failed", "error");
     } finally {
@@ -216,6 +217,7 @@ export default function useAppController() {
     setEditingExpenseId(null);
     setView(DASHBOARD);
     setDateFilterMode("allTime");
+    setSelectedCategoryFilters([]);
     setCustomDateFrom("");
     setCustomDateTo("");
     setDateRangeError("");
@@ -252,6 +254,19 @@ export default function useAppController() {
     setDateFilterMode("custom");
   }
 
+  function handleCategoryFilterToggle(categoryValue) {
+    const normalizedValue = categoryValue || "uncategorized";
+    setSelectedCategoryFilters((current) =>
+      current.includes(normalizedValue)
+        ? current.filter((value) => value !== normalizedValue)
+        : [...current, normalizedValue],
+    );
+  }
+
+  function clearCategoryFilters() {
+    setSelectedCategoryFilters([]);
+  }
+
   const totalSpent = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const monthSpent = expenses
     .filter((expense) => {
@@ -263,10 +278,15 @@ export default function useAppController() {
   const latestExpenses = [...expenses]
     .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
     .slice(0, 5);
-  const filteredExpenses = applyDateFilter(
+  const dateFilteredExpenses = applyDateFilter(
     [...expenses].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
     { dateFilterMode, customDateFrom, customDateTo },
   );
+  const filteredExpenses = selectedCategoryFilters.length
+    ? dateFilteredExpenses.filter((expense) =>
+      selectedCategoryFilters.includes(expense.category || "uncategorized"),
+    )
+    : dateFilteredExpenses;
   const emptyFilteredState = filteredExpenses.length === 0 && expenses.length > 0;
   const analyticsExpenses = filteredExpenses;
   const analyticsTotal = analyticsExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
@@ -310,6 +330,7 @@ export default function useAppController() {
     submitting,
     loadingExpenses,
     dateFilterMode,
+    selectedCategoryFilters,
     analyticsGroupBy,
     setAnalyticsGroupBy,
     customDateFrom,
@@ -335,9 +356,12 @@ export default function useAppController() {
     handleCustomDateFromChange,
     handleCustomDateToChange,
     applyCustomDateRange,
+    handleCategoryFilterToggle,
+    clearCategoryFilters,
     totalSpent,
     monthSpent,
     latestExpenses,
+    dateFilteredExpenses,
     filteredExpenses,
     emptyFilteredState,
     analyticsExpenses,

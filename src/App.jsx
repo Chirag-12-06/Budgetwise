@@ -22,6 +22,7 @@ function App() {
     submitting,
     loadingExpenses,
     dateFilterMode,
+    selectedCategoryFilters,
     analyticsGroupBy,
     setAnalyticsGroupBy,
     customDateFrom,
@@ -47,9 +48,12 @@ function App() {
     handleCustomDateFromChange,
     handleCustomDateToChange,
     applyCustomDateRange,
+    handleCategoryFilterToggle,
+    clearCategoryFilters,
     totalSpent,
     monthSpent,
     latestExpenses,
+    dateFilteredExpenses,
     filteredExpenses,
     emptyFilteredState,
     analyticsExpenses,
@@ -84,9 +88,9 @@ function App() {
               {view === DASHBOARD ? (
                 <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} isEditingExpense={editingExpenseId !== null} handleCancelEditExpense={handleCancelEditExpense} />
               ) : view === EXPENSES ? (
-                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} handleStartEditExpense={handleStartEditExpense} expenses={expenses} />
+                <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} handleStartEditExpense={handleStartEditExpense} expenses={expenses} categoryFilterExpenses={dateFilteredExpenses} selectedCategoryFilters={selectedCategoryFilters} onCategoryFilterToggle={handleCategoryFilterToggle} onClearCategoryFilters={clearCategoryFilters} />
               ) : (
-                <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} />
+                <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} categoryFilterExpenses={dateFilteredExpenses} selectedCategoryFilters={selectedCategoryFilters} onCategoryFilterToggle={handleCategoryFilterToggle} onClearCategoryFilters={clearCategoryFilters} />
               )}
             </section>
           ) : (

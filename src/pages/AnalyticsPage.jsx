@@ -1,6 +1,6 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
-import DateFilterPanel from "../components/dateFilterPanel";
+import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import useAnalyticsPage from "../hooks/useAnalyticsPage";
 
 const panelCardClasses =
@@ -51,6 +51,10 @@ export default function AnalyticsPage({
   analyticsGroupBy,
   setAnalyticsGroupBy,
   trendData,
+  categoryFilterExpenses,
+  selectedCategoryFilters,
+  onCategoryFilterToggle,
+  onClearCategoryFilters,
 }) {
   const {
     lineCanvasRef,
@@ -85,9 +89,10 @@ export default function AnalyticsPage({
   return (
     <section className="grid gap-4">
       <section className={panelCardClasses}>
-        <DateFilterPanel
+        <ExpenseFilterPanel
           className="grid gap-4"
           expenses={expenses}
+          categoryFilterExpenses={categoryFilterExpenses}
           dateFilterMode={dateFilterMode}
           onDateFilterModeChange={handleQuickDateMode}
           customDateFrom={customDateFrom}
@@ -96,6 +101,9 @@ export default function AnalyticsPage({
           onCustomDateToChange={setCustomDateTo}
           onApplyDateRange={handleApplyDateRange}
           dateRangeError={dateRangeError}
+          selectedCategoryFilters={selectedCategoryFilters}
+          onCategoryFilterToggle={onCategoryFilterToggle}
+          onClearCategoryFilters={onClearCategoryFilters}
           summaryExpenses={displayedAnalyticsExpenses}
           summaryTotalSpending={summaryTotalSpending}
           summaryTrackedCategories={chartCategories.length}
