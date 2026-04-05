@@ -4,7 +4,7 @@ import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 
 const summaryCardClasses =
-  "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
+  "rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:p-4";
 
 const quickDateModes = [
   { value: "allTime", label: "All Time" },
@@ -12,6 +12,8 @@ const quickDateModes = [
   { value: "lastMonth", label: "Last Month" },
   { value: "thisYear", label: "This Year" },
 ];
+
+const summaryGridTemplateColumns = "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)";
 
 export default function ExpenseFilterPanel({
   expenses = [],
@@ -50,11 +52,11 @@ export default function ExpenseFilterPanel({
         value: summaryTotalSpending ?? formatCurrency(computedTotalSpending),
       },
       {
-        label: "Tracked Categories",
+        label: "Categories",
         value: summaryTrackedCategories ?? computedTrackedCategories,
       },
       {
-        label: "Visible Entries",
+        label: "Entries",
         value: summaryVisibleEntries ?? computedVisibleEntries,
       },
     ]
@@ -163,11 +165,13 @@ export default function ExpenseFilterPanel({
       </div>
 
       {resolvedStats.length ? (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-2 sm:gap-3" style={{ gridTemplateColumns: summaryGridTemplateColumns }}>
           {resolvedStats.map((stat) => (
-            <article className={summaryCardClasses} key={stat.label}>
-              <span className="mb-2 block text-gray-500 dark:text-gray-300">{stat.label}</span>
-              <strong className="text-[1.3rem]">{stat.value}</strong>
+            <article className={`${summaryCardClasses} min-w-0`} key={stat.label}>
+              <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
+                {stat.label}
+              </span>
+              <strong className="block truncate text-base sm:text-lg">{stat.value}</strong>
             </article>
           ))}
         </div>
