@@ -132,7 +132,7 @@ export default function ExpenseFilterPanel({
           </div>
 
           {availableCategoryOptions.length ? (
-            <div className="max-h-26 overflow-y-auto rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
+            <div className="max-h-26 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
               <div className="grid gap-2 sm:grid-cols-2">
                 {availableCategoryOptions.map((option) => (
                   <label

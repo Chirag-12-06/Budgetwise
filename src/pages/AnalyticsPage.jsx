@@ -231,7 +231,7 @@ export default function AnalyticsPage({
           </div>
 
           {chartCategories.length ? (
-            <div className="max-h-96 overflow-y-auto pr-1 hide-scrollbar">
+            <div className="max-h-96 overflow-y-auto overscroll-y-contain pr-1 hide-scrollbar">
               <div className="grid gap-3">
                 {chartCategories.map(([categoryKey, total]) => {
                   const category = getCategoryDisplay(categoryKey);
