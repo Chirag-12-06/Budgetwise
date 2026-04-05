@@ -10,6 +10,10 @@ const variantClasses = {
   navIdle:
     "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700",
   navActive: "bg-indigo-600 text-white shadow-sm",
+  expenseEdit:
+    "h-9 w-9 gap-0 rounded-md border border-transparent bg-emerald-600 px-0 py-0 text-white hover:bg-emerald-500",
+  expenseDelete:
+    "h-9 w-9 gap-0 rounded-md border border-transparent bg-red-500 px-0 py-0 text-white hover:bg-red-600",
 };
 
 export default function Button({
@@ -27,6 +31,10 @@ export default function Button({
     stateClasses = variantClasses.outline;
   } else if (variant === "nav") {
     stateClasses = active ? variantClasses.navActive : variantClasses.navIdle;
+  } else if (variant === "expenseEdit") {
+    stateClasses = variantClasses.expenseEdit;
+  } else if (variant === "expenseDelete") {
+    stateClasses = variantClasses.expenseDelete;
   } else if (active) {
     stateClasses = variantClasses.filterActive;
   }

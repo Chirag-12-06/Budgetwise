@@ -3,9 +3,48 @@ import { apiRequest } from "./api";
 const USER_KEY = "bw-user";
 const USER_ID_KEY = "bw-user-id";
 const TOKEN_KEY = "bw-token";
+const AVATAR_MAP_KEY = "bw-avatar-map";
+
+function readAvatarMap() {
+  const raw = localStorage.getItem(AVATAR_MAP_KEY);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAvatarMap(value) {
+  localStorage.setItem(AVATAR_MAP_KEY, JSON.stringify(value));
+}
+
+function saveAvatarForEmail(email, avatarDataUrl) {
+  if (!email || !avatarDataUrl) {
+    return;
+  }
+
+  const current = readAvatarMap();
+  writeAvatarMap({ ...current, [String(email).toLowerCase()]: avatarDataUrl });
+}
+
+function getAvatarForEmail(email) {
+  if (!email) {
+    return "";
+  }
+
+  const current = readAvatarMap();
+  return current[String(email).toLowerCase()] || "";
+}
 
 function storeSession(user, token) {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const avatarDataUrl = user?.avatarDataUrl || getAvatarForEmail(user?.email);
+  const userWithAvatar = avatarDataUrl ? { ...user, avatarDataUrl } : user;
+  localStorage.setItem(USER_KEY, JSON.stringify(userWithAvatar));
   localStorage.setItem(USER_ID_KEY, user.id);
   localStorage.setItem(TOKEN_KEY, token);
 }
@@ -21,7 +60,9 @@ export function getStoredUser() {
   }
 
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const avatarDataUrl = parsed?.avatarDataUrl || getAvatarForEmail(parsed?.email);
+    return avatarDataUrl ? { ...parsed, avatarDataUrl } : parsed;
   } catch {
     return null;
   }
@@ -33,18 +74,31 @@ export async function loginUser({ email, password }) {
     body: JSON.stringify({ email, password }),
   });
 
-  storeSession(data.user, data.token);
-  return data;
+  const userWithAvatar = {
+    ...data.user,
+    avatarDataUrl: data.user?.avatarDataUrl || getAvatarForEmail(data.user?.email),
+  };
+  storeSession(userWithAvatar, data.token);
+  return { ...data, user: userWithAvatar };
 }
 
-export async function signupUser({ name, email, password }) {
+export async function signupUser({ name, email, password, avatarDataUrl }) {
   const data = await apiRequest("/auth/signup", {
     method: "POST",
     body: JSON.stringify({ name, email, password }),
   });
 
-  storeSession(data.user, data.token);
-  return data;
+  if (avatarDataUrl) {
+    saveAvatarForEmail(email, avatarDataUrl);
+  }
+
+  const userWithAvatar = {
+    ...data.user,
+    avatarDataUrl: avatarDataUrl || getAvatarForEmail(email),
+  };
+
+  storeSession(userWithAvatar, data.token);
+  return { ...data, user: userWithAvatar };
 }
 
 export function logoutUser() {

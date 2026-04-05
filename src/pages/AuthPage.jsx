@@ -11,6 +11,7 @@ const fieldInputClasses =
   "w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 const primaryButtonClasses =
   "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
+const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
 
 export default function AuthPage({
   mode,
@@ -25,6 +26,33 @@ export default function AuthPage({
   dark,
   setDark,
 }) {
+  function handleAvatarFileChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setSignupForm((current) => ({ ...current, avatarDataUrl: "" }));
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      window.alert("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_FILE_SIZE) {
+      window.alert("Please choose an image smaller than 2 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const avatarDataUrl = typeof reader.result === "string" ? reader.result : "";
+      setSignupForm((current) => ({ ...current, avatarDataUrl }));
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <>
       <div className="flex justify-end pt-4">
@@ -103,6 +131,34 @@ export default function AuthPage({
               placeholder="John Doe"
             />
           </label>
+
+          <label className={fieldLabelClasses}>
+            <span className={fieldTextClasses}>Profile Photo (optional)</span>
+            <input
+              className={`${fieldInputClasses} file:mr-3 file:rounded-md file:border-0 file:bg-indigo-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700`}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarFileChange}
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-300">PNG/JPG up to 2 MB.</span>
+          </label>
+
+          {signupForm.avatarDataUrl ? (
+            <div className="flex items-center gap-3">
+              <img
+                src={signupForm.avatarDataUrl}
+                alt="Profile preview"
+                className="h-14 w-14 rounded-full border border-gray-300 object-cover dark:border-gray-600"
+              />
+              <button
+                type="button"
+                className="text-sm font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                onClick={() => setSignupForm((current) => ({ ...current, avatarDataUrl: "" }))}
+              >
+                Remove photo
+              </button>
+            </div>
+          ) : null}
 
           <label className={fieldLabelClasses}>
             <span className={fieldTextClasses}>Email</span>

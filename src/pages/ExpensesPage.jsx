@@ -1,5 +1,6 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
+import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import { formatDateDMY } from "../utils/date";
 
@@ -64,30 +65,27 @@ export default function ExpensesPage({
                 <div className="grid gap-1">
                   <strong>{expense.title}</strong>
                   <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
-                    {category.label} •{" "}
                     {formatDateDMY(expense.createdAt)}
                   </span>
                 </div>
                 <div className="font-bold">{formatCurrency(expense.amount)}</div>
                 <div className="flex items-center gap-3 max-sm:w-full max-sm:flex-wrap">
-                  <button
+                  <Button
                     aria-label={`Edit ${expense.title}`}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-600 text-white transition-colors hover:bg-emerald-500"
                     title="Edit expense"
-                    type="button"
+                    variant="expenseEdit"
                     onClick={() => handleStartEditExpense(expense)}
                   >
                     <i className="fas fa-pen" aria-hidden="true" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     aria-label={`Delete ${expense.title}`}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-red-500 text-white transition-colors hover:bg-red-600"
                     title="Delete expense"
-                    type="button"
+                    variant="expenseDelete"
                     onClick={() => handleDeleteExpense(expense.id)}
                   >
                     <i className="fas fa-trash" aria-hidden="true" />
-                  </button>
+                  </Button>
                 </div>
               </article>
             );

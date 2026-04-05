@@ -35,6 +35,7 @@ export default function useAppController() {
     email: "",
     password: "",
     confirmPassword: "",
+    avatarDataUrl: "",
   });
 
   useEffect(() => {
@@ -212,7 +213,7 @@ export default function useAppController() {
     setUser(null);
     setExpenses([]);
     setLoginForm({ email: "", password: "" });
-    setSignupForm({ name: "", email: "", password: "", confirmPassword: "" });
+    setSignupForm({ name: "", email: "", password: "", confirmPassword: "", avatarDataUrl: "" });
     setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
     setEditingExpenseId(null);
     setView(DASHBOARD);
