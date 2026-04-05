@@ -1,7 +1,7 @@
 import Button from "./button";
 import Calendar from "./calendar";
 import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
+import { CATEGORY_COLORS, CATEGORY_GROUPS, getCategoryDisplay } from "../lib/categoryConfig";
 
 const summaryCardClasses =
   "rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:p-4";
@@ -14,6 +14,16 @@ const quickDateModes = [
 ];
 
 const summaryGridTemplateColumns = "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)";
+const categoryGroupIcons = {
+  Food: "fas fa-utensils",
+  Drinks: "fas fa-glass-cheers",
+  Entertainment: "fas fa-film",
+  Home: "fas fa-home",
+  Life: "fas fa-heart",
+  Transportation: "fas fa-route",
+  Utilities: "fas fa-bolt",
+  Other: "fas fa-layer-group",
+};
 
 export default function ExpenseFilterPanel({
   expenses = [],
@@ -73,6 +83,46 @@ export default function ExpenseFilterPanel({
   )
     .map((value) => ({ value, ...getCategoryDisplay(value) }))
     .sort((left, right) => left.label.localeCompare(right.label));
+  const availableCategorySet = new Set(availableCategoryOptions.map((option) => option.value));
+  const availableCategoryGroups = CATEGORY_GROUPS.map((group) => {
+    const values = group.options
+      .map((option) => option.value)
+      .filter((value) => availableCategorySet.has(value));
+
+    if (!values.length) {
+      return null;
+    }
+
+    const selectedCount = values.filter((value) => selectedCategoryFilters.includes(value)).length;
+    const accentColor = CATEGORY_COLORS[values[0]] || CATEGORY_COLORS.uncategorized;
+
+    return {
+      label: group.label,
+      values,
+      selectedCount,
+      isAllSelected: selectedCount === values.length,
+      icon: categoryGroupIcons[group.label] || "fas fa-layer-group",
+      accentColor,
+    };
+  }).filter(Boolean);
+
+  function handleCategoryGroupClick(groupValues) {
+    if (!onCategoryFilterToggle) {
+      return;
+    }
+
+    const normalizedValues = Array.from(new Set(groupValues.map((value) => value || "uncategorized")));
+    const allSelected = normalizedValues.every((value) => selectedCategoryFilters.includes(value));
+
+    normalizedValues.forEach((value) => {
+      const currentlySelected = selectedCategoryFilters.includes(value);
+      const shouldToggle = allSelected ? currentlySelected : !currentlySelected;
+
+      if (shouldToggle) {
+        onCategoryFilterToggle(value);
+      }
+    });
+  }
 
   return (
     <div className={className}>
@@ -118,44 +168,117 @@ export default function ExpenseFilterPanel({
         </div>
 
         <section className="grid gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[0.92rem] font-semibold">Categories</span>
-            {selectedCategoryFilters.length ? (
-              <button
-                className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
-                type="button"
-                onClick={onClearCategoryFilters}
-              >
-                Clear
-              </button>
-            ) : null}
-          </div>
 
           {availableCategoryOptions.length ? (
-            <div className="max-h-26 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {availableCategoryOptions.map((option) => (
-                  <label
-                    className="flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/70"
-                    key={option.value}
-                  >
-                    <input
-                      checked={selectedCategoryFilters.includes(option.value)}
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      type="checkbox"
-                      onChange={() => onCategoryFilterToggle?.(option.value)}
-                    />
-                    <span
-                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
-                      style={{
-                        backgroundColor: CATEGORY_COLORS[option.value] || CATEGORY_COLORS.uncategorized,
-                      }}
+            <div
+              className={`grid gap-2 ${
+                availableCategoryGroups.length
+                  ? "md:grid-cols-[minmax(11rem,0.95fr)_minmax(0,1.25fr)]"
+                  : "grid-cols-1"
+              }`}
+            >
+              {availableCategoryGroups.length ? (
+                <div className="grid gap-1">
+                  <p className="px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
+                    Quick Groups
+                  </p>
+                  <div className="max-h-26 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
+                    <div className="grid gap-2">
+                      {availableCategoryGroups.map((group) => {
+                        const progressPercent = (group.selectedCount / group.values.length) * 100;
+
+                        return (
+                          <button
+                            aria-pressed={group.isAllSelected}
+                            className={`relative grid min-h-12 grid-cols-[auto_1fr_auto] items-center gap-2 overflow-hidden rounded-xl border px-2 py-1.5 text-left transition-colors ${
+                              group.isAllSelected
+                                ? "border-indigo-500 bg-indigo-50/90 dark:border-indigo-300 dark:bg-indigo-500/15"
+                                : "border-gray-300 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-indigo-400/70 dark:hover:bg-gray-700/70"
+                            }`}
+                            key={group.label}
+                            type="button"
+                            onClick={() => handleCategoryGroupClick(group.values)}
+                          >
+                            <span
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs text-white"
+                              style={{ backgroundColor: group.accentColor }}
+                            >
+                              <i className={group.icon} aria-hidden="true" />
+                            </span>
+
+                            <span className="min-w-0">
+                              <span className="block truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+                                {group.label}
+                              </span>
+                              <span className="block text-[0.64rem] text-gray-500 dark:text-gray-300">
+                                {group.selectedCount}/{group.values.length}
+                              </span>
+                            </span>
+
+                            <span
+                              className={`rounded-full px-1.5 py-0.5 text-[0.58rem] font-semibold uppercase tracking-wide ${
+                                group.isAllSelected
+                                  ? "bg-indigo-600 text-white dark:bg-indigo-400 dark:text-slate-900"
+                                  : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200"
+                              }`}
+                            >
+                              {group.isAllSelected ? "All" : "Pick"}
+                            </span>
+
+                            <span
+                              aria-hidden="true"
+                              className="absolute bottom-0 left-0 h-1 transition-all duration-200"
+                              style={{ width: `${progressPercent}%`, backgroundColor: group.accentColor }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid gap-1">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
+                    Categories
+                  </p>
+                  {selectedCategoryFilters.length ? (
+                    <button
+                      className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                      type="button"
+                      onClick={onClearCategoryFilters}
                     >
-                      <i className={option.icon} aria-hidden="true" />
-                    </span>
-                    <span className="truncate">{option.label}</span>
-                  </label>
-                ))}
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+                <div className="max-h-26 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {availableCategoryOptions.map((option) => (
+                      <label
+                        className="flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/70"
+                        key={option.value}
+                      >
+                        <input
+                          checked={selectedCategoryFilters.includes(option.value)}
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          type="checkbox"
+                          onChange={() => onCategoryFilterToggle?.(option.value)}
+                        />
+                        <span
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
+                          style={{
+                            backgroundColor: CATEGORY_COLORS[option.value] || CATEGORY_COLORS.uncategorized,
+                          }}
+                        >
+                          <i className={option.icon} aria-hidden="true" />
+                        </span>
+                        <span className="truncate">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
