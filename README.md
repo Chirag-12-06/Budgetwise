@@ -118,6 +118,34 @@ From repository root:
 - `npm run dev` - start Vite dev server
 - `npm run build` - create production build in `dist`
 - `npm run preview` - preview production build
+- `npm run start` - run production server from root
+- `npm run start:server` - run server package start script
+- `npm run build:full` - build frontend + generate Prisma client
+
+## Deployment (First Run)
+
+The repository now includes:
+
+- `render.yaml` for Render deployment
+- `server/.env.example` with required backend variables
+
+### Deploy on Render
+
+1. Push your latest branch to GitHub.
+2. In Render, create a new Web Service from this repository.
+3. Render should auto-detect `render.yaml`.
+4. Set secret env vars in Render dashboard:
+	- `DATABASE_URL`
+	- `JWT_SECRET`
+	- `ML_SERVICE_URL` (if ML runs on a separate host)
+	- `CORS_ORIGINS` (only needed if frontend is hosted on another domain)
+5. Deploy and open the service URL.
+
+Notes:
+
+- Server listens on `process.env.PORT` in production.
+- Frontend uses relative `/api` base in production.
+- If you deploy frontend and backend on the same service/domain, CORS is minimal.
 
 ## Build Output
 

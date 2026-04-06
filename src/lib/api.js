@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = "http://localhost:5000/api";
+const DEFAULT_API_BASE = "/api";
 const AUTH_STORAGE_KEYS = ["bw-user", "bw-user-id", "bw-token"];
 
 function clearStoredAuthSession() {

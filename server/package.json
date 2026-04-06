@@ -4,6 +4,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

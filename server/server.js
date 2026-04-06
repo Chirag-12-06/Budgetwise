@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 import path from "path";
 import { existsSync } from "fs";
 import { fileURLToPath } from "url";
@@ -8,22 +9,40 @@ import expenseRoutes from "./routes/expenseRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
 
+// ✅ Handle ES modules dirname and load server-local env file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, ".env") });
+
 const app = express();
 const prisma = new PrismaClient();
+const PORT = Number(process.env.PORT) || 5000;
+const ML_SERVICE_URL = String(process.env.ML_SERVICE_URL || "http://127.0.0.1:5001").replace(/\/$/, "");
+
+const DEFAULT_CORS_ORIGINS = [
+  "http://127.0.0.1:5500",
+  "http://127.0.0.1:5501",
+  "http://127.0.0.1:4173",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+];
+
+const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = CORS_ORIGINS.length ? CORS_ORIGINS : DEFAULT_CORS_ORIGINS;
 
 // ✅ Enable CORS for your frontend (Live Server or direct file)
 app.use(
   cors({
     credentials: true,
-    origin: ["http://127.0.0.1:5500", "http://localhost:5500", "http://127.0.0.1:5501", "http://localhost:5501", "http://127.0.0.1:4173", "http://localhost:4173", "http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:5174", "http://localhost:5174"],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// ✅ Handle ES modules dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const frontendDistPath = path.join(__dirname, "../dist");
 const frontendIndexPath = path.join(frontendDistPath, "index.html");
 
@@ -76,7 +95,7 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
     
     // Send to ML service for training
     console.log('🚀 Sending to ML service...');
-    const mlResponse = await fetch('http://127.0.0.1:5001/api/train-model', {
+    const mlResponse = await fetch(`${ML_SERVICE_URL}/api/train-model`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -108,7 +127,7 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
     }
 
     const fetch = (await import("node-fetch")).default;
-    const mlResponse = await fetch("http://127.0.0.1:5001/api/predict-category", {
+    const mlResponse = await fetch(`${ML_SERVICE_URL}/api/predict-category`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -141,4 +160,4 @@ app.use((req, res) => {
 });
 
 // ✅ Start server
-app.listen(5000, () => console.log(`✅ Server running at http://localhost:5000`));
+app.listen(PORT, () => console.log(`✅ Server running at http://127.0.0.1:${PORT}`));
