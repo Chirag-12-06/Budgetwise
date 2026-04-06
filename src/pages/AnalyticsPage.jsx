@@ -1,5 +1,6 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
+import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/panelCard";
 import useAnalyticsPage from "../hooks/useAnalyticsPage";
@@ -238,7 +239,8 @@ export default function AnalyticsPage({
                   const isHidden = hiddenBubbleCategories.includes(categoryKey);
 
                   return (
-                    <button
+                    <Button
+                      variant="plain"
                       className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
                         isHidden
                           ? "opacity-45"
@@ -266,7 +268,7 @@ export default function AnalyticsPage({
                           style={{ width: `${percent}%`, backgroundColor: color }}
                         />
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

@@ -15,7 +15,7 @@ const quickDateModes = [
 
 const summaryGridTemplateColumns = "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)";
 const categoryGroupIcons = {
-  Food: "fas fa-utensils",
+  Food: "fas fa-bowl-food",
   Drinks: "fas fa-glass-cheers",
   Entertainment: "fas fa-film",
   Home: "fas fa-home",
@@ -196,7 +196,8 @@ export default function ExpenseFilterPanel({
                         const progressPercent = (group.selectedCount / group.values.length) * 100;
 
                         return (
-                          <button
+                          <Button
+                            variant="plain"
                             aria-pressed={group.isAllSelected}
                             className={`relative grid h-10 grid-cols-[auto_1fr_auto] items-center gap-2 overflow-hidden rounded-xl border px-2 py-1 text-left transition-colors ${
                               group.isAllSelected
@@ -238,7 +239,7 @@ export default function ExpenseFilterPanel({
                               className="absolute bottom-0 left-0 h-1 transition-all duration-200"
                               style={{ width: `${progressPercent}%`, backgroundColor: group.accentColor }}
                             />
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -252,13 +253,14 @@ export default function ExpenseFilterPanel({
                     Categories
                   </p>
                   {selectedCategoryFilters.length ? (
-                    <button
+                    <Button
+                      variant="plain"
                       className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
                       type="button"
                       onClick={onClearCategoryFilters}
                     >
                       Clear
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
                 <div className="max-h-40 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">

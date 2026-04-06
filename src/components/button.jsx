@@ -1,7 +1,10 @@
 const baseButtonClasses =
   "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900";
+const plainBaseButtonClasses =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900";
 
 const variantClasses = {
+  plain: "",
   filterIdle:
     "border border-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700",
   filterActive: "bg-indigo-600 text-white",
@@ -27,7 +30,9 @@ export default function Button({
 }) {
   let stateClasses = variantClasses.filterIdle;
 
-  if (variant === "outline") {
+  if (variant === "plain") {
+    stateClasses = variantClasses.plain;
+  } else if (variant === "outline") {
     stateClasses = variantClasses.outline;
   } else if (variant === "nav") {
     stateClasses = active ? variantClasses.navActive : variantClasses.navIdle;
@@ -39,9 +44,11 @@ export default function Button({
     stateClasses = variantClasses.filterActive;
   }
 
+  const resolvedBaseClasses = variant === "plain" ? plainBaseButtonClasses : baseButtonClasses;
+
   return (
     <button
-      className={`${baseButtonClasses} ${stateClasses} ${className}`.trim()}
+      className={`${resolvedBaseClasses} ${stateClasses} ${className}`.trim()}
       type={type}
       onClick={onClick}
       {...rest}

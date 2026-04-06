@@ -3,6 +3,7 @@ import {
   CATEGORY_GROUPS,
   CATEGORY_OPTIONS,
 } from "../lib/categoryConfig";
+import Button from "../components/button";
 import Calendar from "../components/calendar";
 import PanelCard from "../components/panelCard";
 import useDashboardPage from "../hooks/useDashboardPage";
@@ -48,16 +49,17 @@ export default function DashboardPage({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
           {isEditingExpense ? "Edit Expense" : "Add New Expense"}
         </h2>
-        <button className={scanButtonClasses} type="button">
+        <Button variant="plain" className={scanButtonClasses} type="button">
           <i className="fas fa-camera" aria-hidden="true" />
           <span>Scan Receipt</span>
-        </button>
+        </Button>
       </div>
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
         <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
           <div className="relative" ref={categoryDropdownRef}>
-            <button
+            <Button
+              variant="plain"
               className={`${fieldClasses} flex items-center justify-between gap-2 px-3 text-left`}
               type="button"
               aria-expanded={isCategoryMenuOpen}
@@ -89,7 +91,7 @@ export default function DashboardPage({
                 className={`fas ${isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-gray-500 dark:text-slate-300`}
                 aria-hidden="true"
               />
-            </button>
+            </Button>
 
             <select
               className="sr-only"
@@ -129,7 +131,8 @@ export default function DashboardPage({
                         const isSelected = expenseForm.category === option.value;
 
                         return (
-                          <button
+                          <Button
+                            variant="plain"
                             className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
                               isSelected
                                 ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-500/25 dark:text-white"
@@ -146,7 +149,7 @@ export default function DashboardPage({
                               <i className={option.icon} aria-hidden="true" />
                             </span>
                             <span className="truncate">{option.label}</span>
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -192,22 +195,23 @@ export default function DashboardPage({
 
         {isEditingExpense ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <button className={updateButtonClasses} type="submit" disabled={submitting}>
+            <Button variant="plain" className={updateButtonClasses} type="submit" disabled={submitting}>
               {submitting ? "Saving..." : "Update Expense"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="plain"
               className={cancelButtonClasses}
               type="button"
               onClick={handleCancelEditExpense}
               disabled={submitting}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
-          <button className={submitButtonClasses} type="submit" disabled={submitting}>
+          <Button variant="plain" className={submitButtonClasses} type="submit" disabled={submitting}>
             {submitting ? "Saving..." : "Add Expense"}
-          </button>
+          </Button>
         )}
       </form>
     </PanelCard>
