@@ -1,10 +1,35 @@
 // User authentication and management routes
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 const prisma = new PrismaClient();
+
+const PASSWORD_SALT_ROUNDS = 12;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+
+function getJwtSecret() {
+  const secret = String(process.env.JWT_SECRET || "").trim();
+  return secret || null;
+}
+
+function buildAuthToken(userId) {
+  const secret = getJwtSecret();
+  if (!secret) {
+    return null;
+  }
+
+  return jwt.sign({}, secret, {
+    subject: String(userId),
+    expiresIn: JWT_EXPIRES_IN,
+  });
+}
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, avatarDataUrl } = req.body;
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    const avatarDataUrl = req.body?.avatarDataUrl;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'All fields are required' });
@@ -20,12 +45,14 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const hashedPassword = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+
     // Create user in DB. ID is assigned by database automatically.
     const user = await prisma.user.create({
       data: {
         name,
         email,
-        password, // In production, use bcrypt.hash(password, 10)
+        password: hashedPassword,
         avatarDataUrl: avatarDataUrl ? String(avatarDataUrl) : null,
       },
       select: {
@@ -36,11 +63,16 @@ export const signup = async (req, res) => {
         createdAt: true
       }
     });
+
+    const token = buildAuthToken(user.id);
+    if (!token) {
+      return res.status(500).json({ message: 'Server auth is not configured' });
+    }
     
     res.status(201).json({
       message: 'User created successfully',
       user,
-      token: String(user.id) // In production, use JWT
+      token
     });
   } catch (error) {
     console.error('Signup error:', error);
@@ -50,14 +82,34 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || user.password !== password) {
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    let validPassword = false;
+    if (user.password?.startsWith("$2")) {
+      validPassword = await bcrypt.compare(password, user.password);
+    } else {
+      // Backward compatibility for legacy plain-text rows: migrate on successful login.
+      validPassword = user.password === password;
+      if (validPassword) {
+        const hashedPassword = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { password: hashedPassword },
+        });
+      }
+    }
+
+    if (!validPassword) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -68,11 +120,16 @@ export const login = async (req, res) => {
       avatarDataUrl: user.avatarDataUrl,
       createdAt: user.createdAt
     };
+
+    const token = buildAuthToken(user.id);
+    if (!token) {
+      return res.status(500).json({ message: 'Server auth is not configured' });
+    }
     
     res.json({
       message: 'Login successful',
       user: userWithoutPassword,
-      token: String(user.id) // In production, use JWT
+      token
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -82,10 +139,8 @@ export const login = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    const userId = Number(token);
-    
-    if (!token || Number.isNaN(userId)) {
+    const userId = Number(req.user?.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
@@ -108,15 +163,13 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    const userId = Number(token);
-
-    if (!token || Number.isNaN(userId)) {
+    const userId = Number(req.user?.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
     const name = String(req.body?.name || '').trim();
-    const email = String(req.body?.email || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
     const hasAvatarDataUrl = Object.prototype.hasOwnProperty.call(req.body || {}, 'avatarDataUrl');
     const avatarDataUrl = hasAvatarDataUrl
       ? String(req.body?.avatarDataUrl || '').trim()
@@ -156,6 +209,6 @@ export const updateProfile = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  // In production with JWT, you might want to invalidate the token
+  // JWT auth is stateless; client logout clears local token/session.
   res.json({ message: 'Logout successful' });
 };

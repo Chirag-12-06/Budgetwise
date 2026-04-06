@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
+function getJwtSecret() {
+  const secret = String(process.env.JWT_SECRET || "").trim();
+  return secret || null;
+}
+
 export const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || "";
@@ -14,26 +19,22 @@ export const requireAuth = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    let userId = Number(token);
-
-    // Support both the older plain user-id token and the newer JWT token.
-    if (Number.isNaN(userId)) {
-      const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      let payload;
-      try {
-        payload = jwt.verify(token, jwtSecret);
-      } catch (_error) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      userId = Number(payload.sub);
+    const jwtSecret = getJwtSecret();
+    if (!jwtSecret) {
+      return res.status(500).json({ message: "Server auth is not configured" });
     }
 
-    if (Number.isNaN(userId)) {
+    let payload;
+    try {
+      payload = jwt.verify(token, jwtSecret);
+    } catch (_error) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const subject = typeof payload === "string" ? "" : payload?.sub;
+    const userId = Number(subject);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 

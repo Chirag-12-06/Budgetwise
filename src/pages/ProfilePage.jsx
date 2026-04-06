@@ -5,12 +5,9 @@ import { formatCurrency } from "../lib/api";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
-const fieldInputClasses =
-  "w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
-const primaryButtonClasses =
-  "rounded-md border-0 bg-indigo-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
-const dangerTextButtonClasses =
-  "text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300";
+const fieldInputClasses ="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
+const primaryButtonClasses ="rounded-md border-0 bg-indigo-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
+const dangerTextButtonClasses ="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300";
 const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
 
 function formatDate(value) {

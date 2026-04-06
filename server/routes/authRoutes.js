@@ -1,6 +1,7 @@
 // Authentication routes
 import express from "express";
 import { signup, login, getProfile, updateProfile, logout } from "../controllers/authController.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -20,18 +21,18 @@ router.post("/login", login);
  * @route   GET /api/auth/profile
  * @desc    Get user profile
  */
-router.get("/profile", getProfile);
+router.get("/profile", requireAuth, getProfile);
 
 /**
  * @route   PATCH /api/auth/profile
  * @desc    Update user profile
  */
-router.patch("/profile", updateProfile);
+router.patch("/profile", requireAuth, updateProfile);
 
 /**
  * @route   POST /api/auth/logout
  * @desc    Logout user
  */
-router.post("/logout", logout);
+router.post("/logout", requireAuth, logout);
 
 export default router;
