@@ -1,10 +1,8 @@
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
+import PanelCard from "../components/panelCard";
 import useAnalyticsPage from "../hooks/useAnalyticsPage";
-
-const panelCardClasses =
-  "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
 
 function hexToRgba(hex, alpha = 1) {
   if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
@@ -88,7 +86,7 @@ export default function AnalyticsPage({
 
   return (
     <section className="grid gap-4">
-      <section className={panelCardClasses}>
+      <PanelCard>
         <ExpenseFilterPanel
           className="grid gap-4"
           expenses={expenses}
@@ -109,9 +107,9 @@ export default function AnalyticsPage({
           summaryTrackedCategories={chartCategories.length}
           summaryVisibleEntries={displayedAnalyticsExpenses.length}
         />
-      </section>
+      </PanelCard>
 
-      <section className={panelCardClasses}>
+      <PanelCard>
         <div className="flex w-full justify-end">
           <div className="flex flex-wrap items-center rounded-lg border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/40">
               <label className="flex cursor-pointer items-center gap-2 px-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -154,10 +152,10 @@ export default function AnalyticsPage({
             No analytics data available for the selected range.
           </div>
         )}
-      </section>
+      </PanelCard>
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <section className={panelCardClasses}>
+        <PanelCard>
           <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
           </div>
 
@@ -221,9 +219,9 @@ export default function AnalyticsPage({
               No category data available for the selected range.
             </div>
           )}
-        </section>
+        </PanelCard>
 
-        <section className={panelCardClasses}>
+        <PanelCard>
           <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
             <div>
               <h3>Category Breakdown</h3>
@@ -276,7 +274,7 @@ export default function AnalyticsPage({
           ) : (
             <div className="py-6 text-gray-500 dark:text-gray-300">No category data available yet.</div>
           )}
-        </section>
+        </PanelCard>
       </div>
     </section>
   );

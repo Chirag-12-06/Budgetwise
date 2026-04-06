@@ -2,10 +2,8 @@ import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
+import PanelCard from "../components/panelCard";
 import { formatDateDMY } from "../utils/date";
-
-const panelCardClasses =
-  "rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800";
 
 export default function ExpensesPage({
   expenses,
@@ -29,7 +27,7 @@ export default function ExpensesPage({
 }) {
   return (
     <section className="grid gap-4">
-      <section className={panelCardClasses}>
+      <PanelCard>
         <ExpenseFilterPanel
           className="grid gap-4"
           expenses={expenses}
@@ -47,9 +45,9 @@ export default function ExpensesPage({
           onClearCategoryFilters={onClearCategoryFilters}
           summaryExpenses={filteredExpenses}
         />
-      </section>
+      </PanelCard>
 
-      <section className={panelCardClasses}>
+      <PanelCard>
         {filteredExpenses.length ? (
           <div className="grid gap-3.5">
             {filteredExpenses.map((expense) => {
@@ -104,7 +102,7 @@ export default function ExpensesPage({
                 : "No expenses yet. Add your first one from the dashboard."}
           </div>
         )}
-      </section>
+        </PanelCard>
     </section>
   );
 }

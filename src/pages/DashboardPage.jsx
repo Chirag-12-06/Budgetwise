@@ -4,10 +4,9 @@ import {
   CATEGORY_OPTIONS,
 } from "../lib/categoryConfig";
 import Calendar from "../components/calendar";
+import PanelCard from "../components/panelCard";
 import useDashboardPage from "../hooks/useDashboardPage";
 
-const shellClasses =
-  "rounded-2xl bg-white p-5 shadow-lg ring-1 ring-black/5 dark:bg-slate-800/95 dark:ring-white/5 md:p-6";
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
 const submitButtonClasses =
@@ -44,7 +43,7 @@ export default function DashboardPage({
   });
 
   return (
-    <section className={`${shellClasses} mx-auto w-full max-w-190`}>
+    <PanelCard variant="dashboard" className="mx-auto w-full max-w-190">
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
           {isEditingExpense ? "Edit Expense" : "Add New Expense"}
@@ -211,6 +210,6 @@ export default function DashboardPage({
           </button>
         )}
       </form>
-    </section>
+    </PanelCard>
   );
 }
