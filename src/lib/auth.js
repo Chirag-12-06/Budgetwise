@@ -32,6 +32,22 @@ function saveAvatarForEmail(email, avatarDataUrl) {
   writeAvatarMap({ ...current, [String(email).toLowerCase()]: avatarDataUrl });
 }
 
+function removeAvatarForEmail(email) {
+  if (!email) {
+    return;
+  }
+
+  const key = String(email).toLowerCase();
+  const current = readAvatarMap();
+  if (!(key in current)) {
+    return;
+  }
+
+  const next = { ...current };
+  delete next[key];
+  writeAvatarMap(next);
+}
+
 function getAvatarForEmail(email) {
   if (!email) {
     return "";
@@ -85,19 +101,70 @@ export async function loginUser({ email, password }) {
 export async function signupUser({ name, email, password, avatarDataUrl }) {
   const data = await apiRequest("/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, avatarDataUrl: avatarDataUrl || null }),
   });
 
-  if (avatarDataUrl) {
+  if (data.user?.avatarDataUrl) {
+    saveAvatarForEmail(data.user.email || email, data.user.avatarDataUrl);
+  } else if (avatarDataUrl) {
     saveAvatarForEmail(email, avatarDataUrl);
   }
 
   const userWithAvatar = {
     ...data.user,
-    avatarDataUrl: avatarDataUrl || getAvatarForEmail(email),
+    avatarDataUrl: data.user?.avatarDataUrl || avatarDataUrl || getAvatarForEmail(email),
   };
 
   storeSession(userWithAvatar, data.token);
+  return { ...data, user: userWithAvatar };
+}
+
+export async function updateProfileUser({ name, email, avatarDataUrl }) {
+  const previousUser = getStoredUser();
+  const previousEmail = previousUser?.email || "";
+
+  const data = await apiRequest("/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify({
+      name,
+      email,
+      avatarDataUrl: avatarDataUrl !== undefined ? avatarDataUrl : undefined,
+    }),
+  });
+
+  const nextEmail = data?.user?.email || email;
+
+  if (previousEmail && previousEmail !== nextEmail && previousUser?.avatarDataUrl) {
+    saveAvatarForEmail(nextEmail, previousUser.avatarDataUrl);
+  }
+
+  if (avatarDataUrl !== undefined) {
+    if (avatarDataUrl) {
+      saveAvatarForEmail(nextEmail, avatarDataUrl);
+    } else {
+      removeAvatarForEmail(nextEmail);
+    }
+  }
+
+  if (previousEmail && previousEmail !== nextEmail) {
+    removeAvatarForEmail(previousEmail);
+  }
+
+  const resolvedAvatar =
+    data?.user?.avatarDataUrl !== undefined
+      ? data.user.avatarDataUrl || ""
+      : avatarDataUrl !== undefined
+        ? avatarDataUrl
+        : previousUser?.avatarDataUrl || getAvatarForEmail(nextEmail);
+
+  const userWithAvatar = {
+    ...data.user,
+    avatarDataUrl: resolvedAvatar || "",
+  };
+
+  localStorage.setItem(USER_KEY, JSON.stringify(userWithAvatar));
+  localStorage.setItem(USER_ID_KEY, String(userWithAvatar.id));
+
   return { ...data, user: userWithAvatar };
 }
 

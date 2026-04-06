@@ -6,7 +6,7 @@ import {
 import Button from "../components/button";
 import Calendar from "../components/calendar";
 import PanelCard from "../components/panelCard";
-import useDashboardPage from "../hooks/useDashboardPage";
+import useAddExpensePage from "../hooks/useAddExpensePage";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
@@ -19,7 +19,7 @@ const cancelButtonClasses =
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
-export default function DashboardPage({
+export default function AddExpensePage({
   expenses,
   expenseForm,
   setExpenseForm,
@@ -36,7 +36,7 @@ export default function DashboardPage({
     categoryDropdownRef,
     selectedCategory,
     handleCategorySelection,
-  } = useDashboardPage({
+  } = useAddExpensePage({
     expenses,
     expenseForm,
     setExpenseForm,
@@ -44,7 +44,7 @@ export default function DashboardPage({
   });
 
   return (
-    <PanelCard variant="dashboard" className="mx-auto w-full max-w-190">
+    <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
           {isEditingExpense ? "Edit Expense" : "Add New Expense"}

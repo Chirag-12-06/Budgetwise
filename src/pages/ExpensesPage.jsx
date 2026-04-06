@@ -99,7 +99,7 @@ export default function ExpensesPage({
               ? "Loading expenses..."
               : emptyFilteredState
                 ? "No expenses in the selected date range."
-                : "No expenses yet. Add your first one from the dashboard."}
+                : "No expenses yet. Add your first one from the Add Expense page."}
           </div>
         )}
         </PanelCard>

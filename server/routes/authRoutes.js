@@ -1,6 +1,6 @@
 // Authentication routes
 import express from "express";
-import { signup, login, getProfile, logout } from "../controllers/authController.js";
+import { signup, login, getProfile, updateProfile, logout } from "../controllers/authController.js";
 
 const router = express.Router();
 
@@ -21,6 +21,12 @@ router.post("/login", login);
  * @desc    Get user profile
  */
 router.get("/profile", getProfile);
+
+/**
+ * @route   PATCH /api/auth/profile
+ * @desc    Update user profile
+ */
+router.patch("/profile", updateProfile);
 
 /**
  * @route   POST /api/auth/logout

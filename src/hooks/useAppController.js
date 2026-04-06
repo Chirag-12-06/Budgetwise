@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
 import { createExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
-import { getStoredUser, hasToken, loginUser, logoutUser, signupUser } from "../lib/auth";
+import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
 
 const LOGIN = "login";
-const DASHBOARD = "dashboard";
+const ADD_EXPENSE = "addExpense";
 
 export default function useAppController() {
   const [mode, setMode] = useState(LOGIN);
-  const [view, setView] = useState(DASHBOARD);
+  const [view, setView] = useState(ADD_EXPENSE);
   const [dark, setDark] = useState(() => localStorage.getItem("bw-dark") === "1");
   const [status, setStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [dateFilterMode, setDateFilterMode] = useState("allTime");
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
@@ -84,7 +85,7 @@ export default function useAppController() {
       return undefined;
     }
 
-    if (user && view !== DASHBOARD) {
+    if (user && view !== ADD_EXPENSE) {
       setStatus(null);
       return undefined;
     }
@@ -105,7 +106,7 @@ export default function useAppController() {
     try {
       const data = await loginUser(loginForm);
       setUser(data.user);
-      setView(DASHBOARD);
+      setView(ADD_EXPENSE);
       showStatus("Login successful", "success");
     } catch (error) {
       showStatus(error.message || "Login failed", "error");
@@ -125,12 +126,28 @@ export default function useAppController() {
     try {
       const data = await signupUser(signupForm);
       setUser(data.user);
-      setView(DASHBOARD);
+      setView(ADD_EXPENSE);
       showStatus("Account created successfully.", "success");
     } catch (error) {
       showStatus(error.message || "Signup failed", "error");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleUpdateProfile(profilePayload) {
+    setUpdatingProfile(true);
+    try {
+      const data = await updateProfileUser(profilePayload);
+      setUser(data.user);
+      return { ok: true, user: data.user };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message || "Unable to update profile",
+      };
+    } finally {
+      setUpdatingProfile(false);
     }
   }
 
@@ -184,7 +201,7 @@ export default function useAppController() {
       category: expense.category || "",
       date: dateValue,
     });
-    setView(DASHBOARD);
+    setView(ADD_EXPENSE);
     setStatus(null);
   }
 
@@ -216,7 +233,7 @@ export default function useAppController() {
     setSignupForm({ name: "", email: "", password: "", confirmPassword: "", avatarDataUrl: "" });
     setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
     setEditingExpenseId(null);
-    setView(DASHBOARD);
+    setView(ADD_EXPENSE);
     setDateFilterMode("allTime");
     setSelectedCategoryFilters([]);
     setCustomDateFrom("");
@@ -329,6 +346,7 @@ export default function useAppController() {
     setDark,
     status,
     submitting,
+    updatingProfile,
     loadingExpenses,
     dateFilterMode,
     selectedCategoryFilters,
@@ -348,6 +366,7 @@ export default function useAppController() {
     setSignupForm,
     handleLogin,
     handleSignup,
+    handleUpdateProfile,
     handleAddExpense,
     handleStartEditExpense,
     handleCancelEditExpense,

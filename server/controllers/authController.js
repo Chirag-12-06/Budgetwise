@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, avatarDataUrl } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'All fields are required' });
@@ -25,12 +25,14 @@ export const signup = async (req, res) => {
       data: {
         name,
         email,
-        password // In production, use bcrypt.hash(password, 10)
+        password, // In production, use bcrypt.hash(password, 10)
+        avatarDataUrl: avatarDataUrl ? String(avatarDataUrl) : null,
       },
       select: {
         id: true,
         name: true,
         email: true,
+        avatarDataUrl: true,
         createdAt: true
       }
     });
@@ -63,6 +65,7 @@ export const login = async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      avatarDataUrl: user.avatarDataUrl,
       createdAt: user.createdAt
     };
     
@@ -89,7 +92,7 @@ export const getProfile = async (req, res) => {
     // Find user by ID
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, createdAt: true }
+      select: { id: true, name: true, email: true, avatarDataUrl: true, createdAt: true }
     });
 
     if (!user) {
@@ -99,6 +102,55 @@ export const getProfile = async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    const userId = Number(token);
+
+    if (!token || Number.isNaN(userId)) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim();
+    const hasAvatarDataUrl = Object.prototype.hasOwnProperty.call(req.body || {}, 'avatarDataUrl');
+    const avatarDataUrl = hasAvatarDataUrl
+      ? String(req.body?.avatarDataUrl || '').trim()
+      : undefined;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (email !== existingUser.email) {
+      const emailInUse = await prisma.user.findUnique({ where: { email } });
+      if (emailInUse && emailInUse.id !== userId) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        email,
+        ...(hasAvatarDataUrl ? { avatarDataUrl: avatarDataUrl || null } : {}),
+      },
+      select: { id: true, name: true, email: true, avatarDataUrl: true, createdAt: true }
+    });
+
+    res.json({ message: 'Profile updated successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Update profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

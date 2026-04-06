@@ -1,8 +1,9 @@
 import Button from "../components/button";
 
-const DASHBOARD = "dashboard";
+const ADD_EXPENSE = "addExpense";
 const EXPENSES = "expenses";
 const ANALYTICS = "analytics";
+const PROFILE = "profile";
 
 export default function Navbar({ user, view, setView, handleLogout, dark, setDark }) {
   const displayName = user?.name || user?.email || "Budgetwise user";
@@ -20,10 +21,10 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
             <div className="flex items-center gap-1" role="tablist" aria-label="App view">
               <Button
                 variant="nav"
-                active={view === DASHBOARD}
-                onClick={() => setView(DASHBOARD)}
+                active={view === ADD_EXPENSE}
+                onClick={() => setView(ADD_EXPENSE)}
                 role="tab"
-                aria-selected={view === DASHBOARD}
+                aria-selected={view === ADD_EXPENSE}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-plus-circle" aria-hidden="true" />
@@ -65,17 +66,30 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
             </button>
 
             <div className="flex items-center gap-1.5 border-l border-gray-300 pl-2 sm:gap-2 sm:pl-3 dark:border-gray-600">
-              {user?.avatarDataUrl ? (
-                <img
-                  src={user.avatarDataUrl}
-                  alt={`${displayName} profile`}
-                  className="h-8 w-8 rounded-full border border-gray-300 object-cover dark:border-gray-600"
-                />
-              ) : (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-                  {displayInitial}
-                </span>
-              )}
+              <Button
+                variant="plain"
+                aria-label="Open profile"
+                title="Open profile"
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full p-0 transition ${
+                  view === PROFILE
+                    ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
+                    : "hover:ring-2 hover:ring-indigo-400/70"
+                }`}
+                type="button"
+                onClick={() => setView(PROFILE)}
+              >
+                {user?.avatarDataUrl ? (
+                  <img
+                    src={user.avatarDataUrl}
+                    alt={`${displayName} profile`}
+                    className="h-8 w-8 rounded-full border border-gray-300 object-cover dark:border-gray-600"
+                  />
+                ) : (
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
+                    {displayInitial}
+                  </span>
+                )}
+              </Button>
 
               <span className="hidden max-w-28 truncate text-sm text-gray-700 dark:text-gray-300 xl:inline">
                 {displayName}

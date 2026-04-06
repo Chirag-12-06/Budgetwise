@@ -16,7 +16,7 @@ app.use(
   cors({
     credentials: true,
     origin: ["http://127.0.0.1:5500", "http://localhost:5500", "http://127.0.0.1:5501", "http://localhost:5501", "http://127.0.0.1:4173", "http://localhost:4173", "http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:5174", "http://localhost:5174"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
   })
 );
@@ -36,12 +36,12 @@ function sendFrontendIndex(res) {
   res.sendFile(frontendIndexPath);
 }
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 if (existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
 }
 app.use("/data", express.static(path.join(__dirname, "../src/data")));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.get(["/", "/index.html", "/auth.html", "/expenses.html", "/analytics.html"], (_req, res) => {
   sendFrontendIndex(res);

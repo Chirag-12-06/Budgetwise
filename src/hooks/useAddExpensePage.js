@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getCategoryDisplay } from "../lib/categoryConfig";
 import { predictExpenseCategory, trainExpenseModel } from "../lib/api";
 
-export default function useDashboardPage({
+export default function useAddExpensePage({
   expenses,
   expenseForm,
   setExpenseForm,

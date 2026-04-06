@@ -1,14 +1,16 @@
 import AuthPage from "./pages/AuthPage";
-import DashboardPage from "./pages/DashboardPage";
+import AddExpensePage from "./pages/AddExpensePage";
 import ExpensesPage from "./pages/ExpensesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import ProfilePage from "./pages/ProfilePage";
 import Navbar from "./layout/Navbar";
 import StatusBanner from "./layout/StatusBanner";
 import useAppController from "./hooks/useAppController";
 
-const DASHBOARD = "dashboard";
+const ADD_EXPENSE = "addExpense";
 const EXPENSES = "expenses";
 const ANALYTICS = "analytics";
+const PROFILE = "profile";
 
 function App() {
   const {
@@ -20,6 +22,7 @@ function App() {
     setDark,
     status,
     submitting,
+    updatingProfile,
     loadingExpenses,
     dateFilterMode,
     selectedCategoryFilters,
@@ -39,6 +42,7 @@ function App() {
     setSignupForm,
     handleLogin,
     handleSignup,
+    handleUpdateProfile,
     handleAddExpense,
     handleStartEditExpense,
     handleCancelEditExpense,
@@ -85,19 +89,28 @@ function App() {
                 setDark={setDark}
               />
 
-              {view === DASHBOARD ? (
-                <DashboardPage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} isEditingExpense={editingExpenseId !== null} handleCancelEditExpense={handleCancelEditExpense} />
+              {view === ADD_EXPENSE ? (
+                <AddExpensePage totalSpent={totalSpent} monthSpent={monthSpent} expenses={expenses} latestExpenses={latestExpenses} loadingExpenses={loadingExpenses} expenseForm={expenseForm} setExpenseForm={setExpenseForm} handleAddExpense={handleAddExpense} submitting={submitting} isEditingExpense={editingExpenseId !== null} handleCancelEditExpense={handleCancelEditExpense} />
               ) : view === EXPENSES ? (
                 <ExpensesPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} filteredExpenses={filteredExpenses} loadingExpenses={loadingExpenses} emptyFilteredState={emptyFilteredState} handleDeleteExpense={handleDeleteExpense} handleStartEditExpense={handleStartEditExpense} expenses={expenses} categoryFilterExpenses={dateFilteredExpenses} selectedCategoryFilters={selectedCategoryFilters} onCategoryFilterToggle={handleCategoryFilterToggle} onClearCategoryFilters={clearCategoryFilters} />
-              ) : (
+              ) : view === ANALYTICS ? (
                 <AnalyticsPage dateFilterMode={dateFilterMode} setDateFilterMode={handleDateFilterModeChange} customDateFrom={customDateFrom} setCustomDateFrom={handleCustomDateFromChange} customDateTo={customDateTo} setCustomDateTo={handleCustomDateToChange} applyCustomDateRange={applyCustomDateRange} dateRangeError={dateRangeError} analyticsTotal={analyticsTotal} categoryTotals={categoryTotals} analyticsExpenses={analyticsExpenses} analyticsGroupBy={analyticsGroupBy} setAnalyticsGroupBy={setAnalyticsGroupBy} trendData={trendData} maxTrendValue={maxTrendValue} topCategories={topCategories} expenses={expenses} categoryFilterExpenses={dateFilteredExpenses} selectedCategoryFilters={selectedCategoryFilters} onCategoryFilterToggle={handleCategoryFilterToggle} onClearCategoryFilters={clearCategoryFilters} />
-              )}
+              ) : view === PROFILE ? (
+                <ProfilePage
+                  user={user}
+                  expenses={expenses}
+                  totalSpent={totalSpent}
+                  monthSpent={monthSpent}
+                  onUpdateProfile={handleUpdateProfile}
+                  updatingProfile={updatingProfile}
+                />
+              ) : null}
             </section>
           ) : (
             <AuthPage mode={mode} setMode={setMode} handleLogin={handleLogin} handleSignup={handleSignup} loginForm={loginForm} setLoginForm={setLoginForm} signupForm={signupForm} setSignupForm={setSignupForm} submitting={submitting} dark={dark} setDark={setDark} />
           )}
 
-          {!user || view === DASHBOARD ? <StatusBanner status={status} /> : null}
+          {!user || view === ADD_EXPENSE ? <StatusBanner status={status} /> : null}
         </section>
       </main>
     </div>
