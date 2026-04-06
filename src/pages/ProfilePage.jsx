@@ -1,32 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
 import Button from "../components/button";
 import PanelCard from "../components/panelCard";
 import { formatCurrency } from "../lib/api";
+import useProfile from "../hooks/useProfile";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
 const fieldInputClasses ="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 const primaryButtonClasses ="rounded-md border-0 bg-indigo-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
 const dangerTextButtonClasses ="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300";
-const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
-
-function formatDate(value) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "Not available";
-  }
-
-  return parsed.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export default function ProfilePage({
   user,
   expenses = [],
@@ -35,95 +16,23 @@ export default function ProfilePage({
   onUpdateProfile,
   updatingProfile = false,
 }) {
-  const displayName = user?.name || user?.email || "Budgetwise user";
-  const displayEmail = user?.email || "No email available";
-  const displayInitial = String(displayName).trim().charAt(0).toUpperCase() || "U";
-  const joinedOn = formatDate(user?.createdAt);
   const trackedCategories = new Set(expenses.map((expense) => expense?.category || "uncategorized")).size;
   const averageExpense = expenses.length ? totalSpent / expenses.length : 0;
-  const [isEditing, setIsEditing] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-  const [form, setForm] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    avatarDataUrl: user?.avatarDataUrl || "",
-  });
-
-  useEffect(() => {
-    if (isEditing) {
-      return;
-    }
-
-    setForm({
-      name: user?.name || "",
-      email: user?.email || "",
-      avatarDataUrl: user?.avatarDataUrl || "",
-    });
-  }, [user, isEditing]);
-
-  const previewName = useMemo(() => form.name || displayName, [form.name, displayName]);
-  const previewInitial = useMemo(
-    () => String(previewName).trim().charAt(0).toUpperCase() || displayInitial,
-    [previewName, displayInitial],
-  );
-
-  function handleAvatarFileChange(event) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setFeedback({ type: "error", message: "Please choose an image file." });
-      event.target.value = "";
-      return;
-    }
-
-    if (file.size > MAX_AVATAR_FILE_SIZE) {
-      setFeedback({ type: "error", message: "Please choose an image smaller than 2 MB." });
-      event.target.value = "";
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const avatarDataUrl = typeof reader.result === "string" ? reader.result : "";
-      setForm((current) => ({ ...current, avatarDataUrl }));
-      setFeedback(null);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    const name = form.name.trim();
-    const email = form.email.trim();
-
-    if (!name || !email) {
-      setFeedback({ type: "error", message: "Name and email are required." });
-      return;
-    }
-
-    if (!onUpdateProfile) {
-      setFeedback({ type: "error", message: "Profile update is unavailable right now." });
-      return;
-    }
-
-    const result = await onUpdateProfile({
-      name,
-      email,
-      avatarDataUrl: form.avatarDataUrl,
-    });
-
-    if (!result?.ok) {
-      setFeedback({ type: "error", message: result?.message || "Unable to update profile." });
-      return;
-    }
-
-    setFeedback({ type: "success", message: "Profile updated successfully." });
-    setIsEditing(false);
-  }
+  const {
+    displayEmail,
+    joinedOn,
+    isEditing,
+    feedback,
+    form,
+    previewName,
+    previewInitial,
+    setFormField,
+    handleStartEdit,
+    handleCancelEdit,
+    handleRemoveAvatar,
+    handleAvatarFileChange,
+    handleSubmit,
+  } = useProfile({ user, onUpdateProfile });
 
   return (
     <section className="grid gap-4">
@@ -146,15 +55,7 @@ export default function ProfilePage({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{previewName}</h2>
             {!isEditing ? (
-              <Button variant="outline" className="px-3 py-1.5 text-xs sm:text-sm" onClick={() => {
-                setForm({
-                  name: user?.name || "",
-                  email: user?.email || "",
-                  avatarDataUrl: user?.avatarDataUrl || "",
-                });
-                setFeedback(null);
-                setIsEditing(true);
-              }}>
+              <Button variant="outline" className="px-3 py-1.5 text-xs sm:text-sm" onClick={handleStartEdit}>
                 Edit Profile
               </Button>
             ) : null}
@@ -172,7 +73,7 @@ export default function ProfilePage({
                   className={fieldInputClasses}
                   type="text"
                   value={form.name}
-                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  onChange={(event) => setFormField("name", event.target.value)}
                   required
                 />
               </label>
@@ -183,7 +84,7 @@ export default function ProfilePage({
                   className={fieldInputClasses}
                   type="email"
                   value={form.email}
-                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                  onChange={(event) => setFormField("email", event.target.value)}
                   required
                 />
               </label>
@@ -211,7 +112,7 @@ export default function ProfilePage({
                   variant="plain"
                   className={dangerTextButtonClasses}
                   type="button"
-                  onClick={() => setForm((current) => ({ ...current, avatarDataUrl: "" }))}
+                  onClick={handleRemoveAvatar}
                 >
                   Remove photo
                 </Button>
@@ -228,15 +129,7 @@ export default function ProfilePage({
               <Button
                 variant="outline"
                 type="button"
-                onClick={() => {
-                  setIsEditing(false);
-                  setFeedback(null);
-                  setForm({
-                    name: user?.name || "",
-                    email: user?.email || "",
-                    avatarDataUrl: user?.avatarDataUrl || "",
-                  });
-                }}
+                onClick={handleCancelEdit}
                 disabled={updatingProfile}
               >
                 Cancel
