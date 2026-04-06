@@ -128,38 +128,44 @@ export default function ExpenseFilterPanel({
     <div className={className}>
       <div className="grid gap-4 xl:grid-cols-2 xl:items-stretch">
         <div className="grid gap-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {quickDateModes.map((mode) => (
               <Button
                 key={mode.value}
                 active={dateFilterMode === mode.value}
+                className="max-w-32 shrink-0 px-3 py-2 text-xs sm:max-w-36 sm:px-4 sm:text-sm"
                 onClick={() => onDateFilterModeChange(mode.value)}
               >
-                {mode.label}
+                <span className="truncate">{mode.label}</span>
               </Button>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">From</span>
-              <Calendar
-                expenses={expenses}
-                value={customDateFrom}
-                onChange={(event) => onCustomDateFromChange(event.target.value)}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-[0.92rem] font-semibold">To</span>
-              <Calendar
-                expenses={expenses}
-                value={customDateTo}
-                onChange={(event) => onCustomDateToChange(event.target.value)}
-              />
-            </label>
-            <Button className="self-end" variant="outline" onClick={onApplyDateRange}>
-              Apply
-            </Button>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <label className="grid min-w-0 gap-2">
+                <span className="text-[0.92rem] font-semibold">From</span>
+                <Calendar
+                  expenses={expenses}
+                  value={customDateFrom}
+                  onChange={(event) => onCustomDateFromChange(event.target.value)}
+                />
+              </label>
+              <label className="grid min-w-0 gap-2">
+                <span className="text-[0.92rem] font-semibold">To</span>
+                <Calendar
+                  expenses={expenses}
+                  value={customDateTo}
+                  onChange={(event) => onCustomDateToChange(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end">
+              <Button className="min-w-20" variant="outline" onClick={onApplyDateRange}>
+                Apply
+              </Button>
+            </div>
           </div>
 
           {dateRangeError ? (
@@ -179,10 +185,12 @@ export default function ExpenseFilterPanel({
             >
               {availableCategoryGroups.length ? (
                 <div className="grid gap-1">
-                  <p className="px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
-                    Quick Groups
-                  </p>
-                  <div className="max-h-26 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
+                  <div className="flex h-5 items-center px-1">
+                    <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
+                      Quick Groups
+                    </p>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
                     <div className="grid gap-2">
                       {availableCategoryGroups.map((group) => {
                         const progressPercent = (group.selectedCount / group.values.length) * 100;
@@ -190,7 +198,7 @@ export default function ExpenseFilterPanel({
                         return (
                           <button
                             aria-pressed={group.isAllSelected}
-                            className={`relative grid min-h-12 grid-cols-[auto_1fr_auto] items-center gap-2 overflow-hidden rounded-xl border px-2 py-1.5 text-left transition-colors ${
+                            className={`relative grid h-10 grid-cols-[auto_1fr_auto] items-center gap-2 overflow-hidden rounded-xl border px-2 py-1 text-left transition-colors ${
                               group.isAllSelected
                                 ? "border-indigo-500 bg-indigo-50/90 dark:border-indigo-300 dark:bg-indigo-500/15"
                                 : "border-gray-300 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-indigo-400/70 dark:hover:bg-gray-700/70"
@@ -200,23 +208,23 @@ export default function ExpenseFilterPanel({
                             onClick={() => handleCategoryGroupClick(group.values)}
                           >
                             <span
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs text-white"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[0.68rem] text-white"
                               style={{ backgroundColor: group.accentColor }}
                             >
                               <i className={group.icon} aria-hidden="true" />
                             </span>
 
-                            <span className="min-w-0">
-                              <span className="block truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+                            <span className="min-w-0 flex items-center gap-1.5">
+                              <span className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
                                 {group.label}
                               </span>
-                              <span className="block text-[0.64rem] text-gray-500 dark:text-gray-300">
+                              <span className="shrink-0 text-[0.62rem] text-gray-500 dark:text-gray-300">
                                 {group.selectedCount}/{group.values.length}
                               </span>
                             </span>
 
                             <span
-                              className={`rounded-full px-1.5 py-0.5 text-[0.58rem] font-semibold uppercase tracking-wide ${
+                              className={`rounded-full px-1.5 py-0.5 text-[0.55rem] font-semibold uppercase tracking-wide ${
                                 group.isAllSelected
                                   ? "bg-indigo-600 text-white dark:bg-indigo-400 dark:text-slate-900"
                                   : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200"
@@ -239,13 +247,13 @@ export default function ExpenseFilterPanel({
               ) : null}
 
               <div className="grid gap-1">
-                <div className="flex items-center justify-between gap-2 px-1">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
+                <div className="flex h-5 items-center justify-between gap-2 px-1">
+                  <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
                     Categories
                   </p>
                   {selectedCategoryFilters.length ? (
                     <button
-                      className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                      className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
                       type="button"
                       onClick={onClearCategoryFilters}
                     >
@@ -253,7 +261,7 @@ export default function ExpenseFilterPanel({
                     </button>
                   ) : null}
                 </div>
-                <div className="max-h-26 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
+                <div className="max-h-40 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
                   <div className="grid gap-2 sm:grid-cols-2">
                     {availableCategoryOptions.map((option) => (
                       <label
