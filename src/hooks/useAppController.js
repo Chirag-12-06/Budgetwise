@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatTrendLabel } from "../utils/date";
@@ -6,6 +6,15 @@ import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
 
 const LOGIN = "login";
 const ADD_EXPENSE = "addExpense";
+const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
+
+function parsePositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const SESSION_IDLE_MINUTES = parsePositiveNumber(import.meta.env.VITE_SESSION_IDLE_MINUTES, 15);
+const SESSION_IDLE_TIMEOUT_MS = SESSION_IDLE_MINUTES * 60 * 1000;
 
 export default function useAppController() {
   const [mode, setMode] = useState(LOGIN);
@@ -38,6 +47,7 @@ export default function useAppController() {
     confirmPassword: "",
     avatarDataUrl: "",
   });
+  const inactivityTimeoutRef = useRef(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -46,6 +56,34 @@ export default function useAppController() {
 
   function showStatus(message, type) {
     setStatus({ message, type });
+  }
+
+  function clearInactivityTimeout() {
+    if (!inactivityTimeoutRef.current) {
+      return;
+    }
+
+    window.clearTimeout(inactivityTimeoutRef.current);
+    inactivityTimeoutRef.current = null;
+  }
+
+  function resetToLoggedOutState({ message = "Logged out", type = "success" } = {}) {
+    clearInactivityTimeout();
+    logoutUser();
+    setUser(null);
+    setExpenses([]);
+    setLoginForm({ email: "", password: "" });
+    setSignupForm({ name: "", email: "", password: "", confirmPassword: "", avatarDataUrl: "" });
+    setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
+    setEditingExpenseId(null);
+    setView(ADD_EXPENSE);
+    setDateFilterMode("allTime");
+    setSelectedCategoryFilters([]);
+    setCustomDateFrom("");
+    setCustomDateTo("");
+    setDateRangeError("");
+    setMode(LOGIN);
+    showStatus(message, type);
   }
 
   useEffect(() => {
@@ -98,6 +136,44 @@ export default function useAppController() {
       window.clearTimeout(timeoutId);
     };
   }, [status, user, view]);
+
+  useEffect(() => {
+    if (!user) {
+      clearInactivityTimeout();
+      return undefined;
+    }
+
+    let isLoggingOut = false;
+
+    function resetInactivityTimer() {
+      clearInactivityTimeout();
+      inactivityTimeoutRef.current = window.setTimeout(() => {
+        if (isLoggingOut) {
+          return;
+        }
+
+        isLoggingOut = true;
+        resetToLoggedOutState({
+          message: `Logged out after ${SESSION_IDLE_MINUTES} minutes of inactivity`,
+          type: "error",
+        });
+      }, SESSION_IDLE_TIMEOUT_MS);
+    }
+
+    for (const eventName of ACTIVITY_EVENTS) {
+      window.addEventListener(eventName, resetInactivityTimer, { passive: true });
+    }
+
+    resetInactivityTimer();
+
+    return () => {
+      for (const eventName of ACTIVITY_EVENTS) {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      }
+
+      clearInactivityTimeout();
+    };
+  }, [user]);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -226,21 +302,7 @@ export default function useAppController() {
   }
 
   function handleLogout() {
-    logoutUser();
-    setUser(null);
-    setExpenses([]);
-    setLoginForm({ email: "", password: "" });
-    setSignupForm({ name: "", email: "", password: "", confirmPassword: "", avatarDataUrl: "" });
-    setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
-    setEditingExpenseId(null);
-    setView(ADD_EXPENSE);
-    setDateFilterMode("allTime");
-    setSelectedCategoryFilters([]);
-    setCustomDateFrom("");
-    setCustomDateTo("");
-    setDateRangeError("");
-    setMode(LOGIN);
-    showStatus("Logged out", "success");
+    resetToLoggedOutState();
   }
 
   function handleDateFilterModeChange(modeValue) {

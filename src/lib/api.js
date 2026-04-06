@@ -1,4 +1,11 @@
 const DEFAULT_API_BASE = "http://localhost:5000/api";
+const AUTH_STORAGE_KEYS = ["bw-user", "bw-user-id", "bw-token"];
+
+function clearStoredAuthSession() {
+  for (const key of AUTH_STORAGE_KEYS) {
+    localStorage.removeItem(key);
+  }
+}
 
 export function getApiBase() {
   const configured = import.meta.env.VITE_API_BASE;
@@ -24,6 +31,10 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredAuthSession();
+    }
+
     throw new Error(data?.message || "Request failed");
   }
 
