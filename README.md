@@ -147,6 +147,26 @@ Notes:
 - Frontend uses relative `/api` base in production.
 - If you deploy frontend and backend on the same service/domain, CORS is minimal.
 
+### Deploy Frontend on Vercel
+
+If backend stays on Render and frontend is deployed separately on Vercel:
+
+1. Import this repository into Vercel.
+2. Use root as project directory (`./`).
+3. Build command: `npm run build`.
+4. Output directory: `dist`.
+5. Set Vercel env var:
+	- `VITE_API_BASE=https://<your-render-backend-domain>/api`
+6. Optional Vercel env var:
+	- `VITE_SESSION_IDLE_MINUTES=15`
+7. Deploy.
+8. In Render backend env vars, update `CORS_ORIGINS` to include your Vercel domain.
+
+Files added for this flow:
+
+- `vercel.json`
+- `.env.example` (frontend)
+
 ## Build Output
 
 - `index.html` at root is the Vite entry template for development.

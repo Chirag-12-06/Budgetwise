@@ -105,6 +105,9 @@ export default function ExpenseFilterPanel({
       accentColor,
     };
   }).filter(Boolean);
+  const shouldConstrainGroupHeight = availableCategoryGroups.length > 3;
+  const shouldConstrainCategoryHeight = availableCategoryOptions.length > 4;
+  const categoryGridColumnsClass = availableCategoryOptions.length <= 3 ? "grid-cols-1" : "sm:grid-cols-2";
 
   function handleCategoryGroupClick(groupValues) {
     if (!onCategoryFilterToggle) {
@@ -190,7 +193,11 @@ export default function ExpenseFilterPanel({
                       Quick Groups
                     </p>
                   </div>
-                  <div className="max-h-40 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
+                  <div
+                    className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
+                      shouldConstrainGroupHeight ? "max-h-40 overflow-y-auto overscroll-y-contain" : ""
+                    }`}
+                  >
                     <div className="grid gap-2">
                       {availableCategoryGroups.map((group) => {
                         const progressPercent = (group.selectedCount / group.values.length) * 100;
@@ -263,8 +270,12 @@ export default function ExpenseFilterPanel({
                     </Button>
                   ) : null}
                 </div>
-                <div className="max-h-40 overflow-y-auto overscroll-y-contain rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800">
-                  <div className="grid gap-2 sm:grid-cols-2">
+                <div
+                  className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
+                    shouldConstrainCategoryHeight ? "max-h-40 overflow-y-auto overscroll-y-contain" : ""
+                  }`}
+                >
+                  <div className={`grid gap-2 ${categoryGridColumnsClass}`}>
                     {availableCategoryOptions.map((option) => (
                       <label
                         className="flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/70"
