@@ -1,6 +1,14 @@
 const DEFAULT_API_BASE = "/api";
 const AUTH_STORAGE_KEYS = ["bw-user", "bw-user-id", "bw-token"];
 
+function isVercelHost() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return String(window.location.hostname || "").toLowerCase().endsWith(".vercel.app");
+}
+
 function clearStoredAuthSession() {
   for (const key of AUTH_STORAGE_KEYS) {
     localStorage.removeItem(key);
@@ -8,7 +16,13 @@ function clearStoredAuthSession() {
 }
 
 export function getApiBase() {
-  const configured = import.meta.env.VITE_API_BASE;
+  const configured = String(import.meta.env.VITE_API_BASE || "").trim();
+
+  // On Vercel, use same-origin /api so vercel.json rewrites proxy requests to backend.
+  if (isVercelHost() && configured.startsWith("http")) {
+    return DEFAULT_API_BASE;
+  }
+
   return (configured || DEFAULT_API_BASE).replace(/\/$/, "");
 }
 
