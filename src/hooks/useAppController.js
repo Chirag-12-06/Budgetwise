@@ -86,6 +86,19 @@ export default function useAppController() {
     showStatus(message, type);
   }
 
+  function handleApiError(error, fallbackMessage) {
+    const message = error?.message || fallbackMessage;
+    if (user && !hasToken()) {
+      resetToLoggedOutState({
+        message: message || "Session expired. Please log in again.",
+        type: "error",
+      });
+      return;
+    }
+
+    showStatus(message, "error");
+  }
+
   useEffect(() => {
     if (!user) {
       setExpenses([]);
@@ -103,7 +116,7 @@ export default function useAppController() {
         }
       } catch (error) {
         if (!ignore) {
-          showStatus(error.message || "Unable to load expenses", "error");
+          handleApiError(error, "Unable to load expenses");
         }
       } finally {
         if (!ignore) {
@@ -175,6 +188,17 @@ export default function useAppController() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user || hasToken()) {
+      return;
+    }
+
+    resetToLoggedOutState({
+      message: "Session expired. Please log in again.",
+      type: "error",
+    });
+  }, [user]);
+
   async function handleLogin(event) {
     event.preventDefault();
     setSubmitting(true);
@@ -218,6 +242,13 @@ export default function useAppController() {
       setUser(data.user);
       return { ok: true, user: data.user };
     } catch (error) {
+      if (user && !hasToken()) {
+        resetToLoggedOutState({
+          message: error?.message || "Session expired. Please log in again.",
+          type: "error",
+        });
+      }
+
       return {
         ok: false,
         message: error.message || "Unable to update profile",
@@ -259,10 +290,7 @@ export default function useAppController() {
       setExpenseForm((current) => ({ ...current, title: "", amount: "", category: "", date: getTodayDate() }));
       setEditingExpenseId(null);
     } catch (error) {
-      showStatus(
-        error.message || (editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense"),
-        "error",
-      );
+      handleApiError(error, editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense");
     } finally {
       setSubmitting(false);
     }
@@ -297,7 +325,7 @@ export default function useAppController() {
       }
       showStatus("Expense deleted successfully", "success");
     } catch (error) {
-      showStatus(error.message || "Failed to delete expense", "error");
+      handleApiError(error, "Failed to delete expense");
     }
   }
 

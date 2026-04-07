@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE "Expense" ADD COLUMN     "userId" INTEGER;
+ALTER TABLE "Expense" ADD COLUMN "userId" INTEGER;
 
 -- CreateTable
 CREATE TABLE "User" (

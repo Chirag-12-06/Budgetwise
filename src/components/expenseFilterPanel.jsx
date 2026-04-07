@@ -181,10 +181,10 @@ export default function ExpenseFilterPanel({
                 availableCategoryGroups.length
                   ? "md:grid-cols-[minmax(11rem,0.95fr)_minmax(0,1.25fr)]"
                   : "grid-cols-1"
-              }`}
+              } items-start`}
             >
               {availableCategoryGroups.length ? (
-                <div className="grid gap-1">
+                <div className="grid gap-1 self-start">
                   <div className="flex h-5 items-center px-1">
                     <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
                       Quick Groups
@@ -247,7 +247,7 @@ export default function ExpenseFilterPanel({
                 </div>
               ) : null}
 
-              <div className="grid gap-1">
+              <div className="grid gap-1 self-start">
                 <div className="flex h-5 items-center justify-between gap-2 px-1">
                   <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
                     Categories
