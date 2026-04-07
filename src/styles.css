@@ -94,13 +94,13 @@
   }
 
   .auth-card {
-    @apply w-full max-w-[32rem] rounded-[28px] p-8 backdrop-blur-2xl;
+    @apply w-full max-w-lg rounded-[28px] p-8 backdrop-blur-2xl;
     background: rgba(255, 255, 255, 0.78);
     box-shadow: 0 28px 60px rgba(15, 23, 42, 0.16);
   }
 
   .auth-card-wide {
-    @apply max-w-[74rem];
+    @apply max-w-296;
   }
 
   .theme-dark .auth-card {
@@ -288,12 +288,12 @@
   }
 
   .trend-chart {
-    @apply min-h-[22rem] grid gap-3.5 items-end pt-4;
+    @apply min-h-88 grid gap-3.5 items-end pt-4;
     grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
   }
 
   .trend-bar-wrap {
-    @apply min-h-[20rem] grid gap-2 items-end;
+    @apply min-h-80 grid gap-2 items-end;
     grid-template-rows: auto 1fr auto;
   }
 
@@ -310,7 +310,7 @@
   }
 
   .trend-bar {
-    @apply w-full min-h-3 rounded-t-[18px] rounded-b-[8px];
+    @apply w-full min-h-3 rounded-t-[18px] rounded-b-lg;
     background: linear-gradient(180deg, #2563eb 0%, #0f766e 100%);
   }
 
@@ -429,7 +429,7 @@
     }
 
     .auth-card {
-      @apply p-6 rounded-[24px];
+      @apply p-6 rounded-3xl;
     }
   }
 
