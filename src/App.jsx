@@ -6,6 +6,7 @@ import ProfilePage from "./pages/ProfilePage";
 import Navbar from "./layout/Navbar";
 import StatusBanner from "./layout/StatusBanner";
 import useAppController from "./hooks/useAppController";
+import useResizeSync from "./hooks/useResizeSync";
 
 const ADD_EXPENSE = "addExpense";
 const EXPENSES = "expenses";
@@ -13,6 +14,8 @@ const ANALYTICS = "analytics";
 const PROFILE = "profile";
 
 function App() {
+  useResizeSync();
+
   const {
     mode,
     setMode,

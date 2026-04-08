@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   CATEGORY_COLORS,
   CATEGORY_GROUPS,
@@ -42,6 +43,7 @@ export default function AddExpensePage({
     setExpenseForm,
     isEditingExpense,
   });
+  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] = useState(false);
 
   return (
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
@@ -49,7 +51,12 @@ export default function AddExpensePage({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
           {isEditingExpense ? "Edit Expense" : "Add New Expense"}
         </h2>
-        <Button variant="plain" className={scanButtonClasses} type="button">
+        <Button
+          variant="plain"
+          className={scanButtonClasses}
+          type="button"
+          onClick={() => setShowScanUnderDevelopmentPopup(true)}
+        >
           <i className="fas fa-camera" aria-hidden="true" />
           <span>Scan Receipt</span>
         </Button>
@@ -214,6 +221,42 @@ export default function AddExpensePage({
           </Button>
         )}
       </form>
+
+      {showScanUnderDevelopmentPopup ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
+          onClick={() => setShowScanUnderDevelopmentPopup(false)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-800"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="scan-receipt-popup-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3
+              id="scan-receipt-popup-title"
+              className="text-xl font-bold text-gray-900 dark:text-white"
+            >
+              Feature Under Development
+            </h3>
+            <p className="mt-2 text-base text-gray-600 dark:text-slate-200">
+              Receipt scanning is under development and will be available soon.
+            </p>
+            <div className="mt-5 flex justify-end">
+              <Button
+                variant="plain"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+                type="button"
+                onClick={() => setShowScanUnderDevelopmentPopup(false)}
+              >
+                Okay
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PanelCard>
   );
 }
