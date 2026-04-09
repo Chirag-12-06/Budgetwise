@@ -177,15 +177,13 @@ export default function AnalyticsPage({
                     const categoryDisplay = getCategoryDisplay(bubble.categoryKey);
                     const bubbleColor = CATEGORY_COLORS[bubble.categoryKey] || CATEGORY_COLORS.uncategorized;
                     const textColor = getContrastTextColor(bubbleColor);
-                    const badgeFontSize =
-                      bubble.diameter > 160
-                        ? "2.2rem"
-                        : bubble.diameter > 120
-                          ? "1.6rem"
-                          : bubble.diameter > 90
-                            ? "1.2rem"
-                            : "0.95rem";
-                    const badgeHorizontalPadding = bubble.diameter < 78 ? "0.25rem" : "0.5rem";
+                    const badgeLabel = `${bubble.percent.toFixed(1)}%`;
+                    const estimatedCharWidthRatio = 0.56;
+                    const maxTextWidth = bubble.diameter * 0.78;
+                    const estimatedFontSizePx = Math.floor(
+                      maxTextWidth / Math.max(1, badgeLabel.length * estimatedCharWidthRatio),
+                    );
+                    const badgeFontSizePx = Math.max(11, Math.min(36, estimatedFontSizePx));
 
                     return (
                       <div
@@ -205,14 +203,13 @@ export default function AnalyticsPage({
                         title={`${categoryDisplay.label}: ${formatCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
                       >
                         <span
-                          className="pointer-events-none w-full font-bold leading-none"
+                          className="pointer-events-none inline-block max-w-full whitespace-nowrap font-bold leading-none"
                           style={{
-                            fontSize: badgeFontSize,
-                            paddingLeft: badgeHorizontalPadding,
-                            paddingRight: badgeHorizontalPadding,
+                            fontSize: `${badgeFontSizePx}px`,
+                            lineHeight: 1,
                           }}
                         >
-                          {bubble.percent.toFixed(1)}%
+                          {badgeLabel}
                         </span>
                       </div>
                     );
