@@ -80,6 +80,46 @@ function isWithinOutlierBounds(value, outlierInfo) {
   return value >= outlierInfo.lowerBound && value <= outlierInfo.upperBound;
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getTextSafeBubbleDiameter(width) {
+  if (width <= 360) {
+    return 54;
+  }
+
+  if (width <= 520) {
+    return 58;
+  }
+
+  return 62;
+}
+
+function calculateCategoryPanelsHeight(width, categoryCount) {
+  const fallbackHeight = 384;
+  if (width <= 0 || categoryCount <= 0) {
+    return fallbackHeight;
+  }
+
+  const edgePadding = 8;
+  const titleSafeTop = 40;
+  const plotWidth = Math.max(120, width - edgePadding * 2);
+  const minBubbleDiameter = getTextSafeBubbleDiameter(width);
+  const bubbleArea = Math.PI * (minBubbleDiameter / 2) ** 2;
+  const packingEfficiency = width <= 420 ? 0.52 : width <= 640 ? 0.56 : 0.6;
+  const requiredPlotArea = (bubbleArea * categoryCount) / packingEfficiency;
+  const requiredPlotHeight = requiredPlotArea / plotWidth;
+  const baseHeight = width <= 420 ? 420 : fallbackHeight;
+  const maxHeight = width <= 420 ? 860 : 760;
+
+  return clampNumber(
+    Math.ceil(titleSafeTop + edgePadding + requiredPlotHeight),
+    baseHeight,
+    maxHeight,
+  );
+}
+
 function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) {
   if (!categories.length || width <= 0 || height <= 0 || totalAmount <= 0) {
     return [];
@@ -101,6 +141,7 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
   const plotHeight = Math.max(120, height - titleSafeTop - edgePadding);
   const area = plotWidth * plotHeight;
   const scaledMaxValue = Math.max(...categories.map(([, value]) => scaleValue(value)), 1);
+  const textSafeBubbleDiameter = getTextSafeBubbleDiameter(width);
   const targetPerBubble = area / Math.max(categories.length, 1);
   const widthDensityScale =
     width <= 360 ? 0.58 : width <= 420 ? 0.68 : width <= 520 ? 0.78 : width <= 700 ? 0.88 : 1;
@@ -119,6 +160,7 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
   let minBubbleDiameter = useLogScale
     ? Math.max(12, Math.min(46, maxBubbleDiameter * 0.28))
     : Math.max(16, Math.min(56, maxBubbleDiameter * 0.34));
+  minBubbleDiameter = Math.max(minBubbleDiameter, textSafeBubbleDiameter);
 
   const estimatedBubbleCoverage = categories.reduce((sum, [, value]) => {
     const numericValue = Number(value || 0);
@@ -136,8 +178,12 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
   const maxBubbleCoverage = area * maxCoverageRatio;
   if (estimatedBubbleCoverage > maxBubbleCoverage && estimatedBubbleCoverage > 0) {
     const shrinkScale = Math.sqrt(maxBubbleCoverage / estimatedBubbleCoverage);
-    maxBubbleDiameter = Math.max(22, maxBubbleDiameter * shrinkScale);
-    minBubbleDiameter = Math.max(useLogScale ? 7 : 9, minBubbleDiameter * shrinkScale);
+    maxBubbleDiameter = Math.max(textSafeBubbleDiameter, maxBubbleDiameter * shrinkScale);
+    minBubbleDiameter = Math.max(textSafeBubbleDiameter, minBubbleDiameter * shrinkScale);
+  }
+
+  if (maxBubbleDiameter < minBubbleDiameter) {
+    maxBubbleDiameter = minBubbleDiameter;
   }
 
   const centerX = width / 2;
@@ -217,10 +263,7 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
     );
 
     let radius = baseDiameter / 2;
-    const minimumRadius = Math.max(
-      useLogScale ? 6 : 8,
-      radius * (width <= 420 ? 0.52 : width <= 520 ? 0.58 : 0.65),
-    );
+    const minimumRadius = textSafeBubbleDiameter / 2;
     const random = createSeededRandom(categoryKey);
     let x = centerX;
     let y = centerY;
@@ -322,12 +365,12 @@ function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) 
 
   separateBubbles(bubbles, simulationBubbleGap, 120);
 
+  const minimumTextRadius = textSafeBubbleDiameter / 2;
   let safetyPass = 0;
   while (hasOverlap(bubbles, simulationBubbleGap) && safetyPass < 8) {
     const shrinkFactor = width <= 520 ? 0.94 : 0.96;
     for (const bubble of bubbles) {
-      const minimumVisibleRadius = useLogScale ? 5 : 6;
-      bubble.r = Math.max(minimumVisibleRadius, bubble.r * shrinkFactor);
+      bubble.r = Math.max(minimumTextRadius, bubble.r * shrinkFactor);
       bubble.diameter = bubble.r * 2;
       bubble.x = clamp(bubble.x, edgePadding + bubble.r, width - edgePadding - bubble.r);
       bubble.y = clamp(bubble.y, titleSafeTop + bubble.r, height - edgePadding - bubble.r);
@@ -456,6 +499,11 @@ export default function useAnalyticsPage({
   const visibleCategories = useMemo(
     () => chartCategories.filter(([key]) => !hiddenBubbleCategories.includes(key)),
     [chartCategories, hiddenBubbleCategories],
+  );
+
+  const bubblePanelHeight = useMemo(
+    () => calculateCategoryPanelsHeight(bubbleBoardSize.width, visibleCategories.length),
+    [bubbleBoardSize.width, visibleCategories.length],
   );
 
   const bubbleLayout = useMemo(
@@ -724,6 +772,7 @@ export default function useAnalyticsPage({
     chartCategories,
     totalCategoryAmount,
     visibleCategories,
+    bubblePanelHeight,
     bubbleLayout,
     hiddenBubbleCategories,
     toggleBubbleCategory,

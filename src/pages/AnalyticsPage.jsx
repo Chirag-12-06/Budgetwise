@@ -70,6 +70,7 @@ export default function AnalyticsPage({
     chartCategories,
     totalCategoryAmount,
     visibleCategories,
+    bubblePanelHeight,
     bubbleLayout,
     hiddenBubbleCategories,
     toggleBubbleCategory,
@@ -113,24 +114,24 @@ export default function AnalyticsPage({
       <PanelCard>
         <div className="flex w-full justify-end">
           <div className="flex flex-wrap items-center rounded-lg border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-900/40">
-              <label className="flex cursor-pointer items-center gap-2 px-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                <input
-                  checked={excludeOutliers}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  type="checkbox"
-                  onChange={(event) => setExcludeOutliers(event.target.checked)}
-                />
-                Exclude Outliers
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 border-l border-gray-300 px-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                <input
-                  checked={useLogScale}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  type="checkbox"
-                  onChange={(event) => setUseLogScale(event.target.checked)}
-                />
-                Log Scale
-              </label>
+            <label className="flex cursor-pointer items-center gap-2 px-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input
+                checked={excludeOutliers}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                type="checkbox"
+                onChange={(event) => setExcludeOutliers(event.target.checked)}
+              />
+              Exclude Outliers
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 border-l border-gray-300 px-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-300">
+              <input
+                checked={useLogScale}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                type="checkbox"
+                onChange={(event) => setUseLogScale(event.target.checked)}
+              />
+              Log Scale
+            </label>
           </div>
         </div>
 
@@ -157,14 +158,12 @@ export default function AnalyticsPage({
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <PanelCard>
-          <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-          </div>
-
           {chartCategories.length ? (
             <div className="pt-3">
               <div
-                className="relative h-96 w-full overflow-hidden rounded-2xl"
+                className="relative w-full overflow-hidden rounded-2xl"
                 ref={bubbleBoardRef}
+                style={{ height: `${bubblePanelHeight}px` }}
               >
                 <div
                   className="pointer-events-none absolute left-4 top-3 text-sm font-semibold tracking-wide"
@@ -176,11 +175,17 @@ export default function AnalyticsPage({
                 {visibleCategories.length ? (
                   bubbleLayout.map((bubble) => {
                     const categoryDisplay = getCategoryDisplay(bubble.categoryKey);
-                    const bubbleColor =
-                      CATEGORY_COLORS[bubble.categoryKey] || CATEGORY_COLORS.uncategorized;
+                    const bubbleColor = CATEGORY_COLORS[bubble.categoryKey] || CATEGORY_COLORS.uncategorized;
                     const textColor = getContrastTextColor(bubbleColor);
                     const badgeFontSize =
-                      bubble.diameter > 160 ? "2.2rem" : bubble.diameter > 110 ? "1.5rem" : "1rem";
+                      bubble.diameter > 160
+                        ? "2.2rem"
+                        : bubble.diameter > 120
+                          ? "1.6rem"
+                          : bubble.diameter > 90
+                            ? "1.2rem"
+                            : "0.95rem";
+                    const badgeHorizontalPadding = bubble.diameter < 78 ? "0.25rem" : "0.5rem";
 
                     return (
                       <div
@@ -200,8 +205,12 @@ export default function AnalyticsPage({
                         title={`${categoryDisplay.label}: ${formatCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
                       >
                         <span
-                          className="pointer-events-none w-full px-2 font-bold leading-none"
-                          style={{ fontSize: badgeFontSize }}
+                          className="pointer-events-none w-full font-bold leading-none"
+                          style={{
+                            fontSize: badgeFontSize,
+                            paddingLeft: badgeHorizontalPadding,
+                            paddingRight: badgeHorizontalPadding,
+                          }}
                         >
                           {bubble.percent.toFixed(1)}%
                         </span>
@@ -230,7 +239,13 @@ export default function AnalyticsPage({
           </div>
 
           {chartCategories.length ? (
-            <div className="max-h-96 overflow-y-auto overscroll-y-contain pr-1 hide-scrollbar">
+            <div
+              className="overflow-y-auto overscroll-y-contain pr-1 hide-scrollbar"
+              style={{
+                minHeight: `${bubblePanelHeight}px`,
+                maxHeight: `${bubblePanelHeight}px`,
+              }}
+            >
               <div className="grid gap-3">
                 {chartCategories.map(([categoryKey, total]) => {
                   const category = getCategoryDisplay(categoryKey);
