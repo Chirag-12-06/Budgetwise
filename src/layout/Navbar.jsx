@@ -10,15 +10,15 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
   const displayInitial = String(displayName).trim().charAt(0).toUpperCase() || "U";
 
   return (
-    <nav className="sticky top-0 z-50 -mx-4 w-[calc(100%+2rem)] bg-white shadow-md dark:bg-gray-800">
-      <div className="px-3 py-4 sm:px-4 sm:py-5">
-        <div className="flex items-center justify-between gap-2">
+    <nav className="app-navbar sticky top-0 z-50 -mx-4 w-[calc(100%+2rem)] bg-white shadow-md dark:bg-gray-800">
+      <div className="app-navbar-inner px-3 py-4 sm:px-4 sm:py-5">
+        <div className="app-navbar-row flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold text-gray-900 dark:text-white">Budgetwise</h1>
+            <h1 className="app-navbar-title truncate text-2xl font-bold text-gray-900 dark:text-white">Budgetwise</h1>
           </div>
 
-          <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <div className="flex items-center gap-1" role="tablist" aria-label="App view">
+          <div className="app-navbar-actions ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
+            <div className="app-navbar-tabs flex items-center gap-1" role="tablist" aria-label="App view">
               <Button
                 variant="nav"
                 active={view === ADD_EXPENSE}
@@ -58,14 +58,14 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
             </div>
 
             <button
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-gray-200 p-0 text-sm text-gray-800 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:h-auto sm:w-auto sm:px-4 sm:py-2"
+              className="app-navbar-theme-btn inline-flex h-9 w-9 items-center justify-center rounded-md bg-gray-200 p-0 text-sm text-gray-800 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:h-auto sm:w-auto sm:px-4 sm:py-2"
               type="button"
               onClick={() => setDark((value) => !value)}
             >
               {dark ? "☀️" : "🌙"}
             </button>
 
-            <div className="flex items-center gap-1.5 border-l border-gray-300 pl-2 sm:gap-2 sm:pl-3 dark:border-gray-600">
+            <div className="app-navbar-profile-group flex items-center gap-1.5 border-l border-gray-300 pl-2 sm:gap-2 sm:pl-3 dark:border-gray-600">
               <Button
                 variant="plain"
                 aria-label="Open profile"
@@ -95,7 +95,7 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
                 {displayName}
               </span>
               <button
-                className="inline-flex items-center gap-1 px-1.5 py-1 text-sm text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 sm:px-2"
+                className="app-navbar-logout inline-flex items-center gap-1 px-1.5 py-1 text-sm text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 sm:px-2"
                 type="button"
                 onClick={handleLogout}
               >

@@ -13,5 +13,5 @@ export default function PanelCard({
 }) {
   const resolvedVariant = variantClasses[variant] || variantClasses.default;
 
-  return <Component className={`${resolvedVariant} ${className}`.trim()}>{children}</Component>;
+  return <Component className={`bw-panel-card ${resolvedVariant} ${className}`.trim()}>{children}</Component>;
 }

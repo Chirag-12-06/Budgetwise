@@ -131,12 +131,12 @@ export default function ExpenseFilterPanel({
     <div className={className}>
       <div className="grid gap-4 xl:grid-cols-2 xl:items-stretch">
         <div className="grid gap-4">
-          <div className="flex flex-wrap gap-2 sm:gap-3">
+          <div className="bw-quick-date-grid flex flex-wrap gap-2 sm:gap-3">
             {quickDateModes.map((mode) => (
               <Button
                 key={mode.value}
                 active={dateFilterMode === mode.value}
-                className="max-w-32 shrink-0 px-3 py-2 text-xs sm:max-w-36 sm:px-4 sm:text-sm"
+                className="bw-quick-date-button max-w-32 shrink-0 px-3 py-2 text-xs sm:max-w-36 sm:px-4 sm:text-sm"
                 onClick={() => onDateFilterModeChange(mode.value)}
               >
                 <span className="truncate">{mode.label}</span>
@@ -145,7 +145,7 @@ export default function ExpenseFilterPanel({
           </div>
 
           <div className="grid gap-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="bw-date-range-grid grid grid-cols-2 gap-3">
               <label className="grid min-w-0 gap-2">
                 <span className="text-[0.92rem] font-semibold">From</span>
                 <Calendar
@@ -164,7 +164,7 @@ export default function ExpenseFilterPanel({
               </label>
             </div>
 
-            <div className="flex justify-end">
+            <div className="bw-date-apply-row flex justify-end">
               <Button className="min-w-20" variant="outline" onClick={onApplyDateRange}>
                 Apply
               </Button>

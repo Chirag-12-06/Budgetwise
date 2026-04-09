@@ -29,6 +29,11 @@
     @apply min-h-full m-0 overflow-x-hidden;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply min-h-screen;
   }
@@ -452,6 +457,68 @@
     .expense-item,
     .expense-item-detailed {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .bw-panel-card {
+      padding: 1rem;
+    }
+
+    .app-navbar .app-navbar-inner {
+      padding: 0.65rem 0.5rem;
+    }
+
+    .app-navbar .app-navbar-row {
+      gap: 0.35rem;
+    }
+
+    .app-navbar .app-navbar-title {
+      font-size: 1.35rem;
+      line-height: 1.1;
+    }
+
+    .app-navbar .app-navbar-actions,
+    .app-navbar .app-navbar-tabs,
+    .app-navbar .app-navbar-profile-group {
+      gap: 0.35rem;
+    }
+
+    .app-navbar .app-navbar-profile-group {
+      padding-left: 0.45rem;
+    }
+
+    .app-navbar .app-navbar-theme-btn {
+      height: 2.25rem;
+      width: 2.25rem;
+      padding: 0;
+    }
+
+    .app-navbar .app-navbar-logout {
+      padding-left: 0.2rem;
+      padding-right: 0.2rem;
+    }
+
+    .bw-quick-date-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .bw-quick-date-grid .bw-quick-date-button {
+      width: 100%;
+      max-width: none;
+      justify-content: center;
+      padding-left: 0.6rem;
+      padding-right: 0.6rem;
+    }
+
+    .bw-date-range-grid {
+      gap: 0.6rem;
+    }
+
+    .bw-date-apply-row button {
+      min-width: 5.5rem;
     }
   }
 }
