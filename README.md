@@ -183,6 +183,73 @@ Do not manually edit files in `dist`.
 3. Re-login if API calls return 401.
 4. Restart backend after backend code changes.
 
+### Train model in Jupyter and use in deployment
+
+From repository root:
+
+```bash
+cd ml-service
+python -m venv .venv
+```
+
+Activate and install notebook dependencies:
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.notebook.txt
+```
+
+macOS/Linux:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.notebook.txt
+```
+
+Prepare training data:
+
+1. Copy `ml-service/training_expenses.sample.json` to `ml-service/training_expenses.json`.
+2. Replace sample rows with your real labeled expenses.
+
+Run notebook:
+
+```bash
+jupyter notebook notebooks/train_and_export_model.ipynb
+```
+
+Run all cells. This creates:
+
+- `ml-service/model.pkl`
+- `ml-service/model_metrics.json`
+
+Integrate with deployed ML service by setting env var:
+
+- Shared model for all users: `ML_MODEL_PATH=model.pkl`
+- Per-user model template: `ML_MODEL_PATH=models/model_{user_id}.pkl`
+
+Then restart the ML service.
+
+Verify loaded model artifact:
+
+```bash
+curl "http://127.0.0.1:5001/api/model-status?user_id=default"
+```
+
+For deployed ML service:
+
+```bash
+curl "https://<your-ml-service-domain>/api/model-status?user_id=default"
+```
+
+Response includes model path, file existence, file size, updated timestamp, and whether model is loaded in memory.
+
+Through deployed Node API (same domain as your app):
+
+- `GET /api/ml-model-status` (requires auth token)
+- `GET /api/ml-health` (no auth)
+
 ### Vite page reload loop from ML model updates
 
 Model artifact updates (such as `ml-service/model.pkl`) can trigger reloads if watched by Vite.

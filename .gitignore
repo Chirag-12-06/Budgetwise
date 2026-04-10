@@ -35,7 +35,10 @@ venv/
 server/generated/prisma/
 
 ml-service/model.pkl
+ml-service/model_metrics.json
+ml-service/training_expenses.json
 ml-service/user_preferences_*.json
 ml-service/__pycache__/
 ml-service/*.pyc
 ml-service/.pytest_cache/
+ml-service/.ipynb_checkpoints/

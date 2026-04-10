@@ -150,6 +150,43 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
   }
 });
 
+app.get("/api/ml-model-status", requireAuth, async (req, res) => {
+  try {
+    const fetch = (await import("node-fetch")).default;
+    const userId = encodeURIComponent(String(req.user.id));
+    const mlResponse = await fetch(`${ML_SERVICE_URL}/api/model-status?user_id=${userId}`);
+
+    if (!mlResponse.ok) {
+      const errorText = await mlResponse.text();
+      throw new Error(`ML service error: ${errorText}`);
+    }
+
+    const result = await mlResponse.json();
+    res.json(result);
+  } catch (error) {
+    console.error("❌ ML model status error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/ml-health", async (_req, res) => {
+  try {
+    const fetch = (await import("node-fetch")).default;
+    const mlResponse = await fetch(`${ML_SERVICE_URL}/health`);
+
+    if (!mlResponse.ok) {
+      const errorText = await mlResponse.text();
+      throw new Error(`ML service error: ${errorText}`);
+    }
+
+    const result = await mlResponse.json();
+    res.json(result);
+  } catch (error) {
+    console.error("❌ ML health check error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ✅ Fallback to index.html for any unknown route
 app.use((req, res) => {
   if (req.path.startsWith("/api")) {

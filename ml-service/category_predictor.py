@@ -13,16 +13,23 @@ from googletrans import Translator
 
 class CategoryPredictor:
     def __init__(self, model_path='model.pkl', user_id='default'):
-        self.model_path = model_path
+        base_dir = Path(__file__).resolve().parent
+        configured_model_path = model_path or os.getenv('ML_MODEL_PATH', 'model.pkl')
+        resolved_model_path = Path(configured_model_path)
+        if not resolved_model_path.is_absolute():
+            resolved_model_path = base_dir / resolved_model_path
+
+        resolved_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.model_path = str(resolved_model_path)
         self.user_id = user_id
-        self.user_prefs_path = f'user_preferences_{user_id}.json'
+        self.user_prefs_path = str(base_dir / f'user_preferences_{user_id}.json')
         self.model = None
         self.translator = Translator()
         self.user_preferences = {}
         self.load_model()
         self.load_user_preferences()
-        
-        base_dir = Path(__file__).resolve().parent
+
         data_dir_candidates = [
             base_dir.parent / 'src' / 'data',
             base_dir.parent.parent / 'src' / 'data',

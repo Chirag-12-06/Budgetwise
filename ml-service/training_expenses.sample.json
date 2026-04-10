@@ -1,0 +1,14 @@
+[
+  {"title": "Uber ride to office", "amount": 245, "category": "cab"},
+  {"title": "Bus ticket", "amount": 40, "category": "bus"},
+  {"title": "Dinner at restaurant", "amount": 620, "category": "dining_out"},
+  {"title": "Grocery shopping", "amount": 1180, "category": "groceries"},
+  {"title": "Coffee with friends", "amount": 180, "category": "coffee"},
+  {"title": "Movie tickets", "amount": 520, "category": "movies"},
+  {"title": "Electricity bill", "amount": 1630, "category": "electricity"},
+  {"title": "Mobile recharge", "amount": 299, "category": "phone"},
+  {"title": "Fuel refill", "amount": 2500, "category": "fuel"},
+  {"title": "Rent payment", "amount": 22000, "category": "rent"},
+  {"title": "Internet bill", "amount": 799, "category": "internet"},
+  {"title": "Pharmacy medicines", "amount": 460, "category": "medicine"}
+]
