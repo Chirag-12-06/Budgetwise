@@ -2,6 +2,8 @@ import numpy as np
 import pickle
 import os
 import json
+import asyncio
+import inspect
 from difflib import SequenceMatcher
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -111,8 +113,13 @@ class CategoryPredictor:
     def translate_to_english(self, title):
         """Translate title to English if it's in another language"""
         try:
-            # Detect and translate
-            result = self.translator.translate(title, dest='en')
+            # googletrans can return either sync response or coroutine depending on version.
+            translate_result = self.translator.translate(title, dest='en')
+            result = (
+                asyncio.run(translate_result)
+                if inspect.isawaitable(translate_result)
+                else translate_result
+            )
             if result.src != 'en':
                 print(f"Translation: '{title}' ({result.src}) → '{result.text}' (en)")
                 return result.text
