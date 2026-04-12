@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { existsSync } from "fs";
 import { fileURLToPath } from "url";
+import { setTimeout as delay } from "node:timers/promises";
 import { PrismaClient } from "@prisma/client";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -18,6 +19,17 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
 const ML_SERVICE_URL = String(process.env.ML_SERVICE_URL || "http://127.0.0.1:5001").replace(/\/$/, "");
+const ML_REQUEST_TIMEOUT_MS = Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
+  ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
+  : 20000;
+const ML_MAX_RETRIES = Number(process.env.ML_MAX_RETRIES) >= 0
+  ? Number(process.env.ML_MAX_RETRIES)
+  : 2;
+const ML_RETRY_BASE_DELAY_MS = Number(process.env.ML_RETRY_BASE_DELAY_MS) > 0
+  ? Number(process.env.ML_RETRY_BASE_DELAY_MS)
+  : 800;
+const ML_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+let fetchPromise;
 
 const DEFAULT_CORS_ORIGINS = [
   "http://127.0.0.1:5500",
@@ -55,6 +67,94 @@ function sendFrontendIndex(res) {
   res.sendFile(frontendIndexPath);
 }
 
+async function getFetch() {
+  if (!fetchPromise) {
+    fetchPromise = import("node-fetch").then((module) => module.default);
+  }
+
+  return fetchPromise;
+}
+
+async function parseResponseBody(response) {
+  const text = await response.text();
+
+  if (!text) {
+    return { text: "", json: null };
+  }
+
+  try {
+    return { text, json: JSON.parse(text) };
+  } catch {
+    return { text, json: null };
+  }
+}
+
+async function fetchWithTimeout(fetchFn, url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetchFn(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function callMlService(pathname, { method = "GET", body } = {}) {
+  const fetchFn = await getFetch();
+  const url = `${ML_SERVICE_URL}${pathname}`;
+
+  for (let attempt = 0; attempt <= ML_MAX_RETRIES; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(
+        fetchFn,
+        url,
+        {
+          method,
+          headers: body ? { "Content-Type": "application/json" } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+        },
+        ML_REQUEST_TIMEOUT_MS,
+      );
+
+      const payload = await parseResponseBody(response);
+
+      if (response.ok) {
+        return payload.json ?? {};
+      }
+
+      const message =
+        payload.json?.error
+        || payload.json?.message
+        || payload.text
+        || `HTTP ${response.status}`;
+
+      const retryable = ML_RETRYABLE_STATUSES.has(response.status);
+      if (!retryable || attempt >= ML_MAX_RETRIES) {
+        const error = new Error(`ML service error (${response.status}): ${message}`);
+        error.status = response.status;
+        throw error;
+      }
+    } catch (error) {
+      const isNetworkOrTimeout =
+        error?.name === "AbortError"
+        || /ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(String(error?.message || ""));
+
+      if (!isNetworkOrTimeout || attempt >= ML_MAX_RETRIES) {
+        throw error;
+      }
+    }
+
+    const backoff = Math.min(5000, ML_RETRY_BASE_DELAY_MS * (2 ** attempt));
+    await delay(backoff);
+  }
+
+  throw new Error("ML service request failed after retries");
+}
+
 app.use(express.json({ limit: "10mb" }));
 if (existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
@@ -75,7 +175,6 @@ app.use("/api/auth", authRoutes);
 app.post("/api/train-model", requireAuth, async (req, res) => {
   try {
     console.log('📥 Training request received');
-    const fetch = (await import('node-fetch')).default;
     const userId = String(req.user.id);
     
     // Fetch authenticated user's expenses from database directly
@@ -95,26 +194,22 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
     
     // Send to ML service for training
     console.log('🚀 Sending to ML service...');
-    const mlResponse = await fetch(`${ML_SERVICE_URL}/api/train-model`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+    const result = await callMlService("/api/train-model", {
+      method: "POST",
+      body: {
         expenses,
-        user_id: userId
-      })
+        user_id: userId,
+      },
     });
-    
-    if (!mlResponse.ok) {
-      const errorText = await mlResponse.text();
-      throw new Error(`ML service error: ${errorText}`);
-    }
-    
-    const result = await mlResponse.json();
     console.log('✅ Training completed:', result);
     res.json(result);
   } catch (error) {
     console.error('❌ Training error:', error);
-    res.status(500).json({ error: error.message });
+    const status = Number(error?.status || 503);
+    res.status(status >= 400 && status < 600 ? status : 503).json({
+      error: "ML training is temporarily unavailable. Please retry in a minute.",
+      detail: error.message,
+    });
   }
 });
 
@@ -126,64 +221,49 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Title is required" });
     }
 
-    const fetch = (await import("node-fetch")).default;
-    const mlResponse = await fetch(`${ML_SERVICE_URL}/api/predict-category`, {
+    const result = await callMlService("/api/predict-category", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         title: String(title).trim(),
         amount: Number(amount) || 0,
         user_id: String(req.user.id),
-      }),
+      },
     });
 
-    if (!mlResponse.ok) {
-      const errorText = await mlResponse.text();
-      throw new Error(`ML service error: ${errorText}`);
-    }
-
-    const result = await mlResponse.json();
     res.json(result);
   } catch (error) {
     console.error("❌ Prediction error:", error);
-    res.status(500).json({ error: error.message });
+
+    // Keep expense flow usable even when ML service is unstable.
+    res.json({
+      category: "uncategorized",
+      confidence: 0,
+      fallback: true,
+      message: "ML service temporarily unavailable",
+    });
   }
 });
 
 app.get("/api/ml-model-status", requireAuth, async (req, res) => {
   try {
-    const fetch = (await import("node-fetch")).default;
     const userId = encodeURIComponent(String(req.user.id));
-    const mlResponse = await fetch(`${ML_SERVICE_URL}/api/model-status?user_id=${userId}`);
-
-    if (!mlResponse.ok) {
-      const errorText = await mlResponse.text();
-      throw new Error(`ML service error: ${errorText}`);
-    }
-
-    const result = await mlResponse.json();
+    const result = await callMlService(`/api/model-status?user_id=${userId}`);
     res.json(result);
   } catch (error) {
     console.error("❌ ML model status error:", error);
-    res.status(500).json({ error: error.message });
+    const status = Number(error?.status || 503);
+    res.status(status >= 400 && status < 600 ? status : 503).json({ error: error.message });
   }
 });
 
 app.get("/api/ml-health", async (_req, res) => {
   try {
-    const fetch = (await import("node-fetch")).default;
-    const mlResponse = await fetch(`${ML_SERVICE_URL}/health`);
-
-    if (!mlResponse.ok) {
-      const errorText = await mlResponse.text();
-      throw new Error(`ML service error: ${errorText}`);
-    }
-
-    const result = await mlResponse.json();
+    const result = await callMlService("/health");
     res.json(result);
   } catch (error) {
     console.error("❌ ML health check error:", error);
-    res.status(500).json({ error: error.message });
+    const status = Number(error?.status || 503);
+    res.status(status >= 400 && status < 600 ? status : 503).json({ error: error.message });
   }
 });
 

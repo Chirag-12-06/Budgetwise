@@ -7,6 +7,7 @@ from category_predictor import CategoryPredictor
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
+SERVICE_STARTED_AT = datetime.now(timezone.utc)
 
 # Store predictor instances per user
 user_predictors = {}
@@ -169,7 +170,14 @@ def health():
         'model_path_template': MODEL_PATH_TEMPLATE,
         'default_model_path': resolve_model_path('default'),
         'cached_predictors': len(user_predictors),
+        'started_at': SERVICE_STARTED_AT.isoformat(),
     })
+
+
+@app.route('/', methods=['GET', 'HEAD'])
+def root_health():
+    """Root endpoint for platforms that probe '/' by default."""
+    return health()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', '5001'))
