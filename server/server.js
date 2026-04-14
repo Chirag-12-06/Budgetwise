@@ -88,6 +88,14 @@ function sendFrontendIndex(res) {
   res.sendFile(frontendIndexPath);
 }
 
+function getPythonExecutableCandidates() {
+  return Array.from(new Set([
+    PYTHON_EXECUTABLE,
+    "python3",
+    "python",
+  ].filter(Boolean)));
+}
+
 function startInternalMlService() {
   if (!SHOULD_START_INTERNAL_ML) {
     return;
@@ -108,8 +116,15 @@ function startInternalMlService() {
     );
   }
 
-  console.log(`🤖 Starting internal ML service using ${PYTHON_EXECUTABLE} on port ${ML_PORT}`);
-  internalMlProcess = spawn(PYTHON_EXECUTABLE, [mlScriptPath], {
+  if ((PYTHON_EXECUTABLE.includes("/") || PYTHON_EXECUTABLE.includes("\\")) && !existsSync(PYTHON_EXECUTABLE)) {
+    console.warn(
+      `⚠ Configured PYTHON_EXECUTABLE not found: ${PYTHON_EXECUTABLE}. `
+      + "Will try fallback executables.",
+    );
+  }
+
+  const pythonCandidates = getPythonExecutableCandidates();
+  const spawnOptions = {
     cwd: mlWorkingDir,
     env: {
       ...process.env,
@@ -117,16 +132,49 @@ function startInternalMlService() {
       FLASK_DEBUG: process.env.FLASK_DEBUG || "0",
     },
     stdio: "inherit",
-  });
+  };
 
-  internalMlProcess.on("error", (error) => {
-    console.error("❌ Failed to launch internal ML service:", error);
-  });
+  function launchWithCandidate(index) {
+    if (index >= pythonCandidates.length) {
+      console.error("❌ Unable to start internal ML service: no usable Python executable found.");
+      console.error("ℹ Ensure Render build command installs ML dependencies before start.");
+      return;
+    }
 
-  internalMlProcess.on("exit", (code, signal) => {
-    const reason = signal ? `signal ${signal}` : `code ${code}`;
-    console.error(`❌ Internal ML service stopped (${reason})`);
-  });
+    const candidate = pythonCandidates[index];
+    console.log(`🤖 Starting internal ML service using ${candidate} on port ${ML_PORT}`);
+    const child = spawn(candidate, [mlScriptPath], spawnOptions);
+    let fallbackTriggered = false;
+
+    child.on("spawn", () => {
+      internalMlProcess = child;
+      console.log(`✅ Internal ML process started (pid ${child.pid})`);
+    });
+
+    child.on("error", (error) => {
+      if (error?.code === "ENOENT" && index < pythonCandidates.length - 1) {
+        fallbackTriggered = true;
+        const nextCandidate = pythonCandidates[index + 1];
+        console.warn(`⚠ Python executable not found: ${candidate}. Retrying with ${nextCandidate}.`);
+        launchWithCandidate(index + 1);
+        return;
+      }
+
+      console.error("❌ Failed to launch internal ML service:", error);
+      console.error("ℹ Ensure Render build command installs ML dependencies before start.");
+    });
+
+    child.on("exit", (code, signal) => {
+      if (fallbackTriggered) {
+        return;
+      }
+
+      const reason = signal ? `signal ${signal}` : `code ${code}`;
+      console.error(`❌ Internal ML service stopped (${reason})`);
+    });
+  }
+
+  launchWithCandidate(0);
 }
 
 function stopInternalMlService(trigger) {
