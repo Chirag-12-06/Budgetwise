@@ -135,9 +135,9 @@ The repository now includes:
 2. In Render, create a new Web Service from this repository.
 3. Render should auto-detect `render.yaml`.
 4. Set secret env vars in Render dashboard:
-	- `DATABASE_URL`
-	- `JWT_SECRET`
-	- `CORS_ORIGINS` (only needed if frontend is hosted on another domain)
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `CORS_ORIGINS` (only needed if frontend is hosted on another domain)
 5. Deploy and open the service URL.
 
 Notes:
@@ -169,9 +169,9 @@ If backend stays on Render and frontend is deployed separately on Vercel:
 3. Build command: `npm run build`.
 4. Output directory: `dist`.
 5. Set Vercel env var:
-	- `VITE_API_BASE=https://<your-render-backend-domain>/api`
+   - `VITE_API_BASE=https://<your-render-backend-domain>/api`
 6. Optional Vercel env var:
-	- `VITE_SESSION_IDLE_MINUTES=15`
+   - `VITE_SESSION_IDLE_MINUTES=15`
 7. Deploy.
 8. In Render backend env vars, update `CORS_ORIGINS` to include your Vercel domain.
 

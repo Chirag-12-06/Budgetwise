@@ -16,16 +16,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 
+function isLoopbackServiceUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
 const app = express();
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
-const START_INTERNAL_ML = String(process.env.START_INTERNAL_ML || "").trim() === "1";
 const ML_PORT = Number(process.env.ML_PORT) > 0 ? Number(process.env.ML_PORT) : 5001;
 const INTERNAL_ML_URL = `http://127.0.0.1:${ML_PORT}`;
 const PYTHON_EXECUTABLE = String(process.env.PYTHON_EXECUTABLE || "python3").trim();
 const ML_SERVICE_URL = String(
-  process.env.ML_SERVICE_URL || (START_INTERNAL_ML ? INTERNAL_ML_URL : "http://127.0.0.1:5001"),
+  process.env.ML_SERVICE_URL || INTERNAL_ML_URL,
 ).replace(/\/$/, "");
+const START_INTERNAL_ML_RAW = String(process.env.START_INTERNAL_ML || "").trim().toLowerCase();
+const START_INTERNAL_ML_ENABLED = START_INTERNAL_ML_RAW === "1" || START_INTERNAL_ML_RAW === "true";
+const START_INTERNAL_ML_DISABLED = START_INTERNAL_ML_RAW === "0" || START_INTERNAL_ML_RAW === "false";
+const SHOULD_START_INTERNAL_ML = !START_INTERNAL_ML_DISABLED
+  && (START_INTERNAL_ML_ENABLED || isLoopbackServiceUrl(ML_SERVICE_URL));
 const ML_REQUEST_TIMEOUT_MS = Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
   ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
   : 20000;
@@ -76,7 +89,7 @@ function sendFrontendIndex(res) {
 }
 
 function startInternalMlService() {
-  if (!START_INTERNAL_ML) {
+  if (!SHOULD_START_INTERNAL_ML) {
     return;
   }
 
@@ -88,10 +101,10 @@ function startInternalMlService() {
     return;
   }
 
-  if (ML_SERVICE_URL !== INTERNAL_ML_URL) {
+  if (!isLoopbackServiceUrl(ML_SERVICE_URL)) {
     console.warn(
-      `⚠ START_INTERNAL_ML=1 but ML_SERVICE_URL is set to ${ML_SERVICE_URL}. `
-      + `Expected ${INTERNAL_ML_URL} for same-service mode.`,
+      `⚠ Internal ML is enabled but ML_SERVICE_URL is ${ML_SERVICE_URL}. `
+      + `Use a loopback URL (for example ${INTERNAL_ML_URL}) for same-service mode.`,
     );
   }
 
