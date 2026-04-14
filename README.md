@@ -137,7 +137,6 @@ The repository now includes:
 4. Set secret env vars in Render dashboard:
 	- `DATABASE_URL`
 	- `JWT_SECRET`
-	- `ML_SERVICE_URL` (if ML runs on a separate host)
 	- `CORS_ORIGINS` (only needed if frontend is hosted on another domain)
 5. Deploy and open the service URL.
 
@@ -146,6 +145,20 @@ Notes:
 - Server listens on `process.env.PORT` in production.
 - Frontend uses relative `/api` base in production.
 - If you deploy frontend and backend on the same service/domain, CORS is minimal.
+
+Same-service ML mode (default in current `render.yaml`):
+
+- Node backend and Flask ML service run in the same Render web service.
+- Backend auto-starts ML sidecar process when `START_INTERNAL_ML=1`.
+- Internal communication uses `ML_SERVICE_URL=http://127.0.0.1:5001`.
+- Python dependencies are installed during build in `ml-service/.venv`.
+
+Do not override these unless needed:
+
+- `START_INTERNAL_ML=1`
+- `ML_PORT=5001`
+- `PYTHON_EXECUTABLE=/opt/render/project/src/ml-service/.venv/bin/python`
+- `ML_SERVICE_URL=http://127.0.0.1:5001`
 
 ### Deploy Frontend on Vercel
 

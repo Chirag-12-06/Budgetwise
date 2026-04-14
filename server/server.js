@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { existsSync } from "fs";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "url";
 import { setTimeout as delay } from "node:timers/promises";
 import { PrismaClient } from "@prisma/client";
@@ -18,7 +19,13 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
-const ML_SERVICE_URL = String(process.env.ML_SERVICE_URL || "http://127.0.0.1:5001").replace(/\/$/, "");
+const START_INTERNAL_ML = String(process.env.START_INTERNAL_ML || "").trim() === "1";
+const ML_PORT = Number(process.env.ML_PORT) > 0 ? Number(process.env.ML_PORT) : 5001;
+const INTERNAL_ML_URL = `http://127.0.0.1:${ML_PORT}`;
+const PYTHON_EXECUTABLE = String(process.env.PYTHON_EXECUTABLE || "python3").trim();
+const ML_SERVICE_URL = String(
+  process.env.ML_SERVICE_URL || (START_INTERNAL_ML ? INTERNAL_ML_URL : "http://127.0.0.1:5001"),
+).replace(/\/$/, "");
 const ML_REQUEST_TIMEOUT_MS = Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
   ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
   : 20000;
@@ -30,6 +37,7 @@ const ML_RETRY_BASE_DELAY_MS = Number(process.env.ML_RETRY_BASE_DELAY_MS) > 0
   : 800;
 const ML_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 let fetchPromise;
+let internalMlProcess = null;
 
 const DEFAULT_CORS_ORIGINS = [
   "http://127.0.0.1:5500",
@@ -66,6 +74,70 @@ function sendFrontendIndex(res) {
 
   res.sendFile(frontendIndexPath);
 }
+
+function startInternalMlService() {
+  if (!START_INTERNAL_ML) {
+    return;
+  }
+
+  const mlScriptPath = path.join(__dirname, "../ml-service/app.py");
+  const mlWorkingDir = path.join(__dirname, "../ml-service");
+
+  if (!existsSync(mlScriptPath)) {
+    console.error(`❌ Internal ML script not found at ${mlScriptPath}`);
+    return;
+  }
+
+  if (ML_SERVICE_URL !== INTERNAL_ML_URL) {
+    console.warn(
+      `⚠ START_INTERNAL_ML=1 but ML_SERVICE_URL is set to ${ML_SERVICE_URL}. `
+      + `Expected ${INTERNAL_ML_URL} for same-service mode.`,
+    );
+  }
+
+  console.log(`🤖 Starting internal ML service using ${PYTHON_EXECUTABLE} on port ${ML_PORT}`);
+  internalMlProcess = spawn(PYTHON_EXECUTABLE, [mlScriptPath], {
+    cwd: mlWorkingDir,
+    env: {
+      ...process.env,
+      ML_PORT: String(ML_PORT),
+      FLASK_DEBUG: process.env.FLASK_DEBUG || "0",
+    },
+    stdio: "inherit",
+  });
+
+  internalMlProcess.on("error", (error) => {
+    console.error("❌ Failed to launch internal ML service:", error);
+  });
+
+  internalMlProcess.on("exit", (code, signal) => {
+    const reason = signal ? `signal ${signal}` : `code ${code}`;
+    console.error(`❌ Internal ML service stopped (${reason})`);
+  });
+}
+
+function stopInternalMlService(trigger) {
+  if (!internalMlProcess || internalMlProcess.killed) {
+    return;
+  }
+
+  console.log(`🛑 Stopping internal ML service (${trigger})`);
+  internalMlProcess.kill("SIGTERM");
+}
+
+process.on("SIGTERM", () => {
+  stopInternalMlService("SIGTERM");
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  stopInternalMlService("SIGINT");
+  process.exit(0);
+});
+
+process.on("exit", () => {
+  stopInternalMlService("process exit");
+});
 
 async function getFetch() {
   if (!fetchPromise) {
@@ -277,4 +349,5 @@ app.use((req, res) => {
 });
 
 // ✅ Start server
+startInternalMlService();
 app.listen(PORT, () => console.log(`✅ Server running at http://127.0.0.1:${PORT}`));
