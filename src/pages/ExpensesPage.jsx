@@ -49,7 +49,7 @@ export default function ExpensesPage({
 
       <PanelCard>
         {filteredExpenses.length ? (
-          <div className="grid gap-3.5">
+          <div className="max-h-[52vh] min-h-[12rem] overflow-y-auto grid gap-3.5">
             {filteredExpenses.map((expense) => {
               const category = getCategoryDisplay(expense.category);
               const color = CATEGORY_COLORS[expense.category] || CATEGORY_COLORS.uncategorized;
@@ -102,7 +102,7 @@ export default function ExpensesPage({
                 : "No expenses yet. Add your first one from the Add Expense page."}
           </div>
         )}
-        </PanelCard>
+      </PanelCard>
     </section>
   );
 }

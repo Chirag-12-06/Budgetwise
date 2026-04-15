@@ -120,7 +120,7 @@ export default function Calendar({
       altFormat: "d-m-Y",
       altInputClass: resolvedInputClasses,
       disableMobile: true,
-      allowInput: true,
+      allowInput: false, // Prevents keyboard from ever appearing
       defaultDate: value || undefined,
       onReady: (_selectedDates, _dateString, instance) => {
         if (instance.altInput) {
@@ -185,6 +185,7 @@ export default function Calendar({
       ref={inputRef}
       type="text"
       inputMode="none"
+      readOnly
       placeholder="DD-MM-YYYY"
       className={resolvedInputClasses}
       {...props}
