@@ -48,9 +48,14 @@ const ML_MAX_RETRIES = Number(process.env.ML_MAX_RETRIES) >= 0
 const ML_RETRY_BASE_DELAY_MS = Number(process.env.ML_RETRY_BASE_DELAY_MS) > 0
   ? Number(process.env.ML_RETRY_BASE_DELAY_MS)
   : 800;
+const INTERNAL_ML_RESTART_DELAY_MS = Number(process.env.INTERNAL_ML_RESTART_DELAY_MS) > 0
+  ? Number(process.env.INTERNAL_ML_RESTART_DELAY_MS)
+  : 3000;
 const ML_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 let fetchPromise;
 let internalMlProcess = null;
+let internalMlStarting = false;
+let shuttingDown = false;
 
 const DEFAULT_CORS_ORIGINS = [
   "http://127.0.0.1:5500",
@@ -96,10 +101,33 @@ function getPythonExecutableCandidates() {
   ].filter(Boolean)));
 }
 
+function isInternalMlProcessRunning() {
+  return Boolean(internalMlProcess && internalMlProcess.exitCode === null && !internalMlProcess.killed);
+}
+
+function ensureInternalMlService(trigger = "runtime") {
+  if (!SHOULD_START_INTERNAL_ML || !isLoopbackServiceUrl(ML_SERVICE_URL) || shuttingDown) {
+    return;
+  }
+
+  if (isInternalMlProcessRunning() || internalMlStarting) {
+    return;
+  }
+
+  console.warn(`⚠ Internal ML process not running during ${trigger}. Attempting restart.`);
+  startInternalMlService();
+}
+
 function startInternalMlService() {
   if (!SHOULD_START_INTERNAL_ML) {
     return;
   }
+
+  if (internalMlStarting || isInternalMlProcessRunning()) {
+    return;
+  }
+
+  internalMlStarting = true;
 
   const mlScriptPath = path.join(__dirname, "../ml-service/app.py");
   const mlWorkingDir = path.join(__dirname, "../ml-service");
@@ -136,6 +164,8 @@ function startInternalMlService() {
 
   function launchWithCandidate(index) {
     if (index >= pythonCandidates.length) {
+      internalMlStarting = false;
+      internalMlProcess = null;
       console.error("❌ Unable to start internal ML service: no usable Python executable found.");
       console.error("ℹ Ensure Render build command installs ML dependencies before start.");
       return;
@@ -148,6 +178,7 @@ function startInternalMlService() {
 
     child.on("spawn", () => {
       internalMlProcess = child;
+      internalMlStarting = false;
       console.log(`✅ Internal ML process started (pid ${child.pid})`);
     });
 
@@ -160,6 +191,8 @@ function startInternalMlService() {
         return;
       }
 
+      internalMlStarting = false;
+      internalMlProcess = null;
       console.error("❌ Failed to launch internal ML service:", error);
       console.error("ℹ Ensure Render build command installs ML dependencies before start.");
     });
@@ -169,8 +202,16 @@ function startInternalMlService() {
         return;
       }
 
+      if (internalMlProcess === child) {
+        internalMlProcess = null;
+      }
+      internalMlStarting = false;
       const reason = signal ? `signal ${signal}` : `code ${code}`;
       console.error(`❌ Internal ML service stopped (${reason})`);
+
+      if (!shuttingDown && SHOULD_START_INTERNAL_ML && isLoopbackServiceUrl(ML_SERVICE_URL)) {
+        setTimeout(() => ensureInternalMlService("ml process exit"), INTERNAL_ML_RESTART_DELAY_MS);
+      }
     });
   }
 
@@ -178,6 +219,8 @@ function startInternalMlService() {
 }
 
 function stopInternalMlService(trigger) {
+  shuttingDown = true;
+
   if (!internalMlProcess || internalMlProcess.killed) {
     return;
   }
@@ -237,6 +280,8 @@ async function fetchWithTimeout(fetchFn, url, options, timeoutMs) {
 }
 
 async function callMlService(pathname, { method = "GET", body } = {}) {
+  ensureInternalMlService("ml request");
+
   const fetchFn = await getFetch();
   const url = `${ML_SERVICE_URL}${pathname}`;
 
@@ -275,6 +320,10 @@ async function callMlService(pathname, { method = "GET", body } = {}) {
       const isNetworkOrTimeout =
         error?.name === "AbortError"
         || /ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(String(error?.message || ""));
+
+      if (isNetworkOrTimeout) {
+        ensureInternalMlService(`failed call to ${pathname}`);
+      }
 
       if (!isNetworkOrTimeout || attempt >= ML_MAX_RETRIES) {
         throw error;
