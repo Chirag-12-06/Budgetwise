@@ -151,7 +151,7 @@ Same-service ML mode (default in current `render.yaml`):
 - Node backend and Flask ML service run in the same Render web service.
 - Backend auto-starts ML sidecar process when `START_INTERNAL_ML=1`.
 - Internal communication uses `ML_SERVICE_URL=http://127.0.0.1:5001`.
-- Python dependencies are installed during build in `ml-service/.venv`.
+- Python dependencies are installed during build for both `python3` and `ml-service/.venv`.
 
 Do not override these unless needed:
 

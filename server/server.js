@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { existsSync } from "fs";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "url";
 import { setTimeout as delay } from "node:timers/promises";
 import { PrismaClient } from "@prisma/client";
@@ -52,6 +52,7 @@ const INTERNAL_ML_RESTART_DELAY_MS = Number(process.env.INTERNAL_ML_RESTART_DELA
   ? Number(process.env.INTERNAL_ML_RESTART_DELAY_MS)
   : 3000;
 const ML_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const ML_PYTHON_IMPORT_PROBE = "import flask, sklearn, joblib";
 let fetchPromise;
 let internalMlProcess = null;
 let internalMlStarting = false;
@@ -94,11 +95,48 @@ function sendFrontendIndex(res) {
 }
 
 function getPythonExecutableCandidates() {
+  const localMlVenvPython = path.join(__dirname, "../ml-service/.venv/bin/python");
+  const renderMlVenvPython = "/opt/render/project/src/ml-service/.venv/bin/python";
+
   return Array.from(new Set([
     PYTHON_EXECUTABLE,
+    localMlVenvPython,
+    renderMlVenvPython,
     "python3",
     "python",
   ].filter(Boolean)));
+}
+
+function probePythonCandidateForMl(candidate, workingDir) {
+  const probe = spawnSync(
+    candidate,
+    ["-c", ML_PYTHON_IMPORT_PROBE],
+    {
+      cwd: workingDir,
+      env: process.env,
+      encoding: "utf8",
+    },
+  );
+
+  if (probe.error?.code === "ENOENT") {
+    return { ok: false, reason: "executable not found", missingExecutable: true };
+  }
+
+  if (probe.status === 0) {
+    return { ok: true };
+  }
+
+  const output = String(`${probe.stderr || ""}\n${probe.stdout || ""}`.trim());
+  const missingModuleMatch = output.match(/No module named ['"]([^'"]+)['"]/);
+
+  if (missingModuleMatch) {
+    return { ok: false, reason: `missing Python package '${missingModuleMatch[1]}'` };
+  }
+
+  return {
+    ok: false,
+    reason: output || `dependency probe failed with exit code ${probe.status}`,
+  };
 }
 
 function isInternalMlProcessRunning() {
@@ -172,6 +210,27 @@ function startInternalMlService() {
     }
 
     const candidate = pythonCandidates[index];
+    const probeResult = probePythonCandidateForMl(candidate, mlWorkingDir);
+
+    if (!probeResult.ok) {
+      if (index < pythonCandidates.length - 1) {
+        const nextCandidate = pythonCandidates[index + 1];
+        console.warn(
+          `⚠ Skipping Python candidate ${candidate}: ${probeResult.reason}. Trying ${nextCandidate}.`,
+        );
+        launchWithCandidate(index + 1);
+        return;
+      }
+
+      internalMlStarting = false;
+      internalMlProcess = null;
+      console.error(`❌ Unable to start internal ML service with ${candidate}: ${probeResult.reason}.`);
+      console.error(
+        "ℹ Install Python dependencies for the runtime interpreter (for example `python3 -m pip install -r ml-service/requirements.txt`).",
+      );
+      return;
+    }
+
     console.log(`🤖 Starting internal ML service using ${candidate} on port ${ML_PORT}`);
     const child = spawn(candidate, [mlScriptPath], spawnOptions);
     let fallbackTriggered = false;
