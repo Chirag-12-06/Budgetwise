@@ -391,6 +391,7 @@ export default function useAnalyticsPage({
   analyticsTotal,
   setDateFilterMode,
   applyCustomDateRange,
+  onTrendPointSelect,
 }) {
   const lineCanvasRef = useRef(null);
   const lineChartRef = useRef(null);
@@ -407,8 +408,12 @@ export default function useAnalyticsPage({
     () =>
       (trendData || [])
         .map((point) => ({
+          bucketKey: point.bucketKey,
           label: point.label,
           value: Number(point.value || 0),
+          dateKey: point.dateKey || "",
+          rangeFrom: point.rangeFrom || "",
+          rangeTo: point.rangeTo || "",
         }))
         .filter((point) => Number.isFinite(point.value) && point.value >= 0),
     [trendData],
@@ -648,6 +653,29 @@ export default function useAnalyticsPage({
         interaction: {
           intersect: false,
         },
+        onClick: (event, _elements, chart) => {
+          if (typeof onTrendPointSelect !== "function") {
+            return;
+          }
+
+          const nearestElements = chart.getElementsAtEventForMode(
+            event,
+            "nearest",
+            { intersect: true },
+            false,
+          );
+          const pointIndex = nearestElements[0]?.index;
+          if (typeof pointIndex !== "number") {
+            return;
+          }
+
+          const selectedPoint = visibleTrendPoints[pointIndex];
+          if (!selectedPoint) {
+            return;
+          }
+
+          onTrendPointSelect(selectedPoint);
+        },
         scales: {
           y: {
             type: useLogScale ? "logarithmic" : "linear",
@@ -726,7 +754,7 @@ export default function useAnalyticsPage({
         lineChartRef.current = null;
       }
     };
-  }, [visibleTrendPoints, analyticsGroupBy, isDarkMode, useLogScale]);
+  }, [visibleTrendPoints, analyticsGroupBy, isDarkMode, useLogScale, onTrendPointSelect]);
 
   useEffect(() => {
     setHiddenBubbleCategories((current) =>

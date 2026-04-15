@@ -72,7 +72,9 @@ export default function Calendar({
       return [];
     }
 
-    return Array.from(new Set(expenses.map(extractExpenseDateKey).filter(Boolean)));
+    return Array.from(
+      new Set(expenses.map(extractExpenseDateKey).filter(Boolean)),
+    );
   }, [highlightDates, expenses]);
 
   const inputRef = useRef(null);
@@ -124,7 +126,7 @@ export default function Calendar({
       defaultDate: value || undefined,
       onReady: (_selectedDates, _dateString, instance) => {
         if (instance.altInput) {
-          instance.altInput.placeholder = "DD-MM-YYYY";
+          instance.altInput.placeholder = "DD MM YYYY";
         }
       },
       onChange: (_selectedDates, dateString) => {
@@ -186,7 +188,7 @@ export default function Calendar({
       type="text"
       inputMode="none"
       readOnly
-      placeholder="DD-MM-YYYY"
+      placeholder="DD MM YYYY"
       className={resolvedInputClasses}
       {...props}
     />

@@ -11,7 +11,9 @@ function hexToRgba(hex, alpha = 1) {
   }
 
   const normalized =
-    hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+    hex.length === 4
+      ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+      : hex;
   const value = Number.parseInt(normalized.slice(1), 16);
   const red = (value >> 16) & 255;
   const green = (value >> 8) & 255;
@@ -25,7 +27,9 @@ function getContrastTextColor(hex) {
   }
 
   const normalized =
-    hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+    hex.length === 4
+      ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+      : hex;
   const value = Number.parseInt(normalized.slice(1), 16);
   const red = (value >> 16) & 255;
   const green = (value >> 8) & 255;
@@ -43,6 +47,7 @@ export default function AnalyticsPage({
   customDateTo,
   setCustomDateTo,
   applyCustomDateRange,
+  onTrendPointDateSelect,
   dateRangeError,
   analyticsTotal,
   categoryTotals,
@@ -84,6 +89,7 @@ export default function AnalyticsPage({
     analyticsTotal,
     setDateFilterMode,
     applyCustomDateRange,
+    onTrendPointSelect: onTrendPointDateSelect,
   });
 
   return (
@@ -137,10 +143,15 @@ export default function AnalyticsPage({
 
         {outlierWarningText ? (
           <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/25">
-            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Outliers Detected</h4>
-            <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">{outlierWarningText}</p>
+            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
+              Outliers Detected
+            </h4>
+            <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">
+              {outlierWarningText}
+            </p>
             <p className="mt-2 text-xs text-yellow-700/90 dark:text-yellow-500">
-              Tip: Enable Exclude Outliers or Log Scale for better visualization.
+              Tip: Enable Exclude Outliers or Log Scale for better
+              visualization.
             </p>
           </div>
         ) : null}
@@ -174,16 +185,27 @@ export default function AnalyticsPage({
 
                 {visibleCategories.length ? (
                   bubbleLayout.map((bubble) => {
-                    const categoryDisplay = getCategoryDisplay(bubble.categoryKey);
-                    const bubbleColor = CATEGORY_COLORS[bubble.categoryKey] || CATEGORY_COLORS.uncategorized;
+                    const categoryDisplay = getCategoryDisplay(
+                      bubble.categoryKey,
+                    );
+                    const bubbleColor =
+                      CATEGORY_COLORS[bubble.categoryKey] ||
+                      CATEGORY_COLORS.uncategorized;
                     const textColor = getContrastTextColor(bubbleColor);
                     const badgeLabel = `${bubble.percent.toFixed(1)}%`;
                     const estimatedCharWidthRatio = 0.56;
                     const maxTextWidth = bubble.diameter * 0.78;
                     const estimatedFontSizePx = Math.floor(
-                      maxTextWidth / Math.max(1, badgeLabel.length * estimatedCharWidthRatio),
+                      maxTextWidth /
+                        Math.max(
+                          1,
+                          badgeLabel.length * estimatedCharWidthRatio,
+                        ),
                     );
-                    const badgeFontSizePx = Math.max(11, Math.min(36, estimatedFontSizePx));
+                    const badgeFontSizePx = Math.max(
+                      11,
+                      Math.min(36, estimatedFontSizePx),
+                    );
 
                     return (
                       <div
@@ -216,7 +238,8 @@ export default function AnalyticsPage({
                   })
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-300">
-                    All categories are hidden. Click a category in the legend to show it again.
+                    All categories are hidden. Click a category in the legend to
+                    show it again.
                   </div>
                 )}
               </div>
@@ -246,8 +269,12 @@ export default function AnalyticsPage({
               <div className="grid gap-3">
                 {chartCategories.map(([categoryKey, total]) => {
                   const category = getCategoryDisplay(categoryKey);
-                  const color = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.uncategorized;
-                  const percent = totalCategoryAmount ? (total / totalCategoryAmount) * 100 : 0;
+                  const color =
+                    CATEGORY_COLORS[categoryKey] ||
+                    CATEGORY_COLORS.uncategorized;
+                  const percent = totalCategoryAmount
+                    ? (total / totalCategoryAmount) * 100
+                    : 0;
                   const isHidden = hiddenBubbleCategories.includes(categoryKey);
 
                   return (
@@ -277,7 +304,10 @@ export default function AnalyticsPage({
                       <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                         <div
                           className="h-full rounded-[inherit]"
-                          style={{ width: `${percent}%`, backgroundColor: color }}
+                          style={{
+                            width: `${percent}%`,
+                            backgroundColor: color,
+                          }}
                         />
                       </div>
                     </Button>
@@ -286,7 +316,9 @@ export default function AnalyticsPage({
               </div>
             </div>
           ) : (
-            <div className="py-6 text-gray-500 dark:text-gray-300">No category data available yet.</div>
+            <div className="py-6 text-gray-500 dark:text-gray-300">
+              No category data available yet.
+            </div>
           )}
         </PanelCard>
       </div>

@@ -335,21 +335,54 @@ export default function useAppController() {
 
   function handleDateFilterModeChange(modeValue) {
     setDateFilterMode(modeValue);
+
+    if (modeValue !== "custom") {
+      setCustomDateFrom("");
+      setCustomDateTo("");
+    }
+
     setDateRangeError("");
   }
 
-  function handleCustomDateFromChange(value) {
-    setCustomDateFrom(value);
-    if (dateRangeError) {
-      setDateRangeError("");
+  function syncCustomDateFilter(nextFrom, nextTo) {
+    if (!nextFrom || !nextTo) {
+      setDateRangeError("Select both From and To dates to apply filter");
+      return;
     }
+
+    if (new Date(nextFrom) > new Date(nextTo)) {
+      setDateRangeError("From date cannot be later than To date");
+      return;
+    }
+
+    setDateRangeError("");
+    setDateFilterMode("custom");
+  }
+
+  function handleCustomDateFromChange(value) {
+    const nextFrom = value;
+    let nextTo = customDateTo;
+
+    if (value && (!nextTo || new Date(value) > new Date(nextTo))) {
+      nextTo = value;
+      setCustomDateTo(value);
+    }
+
+    setCustomDateFrom(nextFrom);
+    syncCustomDateFilter(nextFrom, nextTo);
   }
 
   function handleCustomDateToChange(value) {
-    setCustomDateTo(value);
-    if (dateRangeError) {
-      setDateRangeError("");
+    const nextTo = value;
+    let nextFrom = customDateFrom;
+
+    if (value && (!nextFrom || new Date(value) < new Date(nextFrom))) {
+      nextFrom = value;
+      setCustomDateFrom(value);
     }
+
+    setCustomDateTo(nextTo);
+    syncCustomDateFilter(nextFrom, nextTo);
   }
 
   function applyCustomDateRange() {
@@ -360,6 +393,27 @@ export default function useAppController() {
     }
     setDateRangeError("");
     setDateFilterMode("custom");
+  }
+
+  function handleTrendPointDateSelect(point) {
+    if (!point) {
+      return;
+    }
+
+    if (point.dateKey) {
+      setCustomDateFrom(point.dateKey);
+      setCustomDateTo(point.dateKey);
+      setDateFilterMode("custom");
+      setDateRangeError("");
+      return;
+    }
+
+    if (point.rangeFrom && point.rangeTo) {
+      setCustomDateFrom(point.rangeFrom);
+      setCustomDateTo(point.rangeTo);
+      setDateFilterMode("custom");
+      setDateRangeError("");
+    }
   }
 
   function handleCategoryFilterToggle(categoryValue) {
@@ -421,10 +475,44 @@ export default function useAppController() {
   }, {});
   const trendData = Object.entries(groupedTrendMap)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([label, value]) => ({
-      label: formatTrendLabel(label, analyticsGroupBy),
-      value,
-    }));
+    .map(([bucketKey, value]) => {
+      const point = {
+        bucketKey,
+        label: formatTrendLabel(bucketKey, analyticsGroupBy),
+        value,
+      };
+
+      if (analyticsGroupBy === "daily") {
+        return {
+          ...point,
+          dateKey: bucketKey,
+          rangeFrom: bucketKey,
+          rangeTo: bucketKey,
+        };
+      }
+
+      if (analyticsGroupBy === "monthly") {
+        const [year, month] = bucketKey.split("-");
+        const endDay = new Date(Number(year), Number(month), 0).getDate();
+        const monthStart = `${year}-${month}-01`;
+        const monthEnd = `${year}-${month}-${String(endDay).padStart(2, "0")}`;
+        return {
+          ...point,
+          dateKey: "",
+          rangeFrom: monthStart,
+          rangeTo: monthEnd,
+        };
+      }
+
+      const yearStart = `${bucketKey}-01-01`;
+      const yearEnd = `${bucketKey}-12-31`;
+      return {
+        ...point,
+        dateKey: "",
+        rangeFrom: yearStart,
+        rangeTo: yearEnd,
+      };
+    });
   const maxTrendValue = trendData.reduce((max, item) => (item.value > max ? item.value : max), 0);
 
   return {
@@ -466,6 +554,7 @@ export default function useAppController() {
     handleCustomDateFromChange,
     handleCustomDateToChange,
     applyCustomDateRange,
+    handleTrendPointDateSelect,
     handleCategoryFilterToggle,
     clearCategoryFilters,
     totalSpent,

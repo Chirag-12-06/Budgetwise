@@ -1,7 +1,11 @@
 import Button from "./button";
 import Calendar from "./calendar";
 import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, CATEGORY_GROUPS, getCategoryDisplay } from "../lib/categoryConfig";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_GROUPS,
+  getCategoryDisplay,
+} from "../lib/categoryConfig";
 
 const summaryCardClasses =
   "rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:p-4";
@@ -13,7 +17,8 @@ const quickDateModes = [
   { value: "thisYear", label: "This Year" },
 ];
 
-const summaryGridTemplateColumns = "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)";
+const summaryGridTemplateColumns =
+  "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)";
 const categoryGroupIcons = {
   Food: "fas fa-bowl-food",
   Drinks: "fas fa-glass-cheers",
@@ -34,7 +39,6 @@ export default function ExpenseFilterPanel({
   onCustomDateFromChange,
   customDateTo,
   onCustomDateToChange,
-  onApplyDateRange,
   dateRangeError,
   selectedCategoryFilters = [],
   onCategoryFilterToggle,
@@ -48,28 +52,35 @@ export default function ExpenseFilterPanel({
 }) {
   const hasSummaryExpenses = Array.isArray(summaryExpenses);
   const computedTotalSpending = hasSummaryExpenses
-    ? summaryExpenses.reduce((sum, expense) => sum + Number(expense?.amount || 0), 0)
+    ? summaryExpenses.reduce(
+        (sum, expense) => sum + Number(expense?.amount || 0),
+        0,
+      )
     : 0;
   const computedTrackedCategories = hasSummaryExpenses
-    ? new Set(summaryExpenses.map((expense) => expense?.category || "uncategorized")).size
+    ? new Set(
+        summaryExpenses.map((expense) => expense?.category || "uncategorized"),
+      ).size
     : 0;
-  const computedVisibleEntries = hasSummaryExpenses ? summaryExpenses.length : 0;
+  const computedVisibleEntries = hasSummaryExpenses
+    ? summaryExpenses.length
+    : 0;
 
   const defaultStats = hasSummaryExpenses
     ? [
-      {
-        label: "Total Spending",
-        value: summaryTotalSpending ?? formatCurrency(computedTotalSpending),
-      },
-      {
-        label: "Categories",
-        value: summaryTrackedCategories ?? computedTrackedCategories,
-      },
-      {
-        label: "Entries",
-        value: summaryVisibleEntries ?? computedVisibleEntries,
-      },
-    ]
+        {
+          label: "Total Spending",
+          value: summaryTotalSpending ?? formatCurrency(computedTotalSpending),
+        },
+        {
+          label: "Categories",
+          value: summaryTrackedCategories ?? computedTrackedCategories,
+        },
+        {
+          label: "Entries",
+          value: summaryVisibleEntries ?? computedVisibleEntries,
+        },
+      ]
     : [];
 
   const resolvedStats = stats.length ? stats : defaultStats;
@@ -79,11 +90,17 @@ export default function ExpenseFilterPanel({
       ? expenses
       : [];
   const availableCategoryOptions = Array.from(
-    new Set(categorySourceExpenses.map((expense) => expense?.category || "uncategorized")),
+    new Set(
+      categorySourceExpenses.map(
+        (expense) => expense?.category || "uncategorized",
+      ),
+    ),
   )
     .map((value) => ({ value, ...getCategoryDisplay(value) }))
     .sort((left, right) => left.label.localeCompare(right.label));
-  const availableCategorySet = new Set(availableCategoryOptions.map((option) => option.value));
+  const availableCategorySet = new Set(
+    availableCategoryOptions.map((option) => option.value),
+  );
   const availableCategoryGroups = CATEGORY_GROUPS.map((group) => {
     const values = group.options
       .map((option) => option.value)
@@ -93,8 +110,11 @@ export default function ExpenseFilterPanel({
       return null;
     }
 
-    const selectedCount = values.filter((value) => selectedCategoryFilters.includes(value)).length;
-    const accentColor = CATEGORY_COLORS[values[0]] || CATEGORY_COLORS.uncategorized;
+    const selectedCount = values.filter((value) =>
+      selectedCategoryFilters.includes(value),
+    ).length;
+    const accentColor =
+      CATEGORY_COLORS[values[0]] || CATEGORY_COLORS.uncategorized;
 
     return {
       label: group.label,
@@ -107,15 +127,20 @@ export default function ExpenseFilterPanel({
   }).filter(Boolean);
   const shouldConstrainGroupHeight = availableCategoryGroups.length > 3;
   const shouldConstrainCategoryHeight = availableCategoryOptions.length > 4;
-  const categoryGridColumnsClass = availableCategoryOptions.length <= 3 ? "grid-cols-1" : "sm:grid-cols-2";
+  const categoryGridColumnsClass =
+    availableCategoryOptions.length <= 3 ? "grid-cols-1" : "sm:grid-cols-2";
 
   function handleCategoryGroupClick(groupValues) {
     if (!onCategoryFilterToggle) {
       return;
     }
 
-    const normalizedValues = Array.from(new Set(groupValues.map((value) => value || "uncategorized")));
-    const allSelected = normalizedValues.every((value) => selectedCategoryFilters.includes(value));
+    const normalizedValues = Array.from(
+      new Set(groupValues.map((value) => value || "uncategorized")),
+    );
+    const allSelected = normalizedValues.every((value) =>
+      selectedCategoryFilters.includes(value),
+    );
 
     normalizedValues.forEach((value) => {
       const currentlySelected = selectedCategoryFilters.includes(value);
@@ -136,7 +161,7 @@ export default function ExpenseFilterPanel({
               <Button
                 key={mode.value}
                 active={dateFilterMode === mode.value}
-                className="bw-quick-date-button max-w-32 shrink-0 px-3 py-2 text-xs sm:max-w-36 sm:px-4 sm:text-sm"
+                className="bw-quick-date-button h-12 w-32 shrink-0 px-3 py-2 text-sm"
                 onClick={() => onDateFilterModeChange(mode.value)}
               >
                 <span className="truncate">{mode.label}</span>
@@ -151,7 +176,9 @@ export default function ExpenseFilterPanel({
                 <Calendar
                   expenses={expenses}
                   value={customDateFrom}
-                  onChange={(event) => onCustomDateFromChange(event.target.value)}
+                  onChange={(event) =>
+                    onCustomDateFromChange(event.target.value)
+                  }
                 />
               </label>
               <label className="grid min-w-0 gap-2">
@@ -163,21 +190,16 @@ export default function ExpenseFilterPanel({
                 />
               </label>
             </div>
-
-            <div className="bw-date-apply-row flex justify-end">
-              <Button className="min-w-20" variant="outline" onClick={onApplyDateRange}>
-                Apply
-              </Button>
-            </div>
           </div>
 
           {dateRangeError ? (
-            <p className="text-sm font-semibold text-red-600 dark:text-red-300">{dateRangeError}</p>
+            <p className="text-sm font-semibold text-red-600 dark:text-red-300">
+              {dateRangeError}
+            </p>
           ) : null}
         </div>
 
         <section className="grid gap-2">
-
           {availableCategoryOptions.length ? (
             <div
               className={`grid gap-2 ${
@@ -195,12 +217,15 @@ export default function ExpenseFilterPanel({
                   </div>
                   <div
                     className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
-                      shouldConstrainGroupHeight ? "max-h-40 overflow-y-auto overscroll-y-contain" : ""
+                      shouldConstrainGroupHeight
+                        ? "max-h-40 overflow-y-auto overscroll-y-contain"
+                        : ""
                     }`}
                   >
                     <div className="grid gap-2">
                       {availableCategoryGroups.map((group) => {
-                        const progressPercent = (group.selectedCount / group.values.length) * 100;
+                        const progressPercent =
+                          (group.selectedCount / group.values.length) * 100;
 
                         return (
                           <Button
@@ -213,7 +238,9 @@ export default function ExpenseFilterPanel({
                             }`}
                             key={group.label}
                             type="button"
-                            onClick={() => handleCategoryGroupClick(group.values)}
+                            onClick={() =>
+                              handleCategoryGroupClick(group.values)
+                            }
                           >
                             <span
                               className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[0.68rem] text-white"
@@ -244,7 +271,10 @@ export default function ExpenseFilterPanel({
                             <span
                               aria-hidden="true"
                               className="absolute bottom-0 left-0 h-1 transition-all duration-200"
-                              style={{ width: `${progressPercent}%`, backgroundColor: group.accentColor }}
+                              style={{
+                                width: `${progressPercent}%`,
+                                backgroundColor: group.accentColor,
+                              }}
                             />
                           </Button>
                         );
@@ -272,7 +302,9 @@ export default function ExpenseFilterPanel({
                 </div>
                 <div
                   className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
-                    shouldConstrainCategoryHeight ? "max-h-40 overflow-y-auto overscroll-y-contain" : ""
+                    shouldConstrainCategoryHeight
+                      ? "max-h-40 overflow-y-auto overscroll-y-contain"
+                      : ""
                   }`}
                 >
                   <div className={`grid gap-2 ${categoryGridColumnsClass}`}>
@@ -282,15 +314,21 @@ export default function ExpenseFilterPanel({
                         key={option.value}
                       >
                         <input
-                          checked={selectedCategoryFilters.includes(option.value)}
+                          checked={selectedCategoryFilters.includes(
+                            option.value,
+                          )}
                           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           type="checkbox"
-                          onChange={() => onCategoryFilterToggle?.(option.value)}
+                          onChange={() =>
+                            onCategoryFilterToggle?.(option.value)
+                          }
                         />
                         <span
                           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
                           style={{
-                            backgroundColor: CATEGORY_COLORS[option.value] || CATEGORY_COLORS.uncategorized,
+                            backgroundColor:
+                              CATEGORY_COLORS[option.value] ||
+                              CATEGORY_COLORS.uncategorized,
                           }}
                         >
                           <i className={option.icon} aria-hidden="true" />
@@ -303,19 +341,29 @@ export default function ExpenseFilterPanel({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-300">No categories available yet.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-300">
+              No categories available yet.
+            </p>
           )}
         </section>
       </div>
 
       {resolvedStats.length ? (
-        <div className="grid gap-2 sm:gap-3" style={{ gridTemplateColumns: summaryGridTemplateColumns }}>
+        <div
+          className="grid gap-2 sm:gap-3"
+          style={{ gridTemplateColumns: summaryGridTemplateColumns }}
+        >
           {resolvedStats.map((stat) => (
-            <article className={`${summaryCardClasses} min-w-0`} key={stat.label}>
+            <article
+              className={`${summaryCardClasses} min-w-0`}
+              key={stat.label}
+            >
               <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
                 {stat.label}
               </span>
-              <strong className="block truncate text-base sm:text-lg">{stat.value}</strong>
+              <strong className="block truncate text-base sm:text-lg">
+                {stat.value}
+              </strong>
             </article>
           ))}
         </div>

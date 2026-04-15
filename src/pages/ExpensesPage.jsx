@@ -49,10 +49,12 @@ export default function ExpensesPage({
 
       <PanelCard>
         {filteredExpenses.length ? (
-          <div className="max-h-[52vh] min-h-[12rem] overflow-y-auto grid gap-3.5">
+          <div className="max-h-[52vh] min-h-48 overflow-y-auto grid gap-3.5">
             {filteredExpenses.map((expense) => {
               const category = getCategoryDisplay(expense.category);
-              const color = CATEGORY_COLORS[expense.category] || CATEGORY_COLORS.uncategorized;
+              const color =
+                CATEGORY_COLORS[expense.category] ||
+                CATEGORY_COLORS.uncategorized;
               return (
                 <article
                   className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 border-b border-gray-200 py-3.5 last:border-b-0 dark:border-slate-400/20"
@@ -70,7 +72,9 @@ export default function ExpensesPage({
                       {formatDateDMY(expense.createdAt)}
                     </span>
                   </div>
-                  <div className="font-bold">{formatCurrency(expense.amount)}</div>
+                  <div className="font-bold">
+                    {formatCurrency(expense.amount)}
+                  </div>
                   <div className="flex items-center gap-3">
                     <Button
                       aria-label={`Edit ${expense.title}`}
