@@ -16,29 +16,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 
-function isLoopbackServiceUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
-  } catch {
-    return false;
-  }
-}
-
 const app = express();
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
 const ML_PORT = Number(process.env.ML_PORT) > 0 ? Number(process.env.ML_PORT) : 5001;
 const INTERNAL_ML_URL = `http://127.0.0.1:${ML_PORT}`;
-const PYTHON_EXECUTABLE = String(process.env.PYTHON_EXECUTABLE || "python3").trim();
-const ML_SERVICE_URL = String(
-  process.env.ML_SERVICE_URL || INTERNAL_ML_URL,
-).replace(/\/$/, "");
-const START_INTERNAL_ML_RAW = String(process.env.START_INTERNAL_ML || "").trim().toLowerCase();
-const START_INTERNAL_ML_ENABLED = START_INTERNAL_ML_RAW === "1" || START_INTERNAL_ML_RAW === "true";
-const START_INTERNAL_ML_DISABLED = START_INTERNAL_ML_RAW === "0" || START_INTERNAL_ML_RAW === "false";
-const SHOULD_START_INTERNAL_ML = !START_INTERNAL_ML_DISABLED
-  && (START_INTERNAL_ML_ENABLED || isLoopbackServiceUrl(ML_SERVICE_URL));
+const PYTHON_EXECUTABLE = String(
+  process.env.PYTHON_EXECUTABLE || path.join(__dirname, "../ml-service/.venv/bin/python"),
+).trim();
 const ML_REQUEST_TIMEOUT_MS = Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
   ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
   : 20000;
@@ -144,7 +129,7 @@ function isInternalMlProcessRunning() {
 }
 
 function ensureInternalMlService(trigger = "runtime") {
-  if (!SHOULD_START_INTERNAL_ML || !isLoopbackServiceUrl(ML_SERVICE_URL) || shuttingDown) {
+  if (shuttingDown) {
     return;
   }
 
@@ -157,10 +142,6 @@ function ensureInternalMlService(trigger = "runtime") {
 }
 
 function startInternalMlService() {
-  if (!SHOULD_START_INTERNAL_ML) {
-    return;
-  }
-
   if (internalMlStarting || isInternalMlProcessRunning()) {
     return;
   }
@@ -172,14 +153,8 @@ function startInternalMlService() {
 
   if (!existsSync(mlScriptPath)) {
     console.error(`❌ Internal ML script not found at ${mlScriptPath}`);
+    internalMlStarting = false;
     return;
-  }
-
-  if (!isLoopbackServiceUrl(ML_SERVICE_URL)) {
-    console.warn(
-      `⚠ Internal ML is enabled but ML_SERVICE_URL is ${ML_SERVICE_URL}. `
-      + `Use a loopback URL (for example ${INTERNAL_ML_URL}) for same-service mode.`,
-    );
   }
 
   if ((PYTHON_EXECUTABLE.includes("/") || PYTHON_EXECUTABLE.includes("\\")) && !existsSync(PYTHON_EXECUTABLE)) {
@@ -268,7 +243,7 @@ function startInternalMlService() {
       const reason = signal ? `signal ${signal}` : `code ${code}`;
       console.error(`❌ Internal ML service stopped (${reason})`);
 
-      if (!shuttingDown && SHOULD_START_INTERNAL_ML && isLoopbackServiceUrl(ML_SERVICE_URL)) {
+      if (!shuttingDown) {
         setTimeout(() => ensureInternalMlService("ml process exit"), INTERNAL_ML_RESTART_DELAY_MS);
       }
     });
@@ -342,7 +317,7 @@ async function callMlService(pathname, { method = "GET", body } = {}) {
   ensureInternalMlService("ml request");
 
   const fetchFn = await getFetch();
-  const url = `${ML_SERVICE_URL}${pathname}`;
+  const url = `${INTERNAL_ML_URL}${pathname}`;
 
   for (let attempt = 0; attempt <= ML_MAX_RETRIES; attempt += 1) {
     try {
@@ -415,7 +390,6 @@ app.use("/api/auth", authRoutes);
 // ✅ ML training endpoint
 app.post("/api/train-model", requireAuth, async (req, res) => {
   try {
-    console.log('📥 Training request received');
     const userId = String(req.user.id);
     
     // Fetch authenticated user's expenses from database directly
@@ -424,17 +398,13 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
       orderBy: { createdAt: "asc" },
     });
 
-    console.log(`📊 Found ${expenses.length} expenses for authenticated user: ${userId}`);
-    
     if (expenses.length < 10) {
       return res.status(400).json({ 
         error: 'Need at least 10 expenses to train the model',
         current: expenses.length 
       });
     }
-    
-    // Send to ML service for training
-    console.log('🚀 Sending to ML service...');
+
     const result = await callMlService("/api/train-model", {
       method: "POST",
       body: {
@@ -442,7 +412,6 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
         user_id: userId,
       },
     });
-    console.log('✅ Training completed:', result);
     res.json(result);
   } catch (error) {
     console.error('❌ Training error:', error);
@@ -482,18 +451,6 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
       fallback: true,
       message: "ML service temporarily unavailable",
     });
-  }
-});
-
-app.get("/api/ml-model-status", requireAuth, async (req, res) => {
-  try {
-    const userId = encodeURIComponent(String(req.user.id));
-    const result = await callMlService(`/api/model-status?user_id=${userId}`);
-    res.json(result);
-  } catch (error) {
-    console.error("❌ ML model status error:", error);
-    const status = Number(error?.status || 503);
-    res.status(status >= 400 && status < 600 ? status : 503).json({ error: error.message });
   }
 });
 

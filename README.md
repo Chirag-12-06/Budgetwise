@@ -149,16 +149,14 @@ Notes:
 Same-service ML mode (default in current `render.yaml`):
 
 - Node backend and Flask ML service run in the same Render web service.
-- Backend auto-starts ML sidecar process when `START_INTERNAL_ML=1`.
-- Internal communication uses `ML_SERVICE_URL=http://127.0.0.1:5001`.
-- Python dependencies are installed during build for both `python3` and `ml-service/.venv`.
+- Backend auto-starts the ML sidecar process.
+- Internal communication uses loopback on `http://127.0.0.1:5001`.
+- Python dependencies are installed during build in `ml-service/.venv`.
 
 Do not override these unless needed:
 
-- `START_INTERNAL_ML=1`
 - `ML_PORT=5001`
 - `PYTHON_EXECUTABLE=/opt/render/project/src/ml-service/.venv/bin/python`
-- `ML_SERVICE_URL=http://127.0.0.1:5001`
 
 ### Deploy Frontend on Vercel
 
@@ -237,31 +235,18 @@ Run all cells. This creates:
 - `ml-service/model.pkl`
 - `ml-service/model_metrics.json`
 
-Integrate with deployed ML service by setting env var:
+Select model artifact path with env var:
 
 - Shared model for all users: `ML_MODEL_PATH=model.pkl`
 - Per-user model template: `ML_MODEL_PATH=models/model_{user_id}.pkl`
 
-Then restart the ML service.
+Then restart the service.
 
-Verify loaded model artifact:
-
-```bash
-curl "http://127.0.0.1:5001/api/model-status?user_id=default"
-```
-
-For deployed ML service:
+Verify ML health through backend API:
 
 ```bash
-curl "https://<your-ml-service-domain>/api/model-status?user_id=default"
+curl "https://<your-app-domain>/api/ml-health"
 ```
-
-Response includes model path, file existence, file size, updated timestamp, and whether model is loaded in memory.
-
-Through deployed Node API (same domain as your app):
-
-- `GET /api/ml-model-status` (requires auth token)
-- `GET /api/ml-health` (no auth)
 
 ### Vite page reload loop from ML model updates
 
