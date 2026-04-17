@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
-import { formatTrendLabel } from "../utils/date";
+import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
 
 const LOGIN = "login";
@@ -39,6 +39,8 @@ export default function useAppController() {
     amount: "",
     category: "",
     date: getTodayDate(),
+    recurrenceFrequency: "",
+    recurrenceEndDate: "",
   });
   const [signupForm, setSignupForm] = useState({
     name: "",
@@ -48,6 +50,17 @@ export default function useAppController() {
     avatarDataUrl: "",
   });
   const inactivityTimeoutRef = useRef(null);
+
+  async function refreshExpenses(options = {}) {
+    if (!user) {
+      return [];
+    }
+
+    const data = await fetchExpenses(options);
+    const normalized = Array.isArray(data) ? data : [];
+    setExpenses(normalized);
+    return normalized;
+  }
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -74,7 +87,14 @@ export default function useAppController() {
     setExpenses([]);
     setLoginForm({ email: "", password: "" });
     setSignupForm({ name: "", email: "", password: "", confirmPassword: "", avatarDataUrl: "" });
-    setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
+    setExpenseForm({
+      title: "",
+      amount: "",
+      category: "",
+      date: getTodayDate(),
+      recurrenceFrequency: "",
+      recurrenceEndDate: "",
+    });
     setEditingExpenseId(null);
     setView(ADD_EXPENSE);
     setDateFilterMode("allTime");
@@ -110,7 +130,7 @@ export default function useAppController() {
     async function loadExpenses() {
       setLoadingExpenses(true);
       try {
-        const data = await fetchExpenses();
+        const data = await refreshExpenses();
         if (!ignore) {
           setExpenses(Array.isArray(data) ? data : []);
         }
@@ -260,6 +280,12 @@ export default function useAppController() {
 
   async function handleAddExpense(event) {
     event.preventDefault();
+
+    if (expenseForm.recurrenceFrequency && !expenseForm.recurrenceEndDate) {
+      showStatus("Select a recurrence end date", "error");
+      return;
+    }
+
     setSubmitting(true);
     setStatus(null);
 
@@ -268,26 +294,32 @@ export default function useAppController() {
       amount: expenseForm.amount,
       category: expenseForm.category,
       date: expenseForm.date,
+      recurrenceFrequency: expenseForm.recurrenceFrequency,
+      recurrenceEndDate: expenseForm.recurrenceEndDate,
     };
 
     try {
       if (editingExpenseId !== null) {
-        const updated = await updateExpense(editingExpenseId, payload);
-        setExpenses((current) =>
-          current
-            .map((expense) => (expense.id === editingExpenseId ? updated : expense))
-            .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
-        );
+        await updateExpense(editingExpenseId, payload);
+        const syncedExpenses = await fetchExpenses();
+        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Expense updated successfully", "success");
       } else {
-        const created = await createExpense(payload);
-        setExpenses((current) =>
-          [created, ...current].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
-        );
+        await createExpense(payload);
+        const syncedExpenses = await fetchExpenses();
+        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Expense added successfully", "success");
       }
 
-      setExpenseForm((current) => ({ ...current, title: "", amount: "", category: "", date: getTodayDate() }));
+      setExpenseForm((current) => ({
+        ...current,
+        title: "",
+        amount: "",
+        category: "",
+        date: getTodayDate(),
+        recurrenceFrequency: "",
+        recurrenceEndDate: "",
+      }));
       setEditingExpenseId(null);
     } catch (error) {
       handleApiError(error, editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense");
@@ -297,13 +329,15 @@ export default function useAppController() {
   }
 
   function handleStartEditExpense(expense) {
-    const dateValue = expense?.createdAt ? String(expense.createdAt).split("T")[0] : getTodayDate();
+    const dateValue = expense?.createdAt ? formatDateKey(expense.createdAt) : getTodayDate();
     setEditingExpenseId(expense.id);
     setExpenseForm({
       title: expense.title || "",
       amount: expense.amount !== undefined && expense.amount !== null ? String(expense.amount) : "",
       category: expense.category || "",
       date: dateValue,
+      recurrenceFrequency: expense.recurrenceFrequency || "",
+      recurrenceEndDate: expense.recurrenceEndDate ? formatDateKey(expense.recurrenceEndDate) : "",
     });
     setView(ADD_EXPENSE);
     setStatus(null);
@@ -311,7 +345,14 @@ export default function useAppController() {
 
   function handleCancelEditExpense() {
     setEditingExpenseId(null);
-    setExpenseForm({ title: "", amount: "", category: "", date: getTodayDate() });
+    setExpenseForm({
+      title: "",
+      amount: "",
+      category: "",
+      date: getTodayDate(),
+      recurrenceFrequency: "",
+      recurrenceEndDate: "",
+    });
   }
 
   async function handleDeleteExpense(id) {
@@ -333,8 +374,53 @@ export default function useAppController() {
     resetToLoggedOutState();
   }
 
-  function handleDateFilterModeChange(modeValue) {
+  function formatLocalDateInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function getPresetDateRange(modeValue, now = new Date()) {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    if (modeValue === "thisMonth") {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0);
+      return {
+        from: formatLocalDateInput(start),
+        to: formatLocalDateInput(end),
+        generateUpTo: formatLocalDateInput(end),
+      };
+    }
+
+    if (modeValue === "lastMonth") {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 0);
+      return {
+        from: formatLocalDateInput(start),
+        to: formatLocalDateInput(end),
+        generateUpTo: formatLocalDateInput(end),
+      };
+    }
+
+    if (modeValue === "thisYear") {
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31);
+      return {
+        from: formatLocalDateInput(start),
+        to: formatLocalDateInput(end),
+        generateUpTo: formatLocalDateInput(end),
+      };
+    }
+
+    return null;
+  }
+
+  async function handleDateFilterModeChange(modeValue) {
     setDateFilterMode(modeValue);
+    setSelectedCategoryFilters([]);
 
     if (modeValue !== "custom") {
       setCustomDateFrom("");
@@ -342,6 +428,19 @@ export default function useAppController() {
     }
 
     setDateRangeError("");
+
+    const presetRange = getPresetDateRange(modeValue);
+    if (!presetRange && modeValue === "custom") {
+      return;
+    }
+
+    try {
+      await refreshExpenses(
+        presetRange?.generateUpTo ? { generateUpTo: presetRange.generateUpTo } : {},
+      );
+    } catch (error) {
+      handleApiError(error, "Unable to load expenses for the selected date range");
+    }
   }
 
   function syncCustomDateFilter(nextFrom, nextTo) {
@@ -357,6 +456,11 @@ export default function useAppController() {
 
     setDateRangeError("");
     setDateFilterMode("custom");
+    setSelectedCategoryFilters([]);
+
+    void refreshExpenses({ generateUpTo: nextTo }).catch((error) => {
+      handleApiError(error, "Unable to sync recurring expenses for selected date");
+    });
   }
 
   function handleCustomDateFromChange(value) {
@@ -393,6 +497,13 @@ export default function useAppController() {
     }
     setDateRangeError("");
     setDateFilterMode("custom");
+    setSelectedCategoryFilters([]);
+
+    void refreshExpenses({
+      generateUpTo: customDateTo || customDateFrom,
+    }).catch((error) => {
+      handleApiError(error, "Unable to sync recurring expenses for selected date");
+    });
   }
 
   function handleTrendPointDateSelect(point) {
@@ -405,6 +516,12 @@ export default function useAppController() {
       setCustomDateTo(point.dateKey);
       setDateFilterMode("custom");
       setDateRangeError("");
+      setSelectedCategoryFilters([]);
+      void refreshExpenses({
+        generateUpTo: point.dateKey,
+      }).catch((error) => {
+        handleApiError(error, "Unable to sync recurring expenses for selected date");
+      });
       return;
     }
 
@@ -413,6 +530,12 @@ export default function useAppController() {
       setCustomDateTo(point.rangeTo);
       setDateFilterMode("custom");
       setDateRangeError("");
+      setSelectedCategoryFilters([]);
+      void refreshExpenses({
+        generateUpTo: point.rangeTo,
+      }).catch((error) => {
+        handleApiError(error, "Unable to sync recurring expenses for selected range");
+      });
     }
   }
 
@@ -461,14 +584,15 @@ export default function useAppController() {
     .sort((left, right) => right[1] - left[1])
     .slice(0, 6);
   const groupedTrendMap = analyticsExpenses.reduce((accumulator, expense) => {
-    const expenseDate = new Date(expense.createdAt);
+    const expenseDateKey = formatDateKey(expense.createdAt);
+    const [yearPart = "", monthPart = ""] = String(expenseDateKey).split("-");
     let key;
     if (analyticsGroupBy === "monthly") {
-      key = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, "0")}`;
+      key = `${yearPart}-${monthPart}`;
     } else if (analyticsGroupBy === "yearly") {
-      key = `${expenseDate.getFullYear()}`;
+      key = `${yearPart}`;
     } else {
-      key = expenseDate.toISOString().split("T")[0];
+      key = expenseDateKey;
     }
     accumulator[key] = (accumulator[key] || 0) + Number(expense.amount || 0);
     return accumulator;

@@ -1,5 +1,131 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
+const RECURRING_FREQUENCIES = new Set(["weekly", "monthly", "yearly"]);
+
+function parseIsoDateOnly(value) {
+  const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return null;
+  }
+
+  return { year, month, day };
+}
+
+function toStartOfDay(dateInput) {
+  const dateOnly = parseIsoDateOnly(dateInput);
+  if (dateOnly) {
+    return new Date(Date.UTC(dateOnly.year, dateOnly.month - 1, dateOnly.day, 0, 0, 0, 0));
+  }
+
+  const date = new Date(dateInput);
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+}
+
+function toEndOfDay(dateInput) {
+  const dateOnly = parseIsoDateOnly(dateInput);
+  if (dateOnly) {
+    return new Date(Date.UTC(dateOnly.year, dateOnly.month - 1, dateOnly.day, 23, 59, 59, 999));
+  }
+
+  const date = new Date(dateInput);
+  date.setUTCHours(23, 59, 59, 999);
+  return date;
+}
+
+function addRecurringInterval(dateInput, frequency) {
+  const date = new Date(dateInput);
+  if (frequency === "weekly") {
+    date.setUTCDate(date.getUTCDate() + 7);
+    return date;
+  }
+
+  if (frequency === "monthly") {
+    date.setUTCMonth(date.getUTCMonth() + 1);
+    return date;
+  }
+
+  if (frequency === "yearly") {
+    date.setUTCFullYear(date.getUTCFullYear() + 1);
+    return date;
+  }
+
+  return date;
+}
+
+async function materializeRecurringExpenses(userId, upToDate) {
+  if (!userId) {
+    return;
+  }
+
+  const targetDate = upToDate ? new Date(upToDate) : new Date();
+  const generationCutoff = Number.isNaN(targetDate.getTime())
+    ? toEndOfDay(new Date())
+    : toEndOfDay(targetDate);
+  const templates = await prisma.expense.findMany({
+    where: {
+      userId,
+      isRecurringTemplate: true,
+      recurrenceFrequency: { in: Array.from(RECURRING_FREQUENCIES) },
+      recurrenceEndDate: { not: null },
+      nextRecurrenceDate: { not: null },
+    },
+    orderBy: { id: "asc" },
+  });
+
+  for (const template of templates) {
+    if (!template.recurrenceFrequency || !template.recurrenceEndDate || !template.nextRecurrenceDate) {
+      continue;
+    }
+
+    const recurrenceEnd = toEndOfDay(template.recurrenceEndDate);
+    let nextDate = toStartOfDay(template.nextRecurrenceDate);
+    let generatedAny = false;
+
+    while (nextDate <= generationCutoff && nextDate <= recurrenceEnd) {
+      try {
+        await prisma.expense.create({
+          data: {
+            title: template.title,
+            amount: template.amount,
+            category: template.category,
+            createdAt: nextDate,
+            recurringParentId: template.id,
+            userId,
+          },
+        });
+        generatedAny = true;
+      } catch (error) {
+        // Keep recurrence processing resilient even if one occurrence fails.
+        console.error("Recurring expense generation error:", error?.message || error);
+      }
+
+      nextDate = addRecurringInterval(nextDate, template.recurrenceFrequency);
+    }
+
+    const hasNext = nextDate <= recurrenceEnd;
+    const nextRecurrenceDate = hasNext ? toStartOfDay(nextDate) : null;
+    const currentNext = template.nextRecurrenceDate ? toStartOfDay(template.nextRecurrenceDate) : null;
+    const nextChanged =
+      (currentNext && nextRecurrenceDate && currentNext.getTime() !== nextRecurrenceDate.getTime())
+      || (!currentNext && nextRecurrenceDate)
+      || (currentNext && !nextRecurrenceDate);
+
+    if (generatedAny || nextChanged) {
+      await prisma.expense.update({
+        where: { id: template.id },
+        data: { nextRecurrenceDate },
+      });
+    }
+  }
+}
 
 // export const getDailyExpenses = async (req, res) => {
 //   const expenses = await prisma.expense.groupBy({
@@ -19,18 +145,21 @@ const prisma = new PrismaClient();
 export const getExpenses = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { from, to, groupBy } = req.query;
+    const { from, to, groupBy, generateUpTo } = req.query;
+
+    const generationUpTo = generateUpTo || to || from || null;
+    await materializeRecurringExpenses(userId, generationUpTo);
 
     // Build a safe createdAt filter only when from/to are valid dates
     const filter = { userId };
     if (from || to) {
       const createdAtFilter = {};
       if (from) {
-        const f = new Date(from);
+        const f = toStartOfDay(from);
         if (!Number.isNaN(f.getTime())) createdAtFilter.gte = f;
       }
       if (to) {
-        const t = new Date(to);
+        const t = toEndOfDay(to);
         if (!Number.isNaN(t.getTime())) createdAtFilter.lte = t;
       }
       if (Object.keys(createdAtFilter).length) filter.createdAt = createdAtFilter;
@@ -96,7 +225,7 @@ export const getExpenses = async (req, res) => {
 export const addExpense = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, amount, category, date } = req.body;
+    const { title, amount, category, date, recurrenceFrequency, recurrenceEndDate } = req.body;
 
     if (!title || !amount || !category) {
       return res.status(400).json({ message: "Title, amount, and category are required" });
@@ -139,13 +268,46 @@ export const addExpense = async (req, res) => {
       }
     }
 
+    const normalizedFrequency = String(recurrenceFrequency || "").trim().toLowerCase();
+    const hasRecurrence = Boolean(normalizedFrequency);
+
+    if (hasRecurrence && !RECURRING_FREQUENCIES.has(normalizedFrequency)) {
+      return res.status(400).json({ message: "Invalid recurrence frequency" });
+    }
+
+    if (hasRecurrence && !recurrenceEndDate) {
+      return res.status(400).json({ message: "Recurrence end date is required" });
+    }
+
+    let recurrenceEnd = null;
+    let nextRecurrenceDate = null;
+    if (hasRecurrence) {
+      recurrenceEnd = new Date(recurrenceEndDate);
+      if (Number.isNaN(recurrenceEnd.getTime())) {
+        return res.status(400).json({ message: "Invalid recurrence end date" });
+      }
+
+      const createdDay = toStartOfDay(dateValue);
+      recurrenceEnd = toEndOfDay(recurrenceEnd);
+      if (recurrenceEnd < createdDay) {
+        return res.status(400).json({ message: "Recurrence end date must be on or after expense date" });
+      }
+
+      const firstNextDate = toStartOfDay(addRecurringInterval(createdDay, normalizedFrequency));
+      nextRecurrenceDate = firstNextDate <= recurrenceEnd ? firstNextDate : null;
+    }
+
     const expense = await prisma.expense.create({
       data: {
         title,
         amount: amt,
         category,
         createdAt: dateValue,
-        userId
+        userId,
+        recurrenceFrequency: hasRecurrence ? normalizedFrequency : null,
+        recurrenceEndDate: hasRecurrence ? recurrenceEnd : null,
+        nextRecurrenceDate: hasRecurrence ? nextRecurrenceDate : null,
+        isRecurringTemplate: hasRecurrence,
       }
     });
 
@@ -189,7 +351,12 @@ export const updateExpense = async (req, res) => {
       return res.status(400).json({ message: 'Invalid expense id' });
     }
 
-    const { title, amount, category, date } = req.body;
+    const existing = await prisma.expense.findFirst({ where: { id: expenseId, userId } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    const { title, amount, category, date, recurrenceFrequency, recurrenceEndDate } = req.body;
     const updateData = {};
     if (title) updateData.title = title;
     if (amount !== undefined) {
@@ -225,9 +392,44 @@ export const updateExpense = async (req, res) => {
       updateData.createdAt = dateValue;
     }
 
-    const existing = await prisma.expense.findFirst({ where: { id: expenseId, userId } });
-    if (!existing) {
-      return res.status(404).json({ message: 'Expense not found' });
+    if (recurrenceFrequency !== undefined || recurrenceEndDate !== undefined) {
+      const normalizedFrequency = String(recurrenceFrequency || existing.recurrenceFrequency || "")
+        .trim()
+        .toLowerCase();
+
+      if (!normalizedFrequency) {
+        updateData.recurrenceFrequency = null;
+        updateData.recurrenceEndDate = null;
+        updateData.nextRecurrenceDate = null;
+        updateData.isRecurringTemplate = false;
+      } else {
+        if (!RECURRING_FREQUENCIES.has(normalizedFrequency)) {
+          return res.status(400).json({ message: 'Invalid recurrence frequency' });
+        }
+
+        const recurrenceEndRaw = recurrenceEndDate || existing.recurrenceEndDate;
+        if (!recurrenceEndRaw) {
+          return res.status(400).json({ message: 'Recurrence end date is required' });
+        }
+
+        const recurrenceEnd = new Date(recurrenceEndRaw);
+        if (Number.isNaN(recurrenceEnd.getTime())) {
+          return res.status(400).json({ message: 'Invalid recurrence end date' });
+        }
+
+        const baseDate = toStartOfDay(updateData.createdAt || existing.createdAt);
+        const normalizedRecurrenceEnd = toEndOfDay(recurrenceEnd);
+        if (normalizedRecurrenceEnd < baseDate) {
+          return res.status(400).json({ message: 'Recurrence end date must be on or after expense date' });
+        }
+
+        const nextDate = toStartOfDay(addRecurringInterval(baseDate, normalizedFrequency));
+
+        updateData.recurrenceFrequency = normalizedFrequency;
+        updateData.recurrenceEndDate = normalizedRecurrenceEnd;
+        updateData.nextRecurrenceDate = nextDate <= normalizedRecurrenceEnd ? nextDate : null;
+        updateData.isRecurringTemplate = true;
+      }
     }
 
     const updated = await prisma.expense.update({

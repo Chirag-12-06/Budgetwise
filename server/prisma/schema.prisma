@@ -25,11 +25,21 @@ model User {
 }
 
 model Expense {
-  id        Int      @id @default(autoincrement())
-  title     String
-  amount    Float
-  category  String
-  createdAt DateTime @default(now())
-  userId    Int?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id                 Int       @id @default(autoincrement())
+  title              String
+  amount             Float
+  category           String
+  createdAt          DateTime  @default(now())
+  recurrenceFrequency String?
+  recurrenceEndDate  DateTime?
+  nextRecurrenceDate DateTime?
+  isRecurringTemplate Boolean  @default(false)
+  recurringParentId  Int?
+  recurringParent    Expense?  @relation("RecurringExpense", fields: [recurringParentId], references: [id], onDelete: SetNull)
+  recurringChildren  Expense[] @relation("RecurringExpense")
+  userId             Int?
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([recurringParentId, createdAt])
+  @@unique([recurringParentId, createdAt])
 }

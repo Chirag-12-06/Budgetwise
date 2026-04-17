@@ -19,6 +19,12 @@ const cancelButtonClasses =
   "w-full rounded-xl bg-red-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-70";
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
+const recurrenceOptions = [
+  { value: "", label: "No Recurrence" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+];
 
 export default function AddExpensePage({
   expenses,
@@ -43,7 +49,8 @@ export default function AddExpensePage({
     setExpenseForm,
     isEditingExpense,
   });
-  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] = useState(false);
+  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
+    useState(false);
 
   return (
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
@@ -79,7 +86,8 @@ export default function AddExpensePage({
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
                     style={{
                       backgroundColor:
-                        CATEGORY_COLORS[selectedCategory.value] || CATEGORY_COLORS.uncategorized,
+                        CATEGORY_COLORS[selectedCategory.value] ||
+                        CATEGORY_COLORS.uncategorized,
                     }}
                   >
                     <i className={selectedCategory.icon} aria-hidden="true" />
@@ -105,7 +113,10 @@ export default function AddExpensePage({
               value={expenseForm.category}
               onChange={(event) => {
                 setCategoryManuallySelected(true);
-                setExpenseForm((current) => ({ ...current, category: event.target.value }));
+                setExpenseForm((current) => ({
+                  ...current,
+                  category: event.target.value,
+                }));
               }}
               required
               tabIndex={-1}
@@ -134,8 +145,10 @@ export default function AddExpensePage({
                     <div className="grid gap-1">
                       {group.options.map((option) => {
                         const optionColor =
-                          CATEGORY_COLORS[option.value] || CATEGORY_COLORS.uncategorized;
-                        const isSelected = expenseForm.category === option.value;
+                          CATEGORY_COLORS[option.value] ||
+                          CATEGORY_COLORS.uncategorized;
+                        const isSelected =
+                          expenseForm.category === option.value;
 
                         return (
                           <Button
@@ -147,7 +160,9 @@ export default function AddExpensePage({
                             }`}
                             key={option.value}
                             type="button"
-                            onClick={() => handleCategorySelection(option.value)}
+                            onClick={() =>
+                              handleCategorySelection(option.value)
+                            }
                           >
                             <span
                               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
@@ -171,7 +186,10 @@ export default function AddExpensePage({
             type="text"
             value={expenseForm.title}
             onChange={(event) =>
-              setExpenseForm((current) => ({ ...current, title: event.target.value }))
+              setExpenseForm((current) => ({
+                ...current,
+                title: event.target.value,
+              }))
             }
             required
             placeholder="Title"
@@ -185,7 +203,10 @@ export default function AddExpensePage({
           step="0.01"
           value={expenseForm.amount}
           onChange={(event) =>
-            setExpenseForm((current) => ({ ...current, amount: event.target.value }))
+            setExpenseForm((current) => ({
+              ...current,
+              amount: event.target.value,
+            }))
           }
           required
           placeholder="Amount"
@@ -196,13 +217,65 @@ export default function AddExpensePage({
           expenses={expenses}
           value={expenseForm.date}
           onChange={(event) =>
-            setExpenseForm((current) => ({ ...current, date: event.target.value }))
+            setExpenseForm((current) => ({
+              ...current,
+              date: event.target.value,
+            }))
           }
         />
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+              Recurrence Frequency
+            </span>
+            <select
+              className={fieldClasses}
+              value={expenseForm.recurrenceFrequency || ""}
+              onChange={(event) => {
+                const frequency = event.target.value;
+                setExpenseForm((current) => ({
+                  ...current,
+                  recurrenceFrequency: frequency,
+                  recurrenceEndDate: frequency ? current.recurrenceEndDate : "",
+                }));
+              }}
+            >
+              {recurrenceOptions.map((option) => (
+                <option key={option.value || "none"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+              Repeat Until
+            </span>
+            <Calendar
+              className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
+              expenses={[]}
+              value={expenseForm.recurrenceEndDate || ""}
+              onChange={(event) =>
+                setExpenseForm((current) => ({
+                  ...current,
+                  recurrenceEndDate: event.target.value,
+                }))
+              }
+              disabled={!expenseForm.recurrenceFrequency}
+            />
+          </label>
+        </div>
+
         {isEditingExpense ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Button variant="plain" className={updateButtonClasses} type="submit" disabled={submitting}>
+            <Button
+              variant="plain"
+              className={updateButtonClasses}
+              type="submit"
+              disabled={submitting}
+            >
               {submitting ? "Saving..." : "Update Expense"}
             </Button>
             <Button
@@ -216,7 +289,12 @@ export default function AddExpensePage({
             </Button>
           </div>
         ) : (
-          <Button variant="plain" className={submitButtonClasses} type="submit" disabled={submitting}>
+          <Button
+            variant="plain"
+            className={submitButtonClasses}
+            type="submit"
+            disabled={submitting}
+          >
             {submitting ? "Saving..." : "Add Expense"}
           </Button>
         )}

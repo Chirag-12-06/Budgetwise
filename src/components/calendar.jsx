@@ -46,6 +46,8 @@ function extractExpenseDateKey(expense) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(sourceDatePart)) {
       return sourceDatePart;
     }
+
+    return toLocalDateKey(source);
   }
 
   return toLocalDateKey(source);
@@ -57,6 +59,7 @@ export default function Calendar({
   expenses = [],
   value = "",
   onChange,
+  disabled = false,
   ...props
 }) {
   const mergedHighlightDates = useMemo(() => {
@@ -123,11 +126,14 @@ export default function Calendar({
       altInputClass: resolvedInputClasses,
       disableMobile: true,
       allowInput: false, // Prevents keyboard from ever appearing
+      clickOpens: !disabled,
       defaultDate: value || undefined,
       onReady: (_selectedDates, _dateString, instance) => {
         if (instance.altInput) {
           instance.altInput.placeholder = "DD MM YYYY";
+          instance.altInput.disabled = disabled;
         }
+        instance.input.disabled = disabled;
       },
       onChange: (_selectedDates, dateString) => {
         if (typeof onChangeRef.current === "function") {
@@ -170,6 +176,28 @@ export default function Calendar({
       return;
     }
 
+    picker.set("clickOpens", !disabled);
+    picker.input.disabled = disabled;
+
+    if (picker.altInput) {
+      picker.altInput.disabled = disabled;
+      picker.altInput.setAttribute(
+        "aria-disabled",
+        disabled ? "true" : "false",
+      );
+    }
+
+    if (disabled) {
+      picker.close();
+    }
+  }, [disabled]);
+
+  useEffect(() => {
+    const picker = pickerRef.current;
+    if (!picker) {
+      return;
+    }
+
     if (!value) {
       if (picker.input.value) {
         picker.clear(false);
@@ -188,6 +216,7 @@ export default function Calendar({
       type="text"
       inputMode="none"
       readOnly
+      disabled={disabled}
       placeholder="DD MM YYYY"
       className={resolvedInputClasses}
       {...props}

@@ -56,7 +56,11 @@ export async function apiRequest(path, options = {}) {
 }
 
 export function getTodayDate() {
-  return new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function formatCurrency(value) {
@@ -67,8 +71,27 @@ export function formatCurrency(value) {
   }).format(Number(value || 0));
 }
 
-export async function fetchExpenses() {
-  return apiRequest("/expenses");
+export async function fetchExpenses(options = {}) {
+  const params = new URLSearchParams();
+
+  if (options.from) {
+    params.set("from", String(options.from));
+  }
+
+  if (options.to) {
+    params.set("to", String(options.to));
+  }
+
+  if (options.groupBy) {
+    params.set("groupBy", String(options.groupBy));
+  }
+
+  if (options.generateUpTo) {
+    params.set("generateUpTo", String(options.generateUpTo));
+  }
+
+  const query = params.toString();
+  return apiRequest(`/expenses${query ? `?${query}` : ""}`);
 }
 
 export async function createExpense(payload) {
