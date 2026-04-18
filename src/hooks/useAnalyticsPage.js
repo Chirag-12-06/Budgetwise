@@ -545,10 +545,13 @@ export default function useAnalyticsPage({
     }
 
     const updateSize = () => {
-      setBubbleBoardSize({
-        width: Math.round(board.clientWidth),
-        height: Math.round(board.clientHeight),
-      });
+      const nextWidth = Math.round(board.clientWidth);
+      const nextHeight = Math.round(board.clientHeight);
+      setBubbleBoardSize((current) => (
+        current.width === nextWidth && current.height === nextHeight
+          ? current
+          : { width: nextWidth, height: nextHeight }
+      ));
     };
 
     updateSize();
@@ -568,7 +571,7 @@ export default function useAnalyticsPage({
     return () => {
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [chartCategories.length, visibleCategories.length]);
 
   useEffect(() => {
     const canvas = lineCanvasRef.current;

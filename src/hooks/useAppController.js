@@ -16,6 +16,118 @@ function parsePositiveNumber(value, fallback) {
 const SESSION_IDLE_MINUTES = parsePositiveNumber(import.meta.env.VITE_SESSION_IDLE_MINUTES, 15);
 const SESSION_IDLE_TIMEOUT_MS = SESSION_IDLE_MINUTES * 60 * 1000;
 
+function addIntervalByFrequency(dateInput, frequency) {
+  if (frequency === "daily") {
+    const date = new Date(dateInput);
+    date.setDate(date.getDate() + 1);
+    return date;
+  }
+
+  const date = new Date(dateInput);
+  if (frequency === "weekly") {
+    date.setDate(date.getDate() + 7);
+    return date;
+  }
+
+  if (frequency === "monthly") {
+    date.setMonth(date.getMonth() + 1);
+    return date;
+  }
+
+  if (frequency === "yearly") {
+    date.setFullYear(date.getFullYear() + 1);
+    return date;
+  }
+
+  return date;
+}
+
+function normalizeWeeklyDays(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))].sort((left, right) => left - right);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return normalizeWeeklyDays(parsed);
+      }
+    } catch {
+      return value
+        .split(",")
+        .map((day) => Number(day.trim()))
+        .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+        .sort((left, right) => left - right);
+    }
+  }
+
+  return [];
+}
+
+function addWeeklyOccurrence(dateInput, weeklyDays) {
+  const date = new Date(dateInput);
+  const selectedDays = normalizeWeeklyDays(weeklyDays);
+  if (!selectedDays.length) {
+    date.setDate(date.getDate() + 7);
+    return date;
+  }
+
+  const currentDay = date.getDay();
+  for (let offset = 1; offset <= 7; offset += 1) {
+    const candidateDay = (currentDay + offset) % 7;
+    if (selectedDays.includes(candidateDay)) {
+      date.setDate(date.getDate() + offset);
+      return date;
+    }
+  }
+
+  date.setDate(date.getDate() + 7);
+  return date;
+}
+
+function toInputDateString(dateInput) {
+  const date = new Date(dateInput);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function deriveRecurrenceEndDate({ startDate, frequency, duration, repeatUntil, repeatCount, weeklyDays }) {
+  if (!frequency) {
+    return "";
+  }
+
+  if (duration === "until") {
+    return repeatUntil || "";
+  }
+
+  const baseDate = new Date(startDate || getTodayDate());
+  if (Number.isNaN(baseDate.getTime())) {
+    return "";
+  }
+
+  if (duration === "forever") {
+    const capped = new Date(baseDate);
+    capped.setFullYear(capped.getFullYear() + 10);
+    return toInputDateString(capped);
+  }
+
+  if (duration === "count") {
+    const occurrences = Math.max(1, Number.parseInt(repeatCount, 10) || 1);
+    let cursor = new Date(baseDate);
+    for (let index = 0; index < occurrences; index += 1) {
+      cursor = frequency === "weekly"
+        ? addWeeklyOccurrence(cursor, weeklyDays)
+        : addIntervalByFrequency(cursor, frequency);
+    }
+    return toInputDateString(cursor);
+  }
+
+  return "";
+}
+
 export default function useAppController() {
   const [mode, setMode] = useState(LOGIN);
   const [view, setView] = useState(ADD_EXPENSE);
@@ -41,6 +153,11 @@ export default function useAppController() {
     date: getTodayDate(),
     recurrenceFrequency: "",
     recurrenceEndDate: "",
+    recurrenceDuration: "until",
+    recurrenceCount: "",
+    recurrenceWeeklyDays: [],
+    recurrenceMonthlyPattern: "date",
+    recurrenceYearlyPattern: "date",
   });
   const [signupForm, setSignupForm] = useState({
     name: "",
@@ -94,6 +211,11 @@ export default function useAppController() {
       date: getTodayDate(),
       recurrenceFrequency: "",
       recurrenceEndDate: "",
+      recurrenceDuration: "until",
+      recurrenceCount: "",
+      recurrenceWeeklyDays: [],
+      recurrenceMonthlyPattern: "date",
+      recurrenceYearlyPattern: "date",
     });
     setEditingExpenseId(null);
     setView(ADD_EXPENSE);
@@ -281,8 +403,22 @@ export default function useAppController() {
   async function handleAddExpense(event) {
     event.preventDefault();
 
-    if (expenseForm.recurrenceFrequency && !expenseForm.recurrenceEndDate) {
+    const computedRecurrenceEndDate = deriveRecurrenceEndDate({
+      startDate: expenseForm.date,
+      frequency: expenseForm.recurrenceFrequency,
+      duration: expenseForm.recurrenceDuration,
+      repeatUntil: expenseForm.recurrenceEndDate,
+      repeatCount: expenseForm.recurrenceCount,
+      weeklyDays: expenseForm.recurrenceWeeklyDays,
+    });
+
+    if (expenseForm.recurrenceFrequency && expenseForm.recurrenceDuration === "until" && !expenseForm.recurrenceEndDate) {
       showStatus("Select a recurrence end date", "error");
+      return;
+    }
+
+    if (expenseForm.recurrenceFrequency && expenseForm.recurrenceDuration === "count" && !expenseForm.recurrenceCount) {
+      showStatus("Enter number of repeat times", "error");
       return;
     }
 
@@ -295,7 +431,18 @@ export default function useAppController() {
       category: expenseForm.category,
       date: expenseForm.date,
       recurrenceFrequency: expenseForm.recurrenceFrequency,
-      recurrenceEndDate: expenseForm.recurrenceEndDate,
+      recurrenceEndDate: computedRecurrenceEndDate,
+      recurrenceDuration: expenseForm.recurrenceFrequency ? expenseForm.recurrenceDuration : "until",
+      recurrenceCount: expenseForm.recurrenceFrequency ? expenseForm.recurrenceCount : "",
+      recurrenceWeeklyDays: expenseForm.recurrenceFrequency === "weekly"
+        ? JSON.stringify(normalizeWeeklyDays(expenseForm.recurrenceWeeklyDays))
+        : null,
+      recurrenceMonthlyPattern: expenseForm.recurrenceFrequency === "monthly"
+        ? expenseForm.recurrenceMonthlyPattern
+        : "date",
+      recurrenceYearlyPattern: expenseForm.recurrenceFrequency === "yearly"
+        ? expenseForm.recurrenceYearlyPattern
+        : "date",
     };
 
     try {
@@ -319,6 +466,11 @@ export default function useAppController() {
         date: getTodayDate(),
         recurrenceFrequency: "",
         recurrenceEndDate: "",
+        recurrenceDuration: "until",
+        recurrenceCount: "",
+        recurrenceWeeklyDays: [],
+        recurrenceMonthlyPattern: "date",
+        recurrenceYearlyPattern: "date",
       }));
       setEditingExpenseId(null);
     } catch (error) {
@@ -328,16 +480,62 @@ export default function useAppController() {
     }
   }
 
-  function handleStartEditExpense(expense) {
-    const dateValue = expense?.createdAt ? formatDateKey(expense.createdAt) : getTodayDate();
-    setEditingExpenseId(expense.id);
+  async function handleStartEditExpense(expense) {
+    let sourceExpense = expense;
+
+    if (expense?.recurringParentId) {
+      const localParent = expenses.find((item) => item.id === expense.recurringParentId);
+      if (localParent) {
+        sourceExpense = localParent;
+      } else {
+        try {
+          const fetchedExpenses = await fetchExpenses();
+          const remoteParent = Array.isArray(fetchedExpenses)
+            ? fetchedExpenses.find((item) => item.id === expense.recurringParentId)
+            : null;
+          if (remoteParent) {
+            sourceExpense = remoteParent;
+          }
+        } catch {
+          // Fall back to selected expense if parent lookup fails.
+        }
+      }
+    }
+
+    const dateValue = sourceExpense?.createdAt ? formatDateKey(sourceExpense.createdAt) : getTodayDate();
+    const parsedWeeklyDays = normalizeWeeklyDays(sourceExpense?.recurrenceWeeklyDays);
+    const fallbackWeeklyDay = sourceExpense?.createdAt
+      ? new Date(sourceExpense.createdAt).getDay()
+      : new Date(getTodayDate()).getDay();
+    const resolvedWeeklyDays =
+      sourceExpense?.recurrenceFrequency === "weekly"
+      && parsedWeeklyDays.length === 0
+      && Number.isInteger(fallbackWeeklyDay)
+      && fallbackWeeklyDay >= 0
+      && fallbackWeeklyDay <= 6
+        ? [fallbackWeeklyDay]
+        : parsedWeeklyDays;
+    setEditingExpenseId(sourceExpense.id);
     setExpenseForm({
-      title: expense.title || "",
-      amount: expense.amount !== undefined && expense.amount !== null ? String(expense.amount) : "",
-      category: expense.category || "",
+      title: sourceExpense.title || "",
+      amount:
+        sourceExpense.amount !== undefined && sourceExpense.amount !== null
+          ? String(sourceExpense.amount)
+          : "",
+      category: sourceExpense.category || "",
       date: dateValue,
-      recurrenceFrequency: expense.recurrenceFrequency || "",
-      recurrenceEndDate: expense.recurrenceEndDate ? formatDateKey(expense.recurrenceEndDate) : "",
+      recurrenceFrequency: sourceExpense.recurrenceFrequency || "",
+      recurrenceEndDate: sourceExpense.recurrenceEndDate
+        ? formatDateKey(sourceExpense.recurrenceEndDate)
+        : "",
+      recurrenceDuration:
+        sourceExpense.recurrenceDuration || (sourceExpense.recurrenceFrequency ? "until" : "until"),
+      recurrenceCount: sourceExpense.recurrenceCount
+        ? String(sourceExpense.recurrenceCount)
+        : "",
+      recurrenceWeeklyDays: resolvedWeeklyDays,
+      recurrenceMonthlyPattern: sourceExpense.recurrenceMonthlyPattern || "date",
+      recurrenceYearlyPattern: sourceExpense.recurrenceYearlyPattern || "date",
     });
     setView(ADD_EXPENSE);
     setStatus(null);
@@ -352,6 +550,11 @@ export default function useAppController() {
       date: getTodayDate(),
       recurrenceFrequency: "",
       recurrenceEndDate: "",
+      recurrenceDuration: "until",
+      recurrenceCount: "",
+      recurrenceWeeklyDays: [],
+      recurrenceMonthlyPattern: "date",
+      recurrenceYearlyPattern: "date",
     });
   }
 

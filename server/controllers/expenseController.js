@@ -1,6 +1,40 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
-const RECURRING_FREQUENCIES = new Set(["weekly", "monthly", "yearly"]);
+const RECURRING_FREQUENCIES = new Set(["daily", "weekly", "monthly", "yearly"]);
+
+function normalizeWeeklyDays(value, fallbackDateInput) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))].sort((left, right) => left - right);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return normalizeWeeklyDays(parsed, fallbackDateInput);
+      }
+
+      if (typeof parsed === "string") {
+        return normalizeWeeklyDays(parsed, fallbackDateInput);
+      }
+    } catch {
+      const splitDays = value
+        .split(",")
+        .map((day) => Number(day.trim()))
+        .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+
+      if (splitDays.length) {
+        return [...new Set(splitDays)].sort((left, right) => left - right);
+      }
+    }
+  }
+
+  if (fallbackDateInput) {
+    return [new Date(fallbackDateInput).getUTCDay()];
+  }
+
+  return [];
+}
 
 function parseIsoDateOnly(value) {
   const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -42,6 +76,11 @@ function toEndOfDay(dateInput) {
 
 function addRecurringInterval(dateInput, frequency) {
   const date = new Date(dateInput);
+  if (frequency === "daily") {
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date;
+  }
+
   if (frequency === "weekly") {
     date.setUTCDate(date.getUTCDate() + 7);
     return date;
@@ -60,6 +99,27 @@ function addRecurringInterval(dateInput, frequency) {
   return date;
 }
 
+function addWeeklyRecurringInterval(dateInput, weeklyDays) {
+  const date = new Date(dateInput);
+  const selectedDays = normalizeWeeklyDays(weeklyDays, dateInput);
+  if (!selectedDays.length) {
+    date.setUTCDate(date.getUTCDate() + 7);
+    return date;
+  }
+
+  const currentDay = date.getUTCDay();
+  for (let offset = 1; offset <= 7; offset += 1) {
+    const candidateDay = (currentDay + offset) % 7;
+    if (selectedDays.includes(candidateDay)) {
+      date.setUTCDate(date.getUTCDate() + offset);
+      return date;
+    }
+  }
+
+  date.setUTCDate(date.getUTCDate() + 7);
+  return date;
+}
+
 async function materializeRecurringExpenses(userId, upToDate) {
   if (!userId) {
     return;
@@ -75,18 +135,23 @@ async function materializeRecurringExpenses(userId, upToDate) {
       isRecurringTemplate: true,
       recurrenceFrequency: { in: Array.from(RECURRING_FREQUENCIES) },
       recurrenceEndDate: { not: null },
-      nextRecurrenceDate: { not: null },
     },
     orderBy: { id: "asc" },
   });
 
   for (const template of templates) {
-    if (!template.recurrenceFrequency || !template.recurrenceEndDate || !template.nextRecurrenceDate) {
+    if (!template.recurrenceFrequency || !template.recurrenceEndDate) {
       continue;
     }
 
     const recurrenceEnd = toEndOfDay(template.recurrenceEndDate);
-    let nextDate = toStartOfDay(template.nextRecurrenceDate);
+    const weeklyDays = normalizeWeeklyDays(template.recurrenceWeeklyDays, template.createdAt);
+    const baseCreatedAt = toStartOfDay(template.createdAt);
+    let nextDate = template.nextRecurrenceDate
+      ? toStartOfDay(template.nextRecurrenceDate)
+      : template.recurrenceFrequency === "weekly"
+        ? toStartOfDay(addWeeklyRecurringInterval(baseCreatedAt, weeklyDays))
+        : toStartOfDay(addRecurringInterval(baseCreatedAt, template.recurrenceFrequency));
     let generatedAny = false;
 
     while (nextDate <= generationCutoff && nextDate <= recurrenceEnd) {
@@ -107,7 +172,9 @@ async function materializeRecurringExpenses(userId, upToDate) {
         console.error("Recurring expense generation error:", error?.message || error);
       }
 
-      nextDate = addRecurringInterval(nextDate, template.recurrenceFrequency);
+      nextDate = template.recurrenceFrequency === "weekly"
+        ? addWeeklyRecurringInterval(nextDate, weeklyDays)
+        : addRecurringInterval(nextDate, template.recurrenceFrequency);
     }
 
     const hasNext = nextDate <= recurrenceEnd;
@@ -225,7 +292,7 @@ export const getExpenses = async (req, res) => {
 export const addExpense = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, amount, category, date, recurrenceFrequency, recurrenceEndDate } = req.body;
+    const { title, amount, category, date, recurrenceFrequency, recurrenceEndDate, recurrenceWeeklyDays, recurrenceDuration, recurrenceCount, recurrenceMonthlyPattern, recurrenceYearlyPattern } = req.body;
 
     if (!title || !amount || !category) {
       return res.status(400).json({ message: "Title, amount, and category are required" });
@@ -270,6 +337,7 @@ export const addExpense = async (req, res) => {
 
     const normalizedFrequency = String(recurrenceFrequency || "").trim().toLowerCase();
     const hasRecurrence = Boolean(normalizedFrequency);
+    const weeklyDays = normalizeWeeklyDays(recurrenceWeeklyDays, dateValue);
 
     if (hasRecurrence && !RECURRING_FREQUENCIES.has(normalizedFrequency)) {
       return res.status(400).json({ message: "Invalid recurrence frequency" });
@@ -294,7 +362,11 @@ export const addExpense = async (req, res) => {
       }
 
       const firstNextDate = toStartOfDay(addRecurringInterval(createdDay, normalizedFrequency));
-      nextRecurrenceDate = firstNextDate <= recurrenceEnd ? firstNextDate : null;
+      const weeklyFirstNextDate = normalizedFrequency === "weekly"
+        ? toStartOfDay(addWeeklyRecurringInterval(createdDay, weeklyDays))
+        : firstNextDate;
+      const firstNext = normalizedFrequency === "weekly" ? weeklyFirstNextDate : firstNextDate;
+      nextRecurrenceDate = firstNext <= recurrenceEnd ? firstNext : null;
     }
 
     const expense = await prisma.expense.create({
@@ -308,6 +380,11 @@ export const addExpense = async (req, res) => {
         recurrenceEndDate: hasRecurrence ? recurrenceEnd : null,
         nextRecurrenceDate: hasRecurrence ? nextRecurrenceDate : null,
         isRecurringTemplate: hasRecurrence,
+        recurrenceWeeklyDays: hasRecurrence && normalizedFrequency === "weekly" ? JSON.stringify(weeklyDays) : null,
+        recurrenceDuration: hasRecurrence ? String(recurrenceDuration || "until") : null,
+        recurrenceCount: hasRecurrence ? String(recurrenceCount || "") : null,
+        recurrenceMonthlyPattern: hasRecurrence && normalizedFrequency === "monthly" ? String(recurrenceMonthlyPattern || "date") : null,
+        recurrenceYearlyPattern: hasRecurrence && normalizedFrequency === "yearly" ? String(recurrenceYearlyPattern || "date") : null,
       }
     });
 
@@ -356,7 +433,7 @@ export const updateExpense = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    const { title, amount, category, date, recurrenceFrequency, recurrenceEndDate } = req.body;
+    const { title, amount, category, date, recurrenceFrequency, recurrenceEndDate, recurrenceWeeklyDays, recurrenceDuration, recurrenceCount, recurrenceMonthlyPattern, recurrenceYearlyPattern } = req.body;
     const updateData = {};
     if (title) updateData.title = title;
     if (amount !== undefined) {
@@ -402,11 +479,17 @@ export const updateExpense = async (req, res) => {
         updateData.recurrenceEndDate = null;
         updateData.nextRecurrenceDate = null;
         updateData.isRecurringTemplate = false;
+        updateData.recurrenceWeeklyDays = null;
+        updateData.recurrenceDuration = null;
+        updateData.recurrenceCount = null;
+        updateData.recurrenceMonthlyPattern = null;
+        updateData.recurrenceYearlyPattern = null;
       } else {
         if (!RECURRING_FREQUENCIES.has(normalizedFrequency)) {
           return res.status(400).json({ message: 'Invalid recurrence frequency' });
         }
 
+        const weeklyDays = normalizeWeeklyDays(recurrenceWeeklyDays || existing.recurrenceWeeklyDays, updateData.createdAt || existing.createdAt);
         const recurrenceEndRaw = recurrenceEndDate || existing.recurrenceEndDate;
         if (!recurrenceEndRaw) {
           return res.status(400).json({ message: 'Recurrence end date is required' });
@@ -423,12 +506,23 @@ export const updateExpense = async (req, res) => {
           return res.status(400).json({ message: 'Recurrence end date must be on or after expense date' });
         }
 
-        const nextDate = toStartOfDay(addRecurringInterval(baseDate, normalizedFrequency));
+        const nextDate = normalizedFrequency === "weekly"
+          ? toStartOfDay(addWeeklyRecurringInterval(baseDate, weeklyDays))
+          : toStartOfDay(addRecurringInterval(baseDate, normalizedFrequency));
 
         updateData.recurrenceFrequency = normalizedFrequency;
         updateData.recurrenceEndDate = normalizedRecurrenceEnd;
         updateData.nextRecurrenceDate = nextDate <= normalizedRecurrenceEnd ? nextDate : null;
         updateData.isRecurringTemplate = true;
+        updateData.recurrenceWeeklyDays = normalizedFrequency === "weekly" ? JSON.stringify(weeklyDays) : null;
+        updateData.recurrenceDuration = String(recurrenceDuration || existing.recurrenceDuration || "until");
+        updateData.recurrenceCount = recurrenceCount !== undefined ? String(recurrenceCount) : (existing.recurrenceCount || null);
+        updateData.recurrenceMonthlyPattern = normalizedFrequency === "monthly"
+          ? String(recurrenceMonthlyPattern || existing.recurrenceMonthlyPattern || "date")
+          : null;
+        updateData.recurrenceYearlyPattern = normalizedFrequency === "yearly"
+          ? String(recurrenceYearlyPattern || existing.recurrenceYearlyPattern || "date")
+          : null;
       }
     }
 

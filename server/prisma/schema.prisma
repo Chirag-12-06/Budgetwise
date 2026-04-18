@@ -33,6 +33,11 @@ model Expense {
   recurrenceFrequency String?
   recurrenceEndDate  DateTime?
   nextRecurrenceDate DateTime?
+  recurrenceWeeklyDays String?
+  recurrenceDuration String?
+  recurrenceCount    String?
+  recurrenceMonthlyPattern String?
+  recurrenceYearlyPattern String?
   isRecurringTemplate Boolean  @default(false)
   recurringParentId  Int?
   recurringParent    Expense?  @relation("RecurringExpense", fields: [recurringParentId], references: [id], onDelete: SetNull)
