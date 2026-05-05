@@ -24,6 +24,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+server/logs/*
+!server/logs/.gitkeep
+
 __pycache__/
 *.py[cod]
 

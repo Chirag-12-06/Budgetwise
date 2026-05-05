@@ -22,29 +22,51 @@ model User {
   avatarDataUrl String?
   createdAt DateTime  @default(now())
   expenses  Expense[]
+  recurringExpenses RecurringExpense[]
 }
 
 model Expense {
-  id                 Int       @id @default(autoincrement())
-  title              String
-  amount             Float
-  category           String
-  createdAt          DateTime  @default(now())
-  recurrenceFrequency String?
-  recurrenceEndDate  DateTime?
-  nextRecurrenceDate DateTime?
-  recurrenceWeeklyDays String?
-  recurrenceDuration String?
-  recurrenceCount    String?
-  recurrenceMonthlyPattern String?
-  recurrenceYearlyPattern String?
-  isRecurringTemplate Boolean  @default(false)
-  recurringParentId  Int?
-  recurringParent    Expense?  @relation("RecurringExpense", fields: [recurringParentId], references: [id], onDelete: SetNull)
-  recurringChildren  Expense[] @relation("RecurringExpense")
-  userId             Int?
-  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        Int      @id @default(autoincrement())
+  title     String
+  amount    Float
+  category  String
+  createdAt DateTime @default(now())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
 
-  @@index([recurringParentId, createdAt])
-  @@unique([recurringParentId, createdAt])
+enum RecurrenceFrequency {
+  DAILY   @map("daily")
+  WEEKLY  @map("weekly")
+  MONTHLY @map("monthly")
+  YEARLY  @map("yearly")
+}
+
+enum RecurrenceEndType {
+  FOREVER    @map("forever")
+  COUNT      @map("count")
+  UNTIL_DATE @map("until_date")
+}
+
+model RecurringExpense {
+  id              Int                 @id @default(autoincrement())
+  title           String
+  userId          Int                 @map("user_id")
+  amount          Float
+  category        String
+  frequency       RecurrenceFrequency
+  intervalValue   Int                 @default(1) @map("interval_value")
+  startDate       DateTime            @map("start_date")
+  endType         RecurrenceEndType   @map("end_type")
+  endCount        Int?                @map("end_count")
+  endDate         DateTime?           @map("end_date")
+  occurrencesDone Int                 @default(0) @map("occurrences_done")
+  nextDueDate     DateTime            @map("next_due_date")
+  isActive        Boolean             @default(true) @map("is_active")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([nextDueDate])
+  @@map("recurring_expenses")
 }

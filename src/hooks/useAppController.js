@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
+import { createExpense, createRecurringExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
@@ -15,118 +15,6 @@ function parsePositiveNumber(value, fallback) {
 
 const SESSION_IDLE_MINUTES = parsePositiveNumber(import.meta.env.VITE_SESSION_IDLE_MINUTES, 15);
 const SESSION_IDLE_TIMEOUT_MS = SESSION_IDLE_MINUTES * 60 * 1000;
-
-function addIntervalByFrequency(dateInput, frequency) {
-  if (frequency === "daily") {
-    const date = new Date(dateInput);
-    date.setDate(date.getDate() + 1);
-    return date;
-  }
-
-  const date = new Date(dateInput);
-  if (frequency === "weekly") {
-    date.setDate(date.getDate() + 7);
-    return date;
-  }
-
-  if (frequency === "monthly") {
-    date.setMonth(date.getMonth() + 1);
-    return date;
-  }
-
-  if (frequency === "yearly") {
-    date.setFullYear(date.getFullYear() + 1);
-    return date;
-  }
-
-  return date;
-}
-
-function normalizeWeeklyDays(value) {
-  if (Array.isArray(value)) {
-    return [...new Set(value.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))].sort((left, right) => left - right);
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return normalizeWeeklyDays(parsed);
-      }
-    } catch {
-      return value
-        .split(",")
-        .map((day) => Number(day.trim()))
-        .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
-        .sort((left, right) => left - right);
-    }
-  }
-
-  return [];
-}
-
-function addWeeklyOccurrence(dateInput, weeklyDays) {
-  const date = new Date(dateInput);
-  const selectedDays = normalizeWeeklyDays(weeklyDays);
-  if (!selectedDays.length) {
-    date.setDate(date.getDate() + 7);
-    return date;
-  }
-
-  const currentDay = date.getDay();
-  for (let offset = 1; offset <= 7; offset += 1) {
-    const candidateDay = (currentDay + offset) % 7;
-    if (selectedDays.includes(candidateDay)) {
-      date.setDate(date.getDate() + offset);
-      return date;
-    }
-  }
-
-  date.setDate(date.getDate() + 7);
-  return date;
-}
-
-function toInputDateString(dateInput) {
-  const date = new Date(dateInput);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function deriveRecurrenceEndDate({ startDate, frequency, duration, repeatUntil, repeatCount, weeklyDays }) {
-  if (!frequency) {
-    return "";
-  }
-
-  if (duration === "until") {
-    return repeatUntil || "";
-  }
-
-  const baseDate = new Date(startDate || getTodayDate());
-  if (Number.isNaN(baseDate.getTime())) {
-    return "";
-  }
-
-  if (duration === "forever") {
-    const capped = new Date(baseDate);
-    capped.setFullYear(capped.getFullYear() + 10);
-    return toInputDateString(capped);
-  }
-
-  if (duration === "count") {
-    const occurrences = Math.max(1, Number.parseInt(repeatCount, 10) || 1);
-    let cursor = new Date(baseDate);
-    for (let index = 0; index < occurrences; index += 1) {
-      cursor = frequency === "weekly"
-        ? addWeeklyOccurrence(cursor, weeklyDays)
-        : addIntervalByFrequency(cursor, frequency);
-    }
-    return toInputDateString(cursor);
-  }
-
-  return "";
-}
 
 export default function useAppController() {
   const [mode, setMode] = useState(LOGIN);
@@ -151,13 +39,14 @@ export default function useAppController() {
     amount: "",
     category: "",
     date: getTodayDate(),
-    recurrenceFrequency: "",
-    recurrenceEndDate: "",
-    recurrenceDuration: "until",
-    recurrenceCount: "",
-    recurrenceWeeklyDays: [],
-    recurrenceMonthlyPattern: "date",
-    recurrenceYearlyPattern: "date",
+  });
+  const [recurringForm, setRecurringForm] = useState({
+    enabled: false,
+    frequency: "monthly",
+    intervalValue: "1",
+    endType: "forever",
+    endCount: "",
+    endDate: "",
   });
   const [signupForm, setSignupForm] = useState({
     name: "",
@@ -209,13 +98,14 @@ export default function useAppController() {
       amount: "",
       category: "",
       date: getTodayDate(),
-      recurrenceFrequency: "",
-      recurrenceEndDate: "",
-      recurrenceDuration: "until",
-      recurrenceCount: "",
-      recurrenceWeeklyDays: [],
-      recurrenceMonthlyPattern: "date",
-      recurrenceYearlyPattern: "date",
+    });
+    setRecurringForm({
+      enabled: false,
+      frequency: "monthly",
+      intervalValue: "1",
+      endType: "forever",
+      endCount: "",
+      endDate: "",
     });
     setEditingExpenseId(null);
     setView(ADD_EXPENSE);
@@ -403,25 +293,6 @@ export default function useAppController() {
   async function handleAddExpense(event) {
     event.preventDefault();
 
-    const computedRecurrenceEndDate = deriveRecurrenceEndDate({
-      startDate: expenseForm.date,
-      frequency: expenseForm.recurrenceFrequency,
-      duration: expenseForm.recurrenceDuration,
-      repeatUntil: expenseForm.recurrenceEndDate,
-      repeatCount: expenseForm.recurrenceCount,
-      weeklyDays: expenseForm.recurrenceWeeklyDays,
-    });
-
-    if (expenseForm.recurrenceFrequency && expenseForm.recurrenceDuration === "until" && !expenseForm.recurrenceEndDate) {
-      showStatus("Select a recurrence end date", "error");
-      return;
-    }
-
-    if (expenseForm.recurrenceFrequency && expenseForm.recurrenceDuration === "count" && !expenseForm.recurrenceCount) {
-      showStatus("Enter number of repeat times", "error");
-      return;
-    }
-
     setSubmitting(true);
     setStatus(null);
 
@@ -430,19 +301,18 @@ export default function useAppController() {
       amount: expenseForm.amount,
       category: expenseForm.category,
       date: expenseForm.date,
-      recurrenceFrequency: expenseForm.recurrenceFrequency,
-      recurrenceEndDate: computedRecurrenceEndDate,
-      recurrenceDuration: expenseForm.recurrenceFrequency ? expenseForm.recurrenceDuration : "until",
-      recurrenceCount: expenseForm.recurrenceFrequency ? expenseForm.recurrenceCount : "",
-      recurrenceWeeklyDays: expenseForm.recurrenceFrequency === "weekly"
-        ? JSON.stringify(normalizeWeeklyDays(expenseForm.recurrenceWeeklyDays))
-        : null,
-      recurrenceMonthlyPattern: expenseForm.recurrenceFrequency === "monthly"
-        ? expenseForm.recurrenceMonthlyPattern
-        : "date",
-      recurrenceYearlyPattern: expenseForm.recurrenceFrequency === "yearly"
-        ? expenseForm.recurrenceYearlyPattern
-        : "date",
+    };
+
+    const recurringPayload = {
+      title: expenseForm.title.trim(),
+      amount: expenseForm.amount,
+      category: expenseForm.category,
+      frequency: recurringForm.frequency,
+      intervalValue: recurringForm.intervalValue,
+      startDate: expenseForm.date,
+      endType: recurringForm.endType,
+      endCount: recurringForm.endCount,
+      endDate: recurringForm.endDate,
     };
 
     try {
@@ -451,6 +321,9 @@ export default function useAppController() {
         const syncedExpenses = await fetchExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Expense updated successfully", "success");
+      } else if (recurringForm.enabled) {
+        await createRecurringExpense(recurringPayload);
+        showStatus("Recurring expense saved successfully", "success");
       } else {
         await createExpense(payload);
         const syncedExpenses = await fetchExpenses();
@@ -464,14 +337,15 @@ export default function useAppController() {
         amount: "",
         category: "",
         date: getTodayDate(),
-        recurrenceFrequency: "",
-        recurrenceEndDate: "",
-        recurrenceDuration: "until",
-        recurrenceCount: "",
-        recurrenceWeeklyDays: [],
-        recurrenceMonthlyPattern: "date",
-        recurrenceYearlyPattern: "date",
       }));
+      setRecurringForm({
+        enabled: false,
+        frequency: "monthly",
+        intervalValue: "1",
+        endType: "forever",
+        endCount: "",
+        endDate: "",
+      });
       setEditingExpenseId(null);
     } catch (error) {
       handleApiError(error, editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense");
@@ -481,61 +355,24 @@ export default function useAppController() {
   }
 
   async function handleStartEditExpense(expense) {
-    let sourceExpense = expense;
-
-    if (expense?.recurringParentId) {
-      const localParent = expenses.find((item) => item.id === expense.recurringParentId);
-      if (localParent) {
-        sourceExpense = localParent;
-      } else {
-        try {
-          const fetchedExpenses = await fetchExpenses();
-          const remoteParent = Array.isArray(fetchedExpenses)
-            ? fetchedExpenses.find((item) => item.id === expense.recurringParentId)
-            : null;
-          if (remoteParent) {
-            sourceExpense = remoteParent;
-          }
-        } catch {
-          // Fall back to selected expense if parent lookup fails.
-        }
-      }
-    }
-
-    const dateValue = sourceExpense?.createdAt ? formatDateKey(sourceExpense.createdAt) : getTodayDate();
-    const parsedWeeklyDays = normalizeWeeklyDays(sourceExpense?.recurrenceWeeklyDays);
-    const fallbackWeeklyDay = sourceExpense?.createdAt
-      ? new Date(sourceExpense.createdAt).getDay()
-      : new Date(getTodayDate()).getDay();
-    const resolvedWeeklyDays =
-      sourceExpense?.recurrenceFrequency === "weekly"
-      && parsedWeeklyDays.length === 0
-      && Number.isInteger(fallbackWeeklyDay)
-      && fallbackWeeklyDay >= 0
-      && fallbackWeeklyDay <= 6
-        ? [fallbackWeeklyDay]
-        : parsedWeeklyDays;
-    setEditingExpenseId(sourceExpense.id);
+    const dateValue = expense?.createdAt ? formatDateKey(expense.createdAt) : getTodayDate();
+    setEditingExpenseId(expense.id);
     setExpenseForm({
-      title: sourceExpense.title || "",
+      title: expense.title || "",
       amount:
-        sourceExpense.amount !== undefined && sourceExpense.amount !== null
-          ? String(sourceExpense.amount)
+        expense.amount !== undefined && expense.amount !== null
+          ? String(expense.amount)
           : "",
-      category: sourceExpense.category || "",
+      category: expense.category || "",
       date: dateValue,
-      recurrenceFrequency: sourceExpense.recurrenceFrequency || "",
-      recurrenceEndDate: sourceExpense.recurrenceEndDate
-        ? formatDateKey(sourceExpense.recurrenceEndDate)
-        : "",
-      recurrenceDuration:
-        sourceExpense.recurrenceDuration || (sourceExpense.recurrenceFrequency ? "until" : "until"),
-      recurrenceCount: sourceExpense.recurrenceCount
-        ? String(sourceExpense.recurrenceCount)
-        : "",
-      recurrenceWeeklyDays: resolvedWeeklyDays,
-      recurrenceMonthlyPattern: sourceExpense.recurrenceMonthlyPattern || "date",
-      recurrenceYearlyPattern: sourceExpense.recurrenceYearlyPattern || "date",
+    });
+    setRecurringForm({
+      enabled: false,
+      frequency: "monthly",
+      intervalValue: "1",
+      endType: "forever",
+      endCount: "",
+      endDate: "",
     });
     setView(ADD_EXPENSE);
     setStatus(null);
@@ -548,13 +385,14 @@ export default function useAppController() {
       amount: "",
       category: "",
       date: getTodayDate(),
-      recurrenceFrequency: "",
-      recurrenceEndDate: "",
-      recurrenceDuration: "until",
-      recurrenceCount: "",
-      recurrenceWeeklyDays: [],
-      recurrenceMonthlyPattern: "date",
-      recurrenceYearlyPattern: "date",
+    });
+    setRecurringForm({
+      enabled: false,
+      frequency: "monthly",
+      intervalValue: "1",
+      endType: "forever",
+      endCount: "",
+      endDate: "",
     });
   }
 
@@ -594,7 +432,6 @@ export default function useAppController() {
       return {
         from: formatLocalDateInput(start),
         to: formatLocalDateInput(end),
-        generateUpTo: formatLocalDateInput(end),
       };
     }
 
@@ -604,7 +441,6 @@ export default function useAppController() {
       return {
         from: formatLocalDateInput(start),
         to: formatLocalDateInput(end),
-        generateUpTo: formatLocalDateInput(end),
       };
     }
 
@@ -614,7 +450,6 @@ export default function useAppController() {
       return {
         from: formatLocalDateInput(start),
         to: formatLocalDateInput(end),
-        generateUpTo: formatLocalDateInput(end),
       };
     }
 
@@ -638,9 +473,7 @@ export default function useAppController() {
     }
 
     try {
-      await refreshExpenses(
-        presetRange?.generateUpTo ? { generateUpTo: presetRange.generateUpTo } : {},
-      );
+      await refreshExpenses();
     } catch (error) {
       handleApiError(error, "Unable to load expenses for the selected date range");
     }
@@ -661,8 +494,8 @@ export default function useAppController() {
     setDateFilterMode("custom");
     setSelectedCategoryFilters([]);
 
-    void refreshExpenses({ generateUpTo: nextTo }).catch((error) => {
-      handleApiError(error, "Unable to sync recurring expenses for selected date");
+    void refreshExpenses().catch((error) => {
+      handleApiError(error, "Unable to load expenses for selected date");
     });
   }
 
@@ -702,10 +535,8 @@ export default function useAppController() {
     setDateFilterMode("custom");
     setSelectedCategoryFilters([]);
 
-    void refreshExpenses({
-      generateUpTo: customDateTo || customDateFrom,
-    }).catch((error) => {
-      handleApiError(error, "Unable to sync recurring expenses for selected date");
+    void refreshExpenses().catch((error) => {
+      handleApiError(error, "Unable to load expenses for selected date");
     });
   }
 
@@ -720,10 +551,8 @@ export default function useAppController() {
       setDateFilterMode("custom");
       setDateRangeError("");
       setSelectedCategoryFilters([]);
-      void refreshExpenses({
-        generateUpTo: point.dateKey,
-      }).catch((error) => {
-        handleApiError(error, "Unable to sync recurring expenses for selected date");
+      void refreshExpenses().catch((error) => {
+        handleApiError(error, "Unable to load expenses for selected date");
       });
       return;
     }
@@ -734,10 +563,8 @@ export default function useAppController() {
       setDateFilterMode("custom");
       setDateRangeError("");
       setSelectedCategoryFilters([]);
-      void refreshExpenses({
-        generateUpTo: point.rangeTo,
-      }).catch((error) => {
-        handleApiError(error, "Unable to sync recurring expenses for selected range");
+      void refreshExpenses().catch((error) => {
+        handleApiError(error, "Unable to load expenses for selected range");
       });
     }
   }
@@ -867,6 +694,8 @@ export default function useAppController() {
     setLoginForm,
     expenseForm,
     setExpenseForm,
+    recurringForm,
+    setRecurringForm,
     signupForm,
     setSignupForm,
     handleLogin,

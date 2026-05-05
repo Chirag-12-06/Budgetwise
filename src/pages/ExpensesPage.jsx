@@ -55,43 +55,46 @@ export default function ExpensesPage({
               const color =
                 CATEGORY_COLORS[expense.category] ||
                 CATEGORY_COLORS.uncategorized;
+
               return (
                 <article
-                  className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 border-b border-gray-200 py-3.5 last:border-b-0 dark:border-slate-400/20"
+                  className="grid gap-3.5 border-b border-gray-200 py-3.5 last:border-b-0 dark:border-slate-400/20"
                   key={expense.id}
                 >
-                  <span
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm"
-                    style={{ backgroundColor: color }}
-                  >
-                    <i className={category.icon} aria-hidden="true" />
-                  </span>
-                  <div className="grid gap-1">
-                    <strong>{expense.title}</strong>
-                    <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
-                      {formatDateDMY(expense.createdAt)}
+                  <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5">
+                    <span
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm"
+                      style={{ backgroundColor: color }}
+                    >
+                      <i className={category.icon} aria-hidden="true" />
                     </span>
-                  </div>
-                  <div className="font-bold">
-                    {formatCurrency(expense.amount)}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      aria-label={`Edit ${expense.title}`}
-                      title="Edit expense"
-                      variant="expenseEdit"
-                      onClick={() => handleStartEditExpense(expense)}
-                    >
-                      <i className="fas fa-pen" aria-hidden="true" />
-                    </Button>
-                    <Button
-                      aria-label={`Delete ${expense.title}`}
-                      title="Delete expense"
-                      variant="expenseDelete"
-                      onClick={() => handleDeleteExpense(expense.id)}
-                    >
-                      <i className="fas fa-trash" aria-hidden="true" />
-                    </Button>
+                    <div className="grid gap-1">
+                      <strong>{expense.title}</strong>
+                      <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
+                        {formatDateDMY(expense.createdAt)}
+                      </span>
+                    </div>
+                    <div className="font-bold">
+                      {formatCurrency(expense.amount)}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        aria-label={`Edit ${expense.title}`}
+                        title="Edit expense"
+                        variant="expenseEdit"
+                        onClick={() => handleStartEditExpense(expense)}
+                      >
+                        <i className="fas fa-pen" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        aria-label={`Delete ${expense.title}`}
+                        title="Delete expense"
+                        variant="expenseDelete"
+                        onClick={() => handleDeleteExpense(expense.id)}
+                      >
+                        <i className="fas fa-trash" aria-hidden="true" />
+                      </Button>
+                    </div>
                   </div>
                 </article>
               );

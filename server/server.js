@@ -8,8 +8,11 @@ import { fileURLToPath } from "url";
 import { setTimeout as delay } from "node:timers/promises";
 import { PrismaClient } from "@prisma/client";
 import expenseRoutes from "./routes/expenseRoutes.js";
+import recurringExpenseRoutes from "./routes/recurringExpenseRoutes.js";
+import { addRecurringExpense } from "./controllers/recurringExpenseController.js";
 import authRoutes from "./routes/authRoutes.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
+import { logError, logInfo, logWarn } from "./utils/logger.js";
 
 // ✅ Handle ES modules dirname and load server-local env file
 const __filename = fileURLToPath(import.meta.url);
@@ -137,7 +140,7 @@ function ensureInternalMlService(trigger = "runtime") {
     return;
   }
 
-  console.warn(`⚠ Internal ML process not running during ${trigger}. Attempting restart.`);
+  logWarn(`⚠ Internal ML process not running during ${trigger}. Attempting restart.`);
   startInternalMlService();
 }
 
@@ -152,13 +155,13 @@ function startInternalMlService() {
   const mlWorkingDir = path.join(__dirname, "../ml-service");
 
   if (!existsSync(mlScriptPath)) {
-    console.error(`❌ Internal ML script not found at ${mlScriptPath}`);
+    logError(`❌ Internal ML script not found at ${mlScriptPath}`);
     internalMlStarting = false;
     return;
   }
 
   if ((PYTHON_EXECUTABLE.includes("/") || PYTHON_EXECUTABLE.includes("\\")) && !existsSync(PYTHON_EXECUTABLE)) {
-    console.warn(
+    logWarn(
       `⚠ Configured PYTHON_EXECUTABLE not found: ${PYTHON_EXECUTABLE}. `
       + "Will try fallback executables.",
     );
@@ -179,8 +182,8 @@ function startInternalMlService() {
     if (index >= pythonCandidates.length) {
       internalMlStarting = false;
       internalMlProcess = null;
-      console.error("❌ Unable to start internal ML service: no usable Python executable found.");
-      console.error("ℹ Ensure Render build command installs ML dependencies before start.");
+      logError("❌ Unable to start internal ML service: no usable Python executable found.");
+      logError("ℹ Ensure Render build command installs ML dependencies before start.");
       return;
     }
 
@@ -190,7 +193,7 @@ function startInternalMlService() {
     if (!probeResult.ok) {
       if (index < pythonCandidates.length - 1) {
         const nextCandidate = pythonCandidates[index + 1];
-        console.warn(
+        logWarn(
           `⚠ Skipping Python candidate ${candidate}: ${probeResult.reason}. Trying ${nextCandidate}.`,
         );
         launchWithCandidate(index + 1);
@@ -199,36 +202,36 @@ function startInternalMlService() {
 
       internalMlStarting = false;
       internalMlProcess = null;
-      console.error(`❌ Unable to start internal ML service with ${candidate}: ${probeResult.reason}.`);
-      console.error(
+      logError(`❌ Unable to start internal ML service with ${candidate}: ${probeResult.reason}.`);
+      logError(
         "ℹ Install Python dependencies for the runtime interpreter (for example `python3 -m pip install -r ml-service/requirements.txt`).",
       );
       return;
     }
 
-    console.log(`🤖 Starting internal ML service using ${candidate} on port ${ML_PORT}`);
+    logInfo(`🤖 Starting internal ML service using ${candidate} on port ${ML_PORT}`);
     const child = spawn(candidate, [mlScriptPath], spawnOptions);
     let fallbackTriggered = false;
 
     child.on("spawn", () => {
       internalMlProcess = child;
       internalMlStarting = false;
-      console.log(`✅ Internal ML process started (pid ${child.pid})`);
+      logInfo(`✅ Internal ML process started (pid ${child.pid})`);
     });
 
     child.on("error", (error) => {
       if (error?.code === "ENOENT" && index < pythonCandidates.length - 1) {
         fallbackTriggered = true;
         const nextCandidate = pythonCandidates[index + 1];
-        console.warn(`⚠ Python executable not found: ${candidate}. Retrying with ${nextCandidate}.`);
+        logWarn(`⚠ Python executable not found: ${candidate}. Retrying with ${nextCandidate}.`);
         launchWithCandidate(index + 1);
         return;
       }
 
       internalMlStarting = false;
       internalMlProcess = null;
-      console.error("❌ Failed to launch internal ML service:", error);
-      console.error("ℹ Ensure Render build command installs ML dependencies before start.");
+      logError("❌ Failed to launch internal ML service:", error);
+      logError("ℹ Ensure Render build command installs ML dependencies before start.");
     });
 
     child.on("exit", (code, signal) => {
@@ -241,7 +244,7 @@ function startInternalMlService() {
       }
       internalMlStarting = false;
       const reason = signal ? `signal ${signal}` : `code ${code}`;
-      console.error(`❌ Internal ML service stopped (${reason})`);
+      logError(`❌ Internal ML service stopped (${reason})`);
 
       if (!shuttingDown) {
         setTimeout(() => ensureInternalMlService("ml process exit"), INTERNAL_ML_RESTART_DELAY_MS);
@@ -259,7 +262,7 @@ function stopInternalMlService(trigger) {
     return;
   }
 
-  console.log(`🛑 Stopping internal ML service (${trigger})`);
+  logInfo(`🛑 Stopping internal ML service (${trigger})`);
   internalMlProcess.kill("SIGTERM");
 }
 
@@ -385,7 +388,17 @@ app.get(["/", "/index.html", "/auth.html", "/expenses.html", "/analytics.html"],
 
 // ✅ API routes
 app.use("/api/expenses", expenseRoutes);
+app.post("/api/recurring-expenses", requireAuth, addRecurringExpense);
+app.use("/api/recurring-expenses", recurringExpenseRoutes);
 app.use("/api/auth", authRoutes);
+
+app.post("/api/test-route", (_req, res) => {
+  res.json({ ok: true });
+});
+
+logInfo(
+  "✅ API routes registered: /api/expenses, /api/recurring-expenses, /api/auth, /api/train-model, /api/predict-category, /api/ml-health",
+);
 
 // ✅ ML training endpoint
 app.post("/api/train-model", requireAuth, async (req, res) => {
@@ -414,7 +427,7 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    console.error('❌ Training error:', error);
+    logError('❌ Training error:', error);
     const status = Number(error?.status || 503);
     res.status(status >= 400 && status < 600 ? status : 503).json({
       error: "ML training is temporarily unavailable. Please retry in a minute.",
@@ -442,7 +455,7 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error("❌ Prediction error:", error);
+    logError("❌ Prediction error:", error);
 
     // Keep expense flow usable even when ML service is unstable.
     res.json({
@@ -456,10 +469,18 @@ app.post("/api/predict-category", requireAuth, async (req, res) => {
 
 app.get("/api/ml-health", async (_req, res) => {
   try {
+    const routeSummary = (app.router?.stack || [])
+      .filter((layer) => layer.route)
+      .map((layer) => ({
+        path: layer.route.path,
+        methods: Object.keys(layer.route.methods || {}),
+      }));
+    logInfo(`ℹ Route snapshot: ${JSON.stringify(routeSummary)}`);
+
     const result = await callMlService("/health");
     res.json(result);
   } catch (error) {
-    console.error("❌ ML health check error:", error);
+    logError("❌ ML health check error:", error);
     const status = Number(error?.status || 503);
     res.status(status >= 400 && status < 600 ? status : 503).json({ error: error.message });
   }
@@ -476,4 +497,4 @@ app.use((req, res) => {
 
 // ✅ Start server
 startInternalMlService();
-app.listen(PORT, () => console.log(`✅ Server running at http://127.0.0.1:${PORT}`));
+app.listen(PORT, () => logInfo(`✅ Server running at http://127.0.0.1:${PORT}`));

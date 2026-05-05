@@ -41,6 +41,8 @@ function App() {
     setLoginForm,
     expenseForm,
     setExpenseForm,
+    recurringForm,
+    setRecurringForm,
     signupForm,
     setSignupForm,
     handleLogin,
@@ -100,6 +102,8 @@ function App() {
                   loadingExpenses={loadingExpenses}
                   expenseForm={expenseForm}
                   setExpenseForm={setExpenseForm}
+                  recurringForm={recurringForm}
+                  setRecurringForm={setRecurringForm}
                   handleAddExpense={handleAddExpense}
                   submitting={submitting}
                   isEditingExpense={editingExpenseId !== null}

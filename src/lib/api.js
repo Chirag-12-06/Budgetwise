@@ -86,16 +86,19 @@ export async function fetchExpenses(options = {}) {
     params.set("groupBy", String(options.groupBy));
   }
 
-  if (options.generateUpTo) {
-    params.set("generateUpTo", String(options.generateUpTo));
-  }
-
   const query = params.toString();
   return apiRequest(`/expenses${query ? `?${query}` : ""}`);
 }
 
 export async function createExpense(payload) {
   return apiRequest("/expenses", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createRecurringExpense(payload) {
+  return apiRequest("/recurring-expenses", {
     method: "POST",
     body: JSON.stringify(payload),
   });

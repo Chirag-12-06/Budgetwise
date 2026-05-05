@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
+import { logError } from "../utils/logger.js";
 
 const prisma = new PrismaClient();
 const sessionLastActivity = new Map();
@@ -110,7 +111,7 @@ export const requireAuth = async (req, res, next) => {
     req.authSessionId = sessionId;
     next();
   } catch (error) {
-    console.error("Auth middleware error:", error);
+    logError("Auth middleware error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

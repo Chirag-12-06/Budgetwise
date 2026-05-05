@@ -53,6 +53,7 @@
         "netmeds",
         "numpy",
         "panera",
+        "pkey",
         "prtc",
         "pycache",
         "pytest",

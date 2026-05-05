@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import jwt from "jsonwebtoken";
 import { invalidateAuthSession } from "../middleware/authMiddleware.js";
+import { logError } from "../utils/logger.js";
 const prisma = new PrismaClient();
 
 const PASSWORD_SALT_ROUNDS = 12;
@@ -157,7 +158,7 @@ export const signup = async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    logError('Signup error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -227,7 +228,7 @@ export const login = async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logError('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -251,7 +252,7 @@ export const getProfile = async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error('Get profile error:', error);
+    logError('Get profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -298,7 +299,7 @@ export const updateProfile = async (req, res) => {
 
     res.json({ message: 'Profile updated successfully', user: updatedUser });
   } catch (error) {
-    console.error('Update profile error:', error);
+    logError('Update profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
