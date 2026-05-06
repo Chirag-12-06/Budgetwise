@@ -1,11 +1,13 @@
 import express from "express";
 import { requireAuth } from "../middleware/authMiddleware.js";
-import { addRecurringExpense } from "../controllers/recurringExpenseController.js";
+import {
+  getRecurringExpenses,
+  deleteRecurringExpense,
+} from "../controllers/recurringExpenseController.js";
 
 const router = express.Router();
 
-router.use(requireAuth);
-
-router.post("/", addRecurringExpense);
+router.get("/", requireAuth, getRecurringExpenses);
+router.delete("/:id", requireAuth, deleteRecurringExpense);
 
 export default router;

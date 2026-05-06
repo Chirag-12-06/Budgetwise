@@ -3,12 +3,54 @@ import { logError } from "../utils/logger.js";
 
 const prisma = new PrismaClient();
 
-const VALID_FREQUENCIES = new Set(["daily", "weekly", "monthly", "yearly"]);
-const VALID_END_TYPES = new Set(["forever", "count", "until_date"]);
+const RECURRENCE_FREQUENCY_MAP = {
+  daily: "DAILY",
+  weekly: "WEEKLY",
+  monthly: "MONTHLY",
+  yearly: "YEARLY",
+};
+
+const RECURRENCE_END_TYPE_MAP = {
+  forever: "FOREVER",
+  count: "COUNT",
+  until_date: "UNTIL_DATE",
+};
+
+function normalizeRecurrenceFrequency(value) {
+  const key = String(value || "").trim().toLowerCase();
+  return RECURRENCE_FREQUENCY_MAP[key] || null;
+}
+
+function normalizeRecurrenceEndType(value) {
+  const key = String(value || "").trim().toLowerCase();
+  return RECURRENCE_END_TYPE_MAP[key] || null;
+}
+
+function serializeRecurringExpense(recurringExpense) {
+  return {
+    ...recurringExpense,
+    frequency: String(recurringExpense.frequency || "").toUpperCase(),
+    endType: String(recurringExpense.endType || "").toUpperCase(),
+  };
+}
+
+function logRecurringExpenseError(operation, error) {
+  logError(`[recurring-expenses] ${operation} failed`, error?.stack || error?.message || error);
+}
+
+function buildErrorResponse(error, fallbackMessage) {
+  const response = { error: fallbackMessage };
+
+  if (process.env.NODE_ENV !== "production") {
+    response.details = error?.message || String(error);
+  }
+
+  return response;
+}
 
 function parseFlexibleDate(value) {
   if (!value) {
-    return null;
+    return new Date();
   }
 
   const direct = new Date(value);
@@ -17,29 +59,18 @@ function parseFlexibleDate(value) {
   }
 
   const parts = String(value).split(/[-/\.]/).map((part) => part.trim());
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  const [first, second, third] = parts;
-  if (Number(first) > 0 && Number(first) <= 31) {
-    const iso = `${third.padStart(4, "0")}-${second.padStart(2, "0")}-${first.padStart(2, "0")}`;
-    const parsedIso = new Date(iso);
-    if (!Number.isNaN(parsedIso.getTime())) {
-      return parsedIso;
+  if (parts.length === 3) {
+    const [a, b, c] = parts;
+    if (Number(a) > 0 && Number(a) <= 31) {
+      const iso = `${c.padStart(4, "0")}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`;
+      const parsedIso = new Date(iso);
+      if (!Number.isNaN(parsedIso.getTime())) {
+        return parsedIso;
+      }
     }
   }
 
-  return null;
-}
-
-function parsePositiveInteger(value) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 1) {
-    return null;
-  }
-
-  return Math.trunc(parsed);
+  return new Date();
 }
 
 export const addRecurringExpense = async (req, res) => {
@@ -57,74 +88,89 @@ export const addRecurringExpense = async (req, res) => {
       endDate,
     } = req.body;
 
-    const normalizedTitle = String(title || "").trim();
-    const normalizedCategory = String(category || "").trim();
-    const normalizedFrequency = String(frequency || "").trim().toLowerCase();
-    const normalizedEndType = String(endType || "").trim().toLowerCase();
+    const normalizedFrequency = normalizeRecurrenceFrequency(frequency);
+    const normalizedEndType = normalizeRecurrenceEndType(endType);
 
-    if (!normalizedTitle || amount === undefined || amount === null || !normalizedCategory) {
-      return res.status(400).json({ message: "Title, amount, and category are required" });
+    // Validation
+    if (!title || !amount || !category || !normalizedFrequency || !normalizedEndType) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    if (!VALID_FREQUENCIES.has(normalizedFrequency)) {
-      return res.status(400).json({ message: "Invalid recurrence frequency" });
-    }
-
-    if (!VALID_END_TYPES.has(normalizedEndType)) {
-      return res.status(400).json({ message: "Invalid recurrence end type" });
-    }
-
-    const parsedAmount = Number(amount);
-    if (Number.isNaN(parsedAmount)) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    const parsedIntervalValue = parsePositiveInteger(intervalValue ?? 1);
-    if (parsedIntervalValue === null) {
-      return res.status(400).json({ message: "Interval must be a positive whole number" });
+    if (Number(amount) <= 0) {
+      return res.status(400).json({ error: "Amount must be greater than 0" });
     }
 
     const parsedStartDate = parseFlexibleDate(startDate);
-    if (!parsedStartDate) {
-      return res.status(400).json({ message: "Invalid start date" });
-    }
-
-    let parsedEndCount = null;
-    let parsedEndDate = null;
-
-    if (normalizedEndType === "count") {
-      parsedEndCount = parsePositiveInteger(endCount);
-      if (parsedEndCount === null) {
-        return res.status(400).json({ message: "Occurrences count must be a positive whole number" });
-      }
-    }
-
-    if (normalizedEndType === "until_date") {
-      parsedEndDate = parseFlexibleDate(endDate);
-      if (!parsedEndDate) {
-        return res.status(400).json({ message: "Repeat-until date is required" });
-      }
-    }
+    const parsedEndDate = endType === "until_date" ? parseFlexibleDate(endDate) : null;
 
     const recurringExpense = await prisma.recurringExpense.create({
       data: {
-        title: normalizedTitle,
-        amount: parsedAmount,
-        category: normalizedCategory,
+        title: title.trim(),
+        userId,
+        amount: Number(amount),
+        category,
         frequency: normalizedFrequency,
-        intervalValue: parsedIntervalValue,
+        intervalValue: Number(intervalValue) || 1,
         startDate: parsedStartDate,
         endType: normalizedEndType,
-        endCount: parsedEndCount,
+        endCount: normalizedEndType === "COUNT" ? Number(endCount) : null,
         endDate: parsedEndDate,
         nextDueDate: parsedStartDate,
-        userId,
+        isActive: true,
       },
     });
 
-    return res.status(201).json(recurringExpense);
+    return res.status(201).json(serializeRecurringExpense(recurringExpense));
   } catch (error) {
-    logError("addRecurringExpense error:", error && error.stack ? error.stack : error);
-    return res.status(500).json({ message: "Server error" });
+    logRecurringExpenseError("create", error);
+    return res.status(500).json(buildErrorResponse(error, "Error creating recurring expense"));
+  }
+};
+
+export const getRecurringExpenses = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const recurringExpenses = await prisma.recurringExpense.findMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      orderBy: { startDate: "asc" },
+    });
+
+    return res.json(recurringExpenses.map(serializeRecurringExpense));
+  } catch (error) {
+    logRecurringExpenseError("fetch", error);
+    return res.status(500).json(buildErrorResponse(error, "Error fetching recurring expenses"));
+  }
+};
+
+export const deleteRecurringExpense = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const recurringExpense = await prisma.recurringExpense.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!recurringExpense) {
+      return res.status(404).json({ error: "Recurring expense not found" });
+    }
+
+    if (recurringExpense.userId !== userId) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    await prisma.recurringExpense.update({
+      where: { id: Number(id) },
+      data: { isActive: false },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    logRecurringExpenseError("delete", error);
+    return res.status(500).json(buildErrorResponse(error, "Error deleting recurring expense"));
   }
 };

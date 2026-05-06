@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createExpense, createRecurringExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
+import { createExpense, createRecurringExpense, fetchExpenses, fetchRecurringExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
@@ -42,9 +42,9 @@ export default function useAppController() {
   });
   const [recurringForm, setRecurringForm] = useState({
     enabled: false,
-    frequency: "monthly",
+    frequency: "MONTHLY",
     intervalValue: "1",
-    endType: "forever",
+    endType: "FOREVER",
     endCount: "",
     endDate: "",
   });
@@ -62,10 +62,39 @@ export default function useAppController() {
       return [];
     }
 
-    const data = await fetchExpenses(options);
-    const normalized = Array.isArray(data) ? data : [];
-    setExpenses(normalized);
-    return normalized;
+    setLoadingExpenses(true);
+    try {
+      const expensesData = await fetchExpenses(options);
+      const recurringData = await fetchRecurringExpenses();
+      
+      const expenses = Array.isArray(expensesData) ? expensesData : [];
+      const recurring = Array.isArray(recurringData) ? recurringData : [];
+      
+      // Add isRecurring flag to recurring expenses
+      const recurringWithFlag = recurring.map((item) => ({
+        ...item,
+        isRecurring: true,
+        createdAt: item.startDate, // Use startDate as the display date
+      }));
+      
+      // Combine both lists and sort by date
+      const combined = [...expenses, ...recurringWithFlag].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.startDate);
+        const dateB = new Date(b.createdAt || b.startDate);
+        return dateB - dateA; // Newest first
+      });
+      
+      setExpenses(combined);
+      return combined;
+    } catch (error) {
+      // Silently fail for recurring expenses (might not have any)
+      const expensesData = await fetchExpenses(options);
+      const expenses = Array.isArray(expensesData) ? expensesData : [];
+      setExpenses(expenses);
+      return expenses;
+    } finally {
+      setLoadingExpenses(false);
+    }
   }
 
   useEffect(() => {
@@ -101,9 +130,9 @@ export default function useAppController() {
     });
     setRecurringForm({
       enabled: false,
-      frequency: "monthly",
+      frequency: "MONTHLY",
       intervalValue: "1",
-      endType: "forever",
+      endType: "FOREVER",
       endCount: "",
       endDate: "",
     });
@@ -340,9 +369,9 @@ export default function useAppController() {
       }));
       setRecurringForm({
         enabled: false,
-        frequency: "monthly",
+        frequency: "MONTHLY",
         intervalValue: "1",
-        endType: "forever",
+        endType: "FOREVER",
         endCount: "",
         endDate: "",
       });
@@ -368,9 +397,9 @@ export default function useAppController() {
     });
     setRecurringForm({
       enabled: false,
-      frequency: "monthly",
+      frequency: "MONTHLY",
       intervalValue: "1",
-      endType: "forever",
+      endType: "FOREVER",
       endCount: "",
       endDate: "",
     });
@@ -388,9 +417,9 @@ export default function useAppController() {
     });
     setRecurringForm({
       enabled: false,
-      frequency: "monthly",
+      frequency: "MONTHLY",
       intervalValue: "1",
-      endType: "forever",
+      endType: "FOREVER",
       endCount: "",
       endDate: "",
     });

@@ -33,6 +33,12 @@ model Expense {
   createdAt DateTime @default(now())
   userId    Int?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  recurringId  Int?
+  recurring    RecurringExpense? @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([recurringId])
 }
 
 enum RecurrenceFrequency {
@@ -65,6 +71,7 @@ model RecurringExpense {
   isActive        Boolean             @default(true) @map("is_active")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
 
   @@index([userId, isActive])
   @@index([nextDueDate])

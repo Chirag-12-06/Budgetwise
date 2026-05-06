@@ -69,7 +69,18 @@ export default function ExpensesPage({
                       <i className={category.icon} aria-hidden="true" />
                     </span>
                     <div className="grid gap-1">
-                      <strong>{expense.title}</strong>
+                      <div className="flex items-center gap-2">
+                        <strong>{expense.title}</strong>
+                        {expense.isRecurring && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            <i
+                              className="fas fa-repeat text-[0.7rem]"
+                              aria-hidden="true"
+                            />
+                            Recurring
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
                         {formatDateDMY(expense.createdAt)}
                       </span>

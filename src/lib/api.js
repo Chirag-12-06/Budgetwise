@@ -49,7 +49,7 @@ export async function apiRequest(path, options = {}) {
       clearStoredAuthSession();
     }
 
-    throw new Error(data?.message || "Request failed");
+    throw new Error(data?.details || data?.error || data?.message || "Request failed");
   }
 
   return data;
@@ -101,6 +101,12 @@ export async function createRecurringExpense(payload) {
   return apiRequest("/recurring-expenses", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchRecurringExpenses() {
+  return apiRequest("/recurring-expenses", {
+    method: "GET",
   });
 }
 
