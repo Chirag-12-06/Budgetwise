@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { logError } from "../utils/logger.js";
+import { logError, logInfo } from "../utils/logger.js";
+import { materializeDueRecurringExpensesForUser } from "./expenseController.js";
 
 const prisma = new PrismaClient();
 
@@ -119,6 +120,12 @@ export const addRecurringExpense = async (req, res) => {
         isActive: true,
       },
     });
+    // Immediately materialize if due date is today or past
+    try {
+      await materializeDueRecurringExpensesForUser(userId);
+    } catch (error) {
+      logError("❌ Failed to materialize after creating recurring expense:", error);
+    }
 
     return res.status(201).json(serializeRecurringExpense(recurringExpense));
   } catch (error) {

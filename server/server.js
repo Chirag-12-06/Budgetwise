@@ -10,6 +10,7 @@ import { PrismaClient } from "@prisma/client";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import recurringExpenseRoutes from "./routes/recurringExpenseRoutes.js";
 import { addRecurringExpense } from "./controllers/recurringExpenseController.js";
+import { materializeDueRecurringExpensesForAllUsers } from "./controllers/expenseController.js";
 import authRoutes from "./routes/authRoutes.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
 import { logError, logInfo, logWarn } from "./utils/logger.js";
@@ -497,4 +498,29 @@ app.use((req, res) => {
 
 // ✅ Start server
 startInternalMlService();
-app.listen(PORT, () => logInfo(`✅ Server running at http://127.0.0.1:${PORT}`));
+
+let recurringMaterializerRunning = false;
+const RECURRING_MATERIALIZER_INTERVAL_MS = Number(process.env.RECURRING_MATERIALIZER_INTERVAL_MS) > 0
+  ? Number(process.env.RECURRING_MATERIALIZER_INTERVAL_MS)
+  : 10_000;
+
+async function runRecurringMaterializer(trigger) {
+  if (recurringMaterializerRunning || shuttingDown) {
+    return;
+  }
+
+  recurringMaterializerRunning = true;
+  try {
+    await materializeDueRecurringExpensesForAllUsers();
+  } catch (error) {
+    logError(`❌ Recurring materializer failed during ${trigger}:`, error);
+  } finally {
+    recurringMaterializerRunning = false;
+  }
+}
+
+app.listen(PORT, () => {
+  logInfo(`✅ Server running at http://127.0.0.1:${PORT}`);
+  runRecurringMaterializer("startup");
+  setInterval(() => runRecurringMaterializer("interval"), RECURRING_MATERIALIZER_INTERVAL_MS);
+});

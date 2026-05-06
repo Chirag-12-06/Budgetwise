@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createExpense, createRecurringExpense, fetchExpenses, fetchRecurringExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
+import { createExpense, createRecurringExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
@@ -65,31 +65,29 @@ export default function useAppController() {
     setLoadingExpenses(true);
     try {
       const expensesData = await fetchExpenses(options);
-      const recurringData = await fetchRecurringExpenses();
-      
-      const expenses = Array.isArray(expensesData) ? expensesData : [];
-      const recurring = Array.isArray(recurringData) ? recurringData : [];
-      
-      // Add isRecurring flag to recurring expenses
-      const recurringWithFlag = recurring.map((item) => ({
-        ...item,
-        isRecurring: true,
-        createdAt: item.startDate, // Use startDate as the display date
-      }));
-      
-      // Combine both lists and sort by date
-      const combined = [...expenses, ...recurringWithFlag].sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.startDate);
-        const dateB = new Date(b.createdAt || b.startDate);
-        return dateB - dateA; // Newest first
+      const expenses = Array.isArray(expensesData)
+        ? expensesData.map((item) => ({
+            ...item,
+            isRecurring: Boolean(item.recurringId),
+          }))
+        : [];
+
+      const sorted = [...expenses].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date || a.startDate || 0);
+        const dateB = new Date(b.createdAt || b.date || b.startDate || 0);
+        return dateB - dateA;
       });
-      
-      setExpenses(combined);
-      return combined;
+
+      setExpenses(sorted);
+      return sorted;
     } catch (error) {
-      // Silently fail for recurring expenses (might not have any)
       const expensesData = await fetchExpenses(options);
-      const expenses = Array.isArray(expensesData) ? expensesData : [];
+      const expenses = Array.isArray(expensesData)
+        ? expensesData.map((item) => ({
+            ...item,
+            isRecurring: Boolean(item.recurringId),
+          }))
+        : [];
       setExpenses(expenses);
       return expenses;
     } finally {
@@ -352,6 +350,8 @@ export default function useAppController() {
         showStatus("Expense updated successfully", "success");
       } else if (recurringForm.enabled) {
         await createRecurringExpense(recurringPayload);
+        const syncedExpenses = await fetchExpenses();
+        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Recurring expense saved successfully", "success");
       } else {
         await createExpense(payload);

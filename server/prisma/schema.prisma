@@ -37,6 +37,7 @@ model Expense {
   recurringId  Int?
   recurring    RecurringExpense? @relation(fields: [recurringId], references: [id], onDelete: Cascade)
 
+  @@unique([recurringId, createdAt, userId])
   @@index([userId, createdAt])
   @@index([recurringId])
 }

@@ -2,6 +2,133 @@ import { PrismaClient } from "@prisma/client";
 import { logError } from "../utils/logger.js";
 
 const prisma = new PrismaClient();
+const activeMaterializationUserIds = new Set();
+
+function cloneUtcDate(dateInput) {
+  return new Date(new Date(dateInput).getTime());
+}
+
+function addRecurringInterval(dateInput, frequency, intervalValue) {
+  const nextDate = cloneUtcDate(dateInput);
+  const step = Math.max(1, Number(intervalValue) || 1);
+
+  switch (frequency) {
+    case "DAILY":
+      nextDate.setUTCDate(nextDate.getUTCDate() + step);
+      break;
+    case "WEEKLY":
+      nextDate.setUTCDate(nextDate.getUTCDate() + (7 * step));
+      break;
+    case "MONTHLY":
+      nextDate.setUTCMonth(nextDate.getUTCMonth() + step);
+      break;
+    case "YEARLY":
+      nextDate.setUTCFullYear(nextDate.getUTCFullYear() + step);
+      break;
+    default:
+      nextDate.setUTCDate(nextDate.getUTCDate() + step);
+      break;
+  }
+
+  return nextDate;
+}
+
+export async function materializeDueRecurringExpensesForUser(userId) {
+  if (activeMaterializationUserIds.has(userId)) {
+    return;
+  }
+
+  activeMaterializationUserIds.add(userId);
+  const now = new Date();
+
+  try {
+    const dueRecurringExpenses = await prisma.recurringExpense.findMany({
+      where: {
+        userId,
+        isActive: true,
+        nextDueDate: { lte: now },
+      },
+      orderBy: { nextDueDate: "asc" },
+    });
+
+    for (const recurringExpense of dueRecurringExpenses) {
+      const nextDueDate = cloneUtcDate(recurringExpense.nextDueDate);
+      const nextOccurrenceDate = addRecurringInterval(
+        nextDueDate,
+        recurringExpense.frequency,
+        recurringExpense.intervalValue,
+      );
+      const nextOccurrencesDone = Number(recurringExpense.occurrencesDone || 0) + 1;
+      const isCountComplete = recurringExpense.endType === "COUNT"
+        && Number.isFinite(recurringExpense.endCount)
+        && nextOccurrencesDone >= Number(recurringExpense.endCount);
+      const isUntilDateComplete = recurringExpense.endType === "UNTIL_DATE"
+        && recurringExpense.endDate
+        && nextOccurrenceDate > new Date(recurringExpense.endDate);
+
+      await prisma.$transaction(async (tx) => {
+        const existingExpense = await tx.expense.findFirst({
+          where: {
+            recurringId: recurringExpense.id,
+            createdAt: nextDueDate,
+            userId: recurringExpense.userId,
+          },
+        });
+
+        if (!existingExpense) {
+          try {
+            await tx.expense.create({
+              data: {
+                title: recurringExpense.title,
+                amount: recurringExpense.amount,
+                category: recurringExpense.category,
+                createdAt: nextDueDate,
+                userId: recurringExpense.userId,
+                recurringId: recurringExpense.id,
+              },
+            });
+          } catch (err) {
+            // If a unique constraint violation happened because another runner created it,
+            // ignore and continue. Prisma uses code 'P2002' for unique constraint failures.
+            if (err && err.code === 'P2002') {
+              logError('Duplicate expense detected during creation (ignored)');
+            } else {
+              throw err;
+            }
+          }
+        }
+
+        await tx.recurringExpense.update({
+          where: { id: recurringExpense.id },
+          data: {
+            occurrencesDone: nextOccurrencesDone,
+            nextDueDate: nextOccurrenceDate,
+            isActive: !(isCountComplete || isUntilDateComplete),
+          },
+        });
+      });
+    }
+  } finally {
+    activeMaterializationUserIds.delete(userId);
+  }
+}
+
+export async function materializeDueRecurringExpensesForAllUsers() {
+  const userIds = await prisma.recurringExpense.findMany({
+    where: {
+      isActive: true,
+      nextDueDate: { lte: new Date() },
+    },
+    distinct: ["userId"],
+    select: {
+      userId: true,
+    },
+  });
+
+  for (const { userId } of userIds) {
+    await materializeDueRecurringExpensesForUser(userId);
+  }
+}
 
 function parseIsoDateOnly(value) {
   const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -70,6 +197,8 @@ export const getExpenses = async (req, res) => {
   try {
     const userId = req.user.id;
     const { from, to, groupBy } = req.query;
+
+    await materializeDueRecurringExpensesForUser(userId);
 
     const filter = { userId };
     if (from || to) {
