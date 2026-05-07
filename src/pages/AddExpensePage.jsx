@@ -49,6 +49,23 @@ export default function AddExpensePage({
 
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
     useState(false);
+  const [showRecurringUnderDevelopmentPopup, setShowRecurringUnderDevelopmentPopup] =
+    useState(false);
+
+  const isDeployed = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && window.location.hostname !== "127.0.0.1";
+
+  const handleRecurringToggle = () => {
+    if (isDeployed) {
+      setShowRecurringUnderDevelopmentPopup(true);
+    } else {
+      setRecurringForm((current) => ({
+        ...current,
+        enabled: !current.enabled,
+        endCount: !current.enabled ? current.endCount : "",
+        endDate: !current.enabled ? current.endDate : "",
+      }));
+    }
+  };
 
   return (
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
@@ -244,14 +261,7 @@ export default function AddExpensePage({
                 variant="plain"
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${recurringForm.enabled ? "bg-indigo-600 text-white hover:bg-indigo-500" : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-slate-500 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"}`}
                 type="button"
-                onClick={() =>
-                  setRecurringForm((current) => ({
-                    ...current,
-                    enabled: !current.enabled,
-                    endCount: !current.enabled ? current.endCount : "",
-                    endDate: !current.enabled ? current.endDate : "",
-                  }))
-                }
+                onClick={handleRecurringToggle}
               >
                 {recurringForm.enabled ? "Recurring on" : "Make recurring"}
               </Button>
@@ -427,6 +437,14 @@ export default function AddExpensePage({
         message="Receipt scanning is under development and will be available soon."
         labelledBy="scan-receipt-popup-title"
         onClose={() => setShowScanUnderDevelopmentPopup(false)}
+      />
+
+      <UnderDevelopmentDialog
+        open={showRecurringUnderDevelopmentPopup}
+        title="Feature Under Development"
+        message="Recurring expenses feature is under development and will be available soon."
+        labelledBy="recurring-popup-title"
+        onClose={() => setShowRecurringUnderDevelopmentPopup(false)}
       />
     </PanelCard>
   );
