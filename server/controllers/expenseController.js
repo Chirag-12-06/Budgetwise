@@ -61,7 +61,7 @@ export async function materializeDueRecurringExpensesForUser(userId) {
       const nextOccurrencesDone = Number(recurringExpense.occurrencesDone || 0) + 1;
       const isCountComplete = recurringExpense.endType === "COUNT"
         && Number.isFinite(recurringExpense.endCount)
-        && nextOccurrencesDone >= Number(recurringExpense.endCount);
+        && nextOccurrencesDone > Number(recurringExpense.endCount);
       const isUntilDateComplete = recurringExpense.endType === "UNTIL_DATE"
         && recurringExpense.endDate
         && nextOccurrenceDate > new Date(recurringExpense.endDate);
@@ -75,7 +75,7 @@ export async function materializeDueRecurringExpensesForUser(userId) {
           },
         });
 
-        if (!existingExpense) {
+        if (!existingExpense && !isCountComplete) {
           try {
             await tx.expense.create({
               data: {
