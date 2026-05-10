@@ -53,15 +53,19 @@ export async function materializeDueRecurringExpensesForUser(userId) {
 
     for (const recurringExpense of dueRecurringExpenses) {
       const nextDueDate = cloneUtcDate(recurringExpense.nextDueDate);
+      const currentOccurrencesDone = Number(recurringExpense.occurrencesDone || 0);
       const nextOccurrenceDate = addRecurringInterval(
         nextDueDate,
         recurringExpense.frequency,
         recurringExpense.intervalValue,
       );
-      const nextOccurrencesDone = Number(recurringExpense.occurrencesDone || 0) + 1;
-      const isCountComplete = recurringExpense.endType === "COUNT"
+      const nextOccurrencesDone = currentOccurrencesDone + 1;
+      const hasReachedCountLimit = recurringExpense.endType === "COUNT"
         && Number.isFinite(recurringExpense.endCount)
-        && nextOccurrencesDone > Number(recurringExpense.endCount);
+        && currentOccurrencesDone >= Number(recurringExpense.endCount);
+      const willReachCountLimit = recurringExpense.endType === "COUNT"
+        && Number.isFinite(recurringExpense.endCount)
+        && nextOccurrencesDone >= Number(recurringExpense.endCount);
       const isUntilDateComplete = recurringExpense.endType === "UNTIL_DATE"
         && recurringExpense.endDate
         && nextOccurrenceDate > new Date(recurringExpense.endDate);
@@ -75,7 +79,7 @@ export async function materializeDueRecurringExpensesForUser(userId) {
           },
         });
 
-        if (!existingExpense && !isCountComplete) {
+        if (!existingExpense && !hasReachedCountLimit) {
           try {
             await tx.expense.create({
               data: {
@@ -103,7 +107,7 @@ export async function materializeDueRecurringExpensesForUser(userId) {
           data: {
             occurrencesDone: nextOccurrencesDone,
             nextDueDate: nextOccurrenceDate,
-            isActive: !(isCountComplete || isUntilDateComplete),
+            isActive: !(willReachCountLimit || isUntilDateComplete),
           },
         });
       });

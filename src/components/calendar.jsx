@@ -60,6 +60,7 @@ export default function Calendar({
   value = "",
   onChange,
   disabled = false,
+  minDate = null,
   ...props
 }) {
   const mergedHighlightDates = useMemo(() => {
@@ -127,6 +128,7 @@ export default function Calendar({
       disableMobile: true,
       allowInput: false, // Prevents keyboard from ever appearing
       clickOpens: !disabled,
+      minDate: minDate || undefined,
       defaultDate: value || undefined,
       onReady: (_selectedDates, _dateString, instance) => {
         if (instance.altInput) {
@@ -191,6 +193,15 @@ export default function Calendar({
       picker.close();
     }
   }, [disabled]);
+
+  useEffect(() => {
+    const picker = pickerRef.current;
+    if (!picker) {
+      return;
+    }
+
+    picker.set("minDate", minDate || undefined);
+  }, [minDate]);
 
   useEffect(() => {
     const picker = pickerRef.current;

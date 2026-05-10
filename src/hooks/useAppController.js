@@ -320,6 +320,17 @@ export default function useAppController() {
   async function handleAddExpense(event) {
     event.preventDefault();
 
+    if (
+      recurringForm.enabled &&
+      recurringForm.endType === "UNTIL_DATE" &&
+      recurringForm.endDate &&
+      expenseForm.date &&
+      recurringForm.endDate <= expenseForm.date
+    ) {
+      showStatus("Until date must be after the start date.", "error");
+      return;
+    }
+
     setSubmitting(true);
     setStatus(null);
 

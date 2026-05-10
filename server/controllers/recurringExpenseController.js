@@ -102,7 +102,11 @@ export const addRecurringExpense = async (req, res) => {
     }
 
     const parsedStartDate = parseFlexibleDate(startDate);
-    const parsedEndDate = endType === "until_date" ? parseFlexibleDate(endDate) : null;
+    const parsedEndDate = normalizedEndType === "UNTIL_DATE" ? parseFlexibleDate(endDate) : null;
+
+    if (normalizedEndType === "UNTIL_DATE" && !endDate) {
+      return res.status(400).json({ error: "End date is required for until-date recurring expenses" });
+    }
 
     const recurringExpense = await prisma.recurringExpense.create({
       data: {

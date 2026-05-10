@@ -13,6 +13,25 @@ import useAddExpensePage from "../hooks/useAddExpensePage";
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
 
+function getNextDateKey(dateKey) {
+  const [year, month, day] = String(dateKey || "")
+    .split("-")
+    .map((value) => Number(value));
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    return "";
+  }
+
+  const nextDate = new Date(year, month - 1, day + 1);
+  const nextYear = nextDate.getFullYear();
+  const nextMonth = String(nextDate.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(nextDate.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
 const submitButtonClasses =
   "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
 const updateButtonClasses =
@@ -49,10 +68,23 @@ export default function AddExpensePage({
 
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
     useState(false);
-  const [showRecurringUnderDevelopmentPopup, setShowRecurringUnderDevelopmentPopup] =
-    useState(false);
+  const [
+    showRecurringUnderDevelopmentPopup,
+    setShowRecurringUnderDevelopmentPopup,
+  ] = useState(false);
 
-  const isDeployed = typeof window !== "undefined" && !window.location.hostname.includes("localhost") && window.location.hostname !== "127.0.0.1";
+  const recurringUntilDateMin = getNextDateKey(expenseForm.date);
+  const recurringUntilDateIsInvalid =
+    recurringForm.enabled &&
+    recurringForm.endType === "UNTIL_DATE" &&
+    Boolean(recurringForm.endDate) &&
+    Boolean(expenseForm.date) &&
+    recurringForm.endDate <= expenseForm.date;
+
+  const isDeployed =
+    typeof window !== "undefined" &&
+    !window.location.hostname.includes("localhost") &&
+    window.location.hostname !== "127.0.0.1";
 
   const handleRecurringToggle = () => {
     if (isDeployed) {
@@ -378,10 +410,10 @@ export default function AddExpensePage({
                       />
                       <span className="grid flex-1 gap-2">
                         Until date
-                        <input
+                        <Calendar
                           className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
-                          type="date"
                           value={recurringForm.endDate}
+                          minDate={recurringUntilDateMin}
                           onChange={(event) =>
                             setRecurringForm((current) => ({
                               ...current,
@@ -390,6 +422,11 @@ export default function AddExpensePage({
                             }))
                           }
                         />
+                        {recurringUntilDateIsInvalid ? (
+                          <span className="text-xs font-medium text-red-600 dark:text-red-300">
+                            Until date must be after the start date.
+                          </span>
+                        ) : null}
                       </span>
                     </label>
                   </div>
