@@ -33,6 +33,7 @@ export default function useAppController() {
   const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
   const [expenses, setExpenses] = useState([]);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [recurringExpenseActionPrompt, setRecurringExpenseActionPrompt] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [expenseForm, setExpenseForm] = useState({
     title: "",
@@ -451,6 +452,38 @@ export default function useAppController() {
     }
   }
 
+  function handleRecurringExpenseActionRequest(expense, actionType) {
+    if (!expense?.isRecurring) {
+      return;
+    }
+
+    setRecurringExpenseActionPrompt({
+      expense,
+      actionType,
+    });
+  }
+
+  function handleCloseRecurringExpenseActionPrompt() {
+    setRecurringExpenseActionPrompt(null);
+  }
+
+  function handleRecurringExpenseActionSelect(scope) {
+    const prompt = recurringExpenseActionPrompt;
+    if (!prompt) {
+      return;
+    }
+
+    setRecurringExpenseActionPrompt(null);
+
+    if (scope === "single") {
+      if (prompt.actionType === "edit") {
+        handleStartEditExpense(prompt.expense);
+      } else if (prompt.actionType === "delete") {
+        void handleDeleteExpense(prompt.expense.id);
+      }
+    }
+  }
+
   function handleLogout() {
     resetToLoggedOutState();
   }
@@ -730,6 +763,7 @@ export default function useAppController() {
     user,
     expenses,
     editingExpenseId,
+    recurringExpenseActionPrompt,
     loginForm,
     setLoginForm,
     expenseForm,
@@ -745,6 +779,9 @@ export default function useAppController() {
     handleStartEditExpense,
     handleCancelEditExpense,
     handleDeleteExpense,
+    handleRecurringExpenseActionRequest,
+    handleCloseRecurringExpenseActionPrompt,
+    handleRecurringExpenseActionSelect,
     handleLogout,
     handleDateFilterModeChange,
     handleCustomDateFromChange,

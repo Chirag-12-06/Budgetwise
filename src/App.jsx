@@ -52,6 +52,10 @@ function App() {
     handleStartEditExpense,
     handleCancelEditExpense,
     handleDeleteExpense,
+    recurringExpenseActionPrompt,
+    handleRecurringExpenseActionRequest,
+    handleCloseRecurringExpenseActionPrompt,
+    handleRecurringExpenseActionSelect,
     handleLogout,
     handleDateFilterModeChange,
     handleCustomDateFromChange,
@@ -108,6 +112,16 @@ function App() {
                   submitting={submitting}
                   isEditingExpense={editingExpenseId !== null}
                   handleCancelEditExpense={handleCancelEditExpense}
+                  recurringExpenseActionPrompt={recurringExpenseActionPrompt}
+                  onRecurringExpenseActionRequest={
+                    handleRecurringExpenseActionRequest
+                  }
+                  onRecurringExpenseActionClose={
+                    handleCloseRecurringExpenseActionPrompt
+                  }
+                  onRecurringExpenseActionSelect={
+                    handleRecurringExpenseActionSelect
+                  }
                 />
               ) : view === EXPENSES ? (
                 <ExpensesPage
@@ -124,6 +138,16 @@ function App() {
                   emptyFilteredState={emptyFilteredState}
                   handleDeleteExpense={handleDeleteExpense}
                   handleStartEditExpense={handleStartEditExpense}
+                  recurringExpenseActionPrompt={recurringExpenseActionPrompt}
+                  onRecurringExpenseActionRequest={
+                    handleRecurringExpenseActionRequest
+                  }
+                  onRecurringExpenseActionClose={
+                    handleCloseRecurringExpenseActionPrompt
+                  }
+                  onRecurringExpenseActionSelect={
+                    handleRecurringExpenseActionSelect
+                  }
                   expenses={expenses}
                   categoryFilterExpenses={dateFilteredExpenses}
                   selectedCategoryFilters={selectedCategoryFilters}

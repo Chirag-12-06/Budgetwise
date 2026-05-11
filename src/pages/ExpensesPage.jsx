@@ -3,6 +3,7 @@ import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/panelCard";
+import RecurringExpenseActionDialog from "../components/recurringExpenseActionDialog";
 import { formatDateDMY } from "../utils/date";
 
 export default function ExpensesPage({
@@ -20,6 +21,10 @@ export default function ExpensesPage({
   emptyFilteredState,
   handleStartEditExpense,
   handleDeleteExpense,
+  recurringExpenseActionPrompt,
+  onRecurringExpenseActionRequest,
+  onRecurringExpenseActionClose,
+  onRecurringExpenseActionSelect,
   categoryFilterExpenses,
   selectedCategoryFilters,
   onCategoryFilterToggle,
@@ -93,7 +98,11 @@ export default function ExpensesPage({
                         aria-label={`Edit ${expense.title}`}
                         title="Edit expense"
                         variant="expenseEdit"
-                        onClick={() => handleStartEditExpense(expense)}
+                        onClick={() =>
+                          expense.isRecurring
+                            ? onRecurringExpenseActionRequest(expense, "edit")
+                            : handleStartEditExpense(expense)
+                        }
                       >
                         <i className="fas fa-pen" aria-hidden="true" />
                       </Button>
@@ -101,7 +110,11 @@ export default function ExpensesPage({
                         aria-label={`Delete ${expense.title}`}
                         title="Delete expense"
                         variant="expenseDelete"
-                        onClick={() => handleDeleteExpense(expense.id)}
+                        onClick={() =>
+                          expense.isRecurring
+                            ? onRecurringExpenseActionRequest(expense, "delete")
+                            : handleDeleteExpense(expense.id)
+                        }
                       >
                         <i className="fas fa-trash" aria-hidden="true" />
                       </Button>
@@ -121,6 +134,14 @@ export default function ExpensesPage({
           </div>
         )}
       </PanelCard>
+
+      <RecurringExpenseActionDialog
+        open={Boolean(recurringExpenseActionPrompt)}
+        actionType={recurringExpenseActionPrompt?.actionType}
+        expenseTitle={recurringExpenseActionPrompt?.expense?.title}
+        onClose={onRecurringExpenseActionClose}
+        onSelect={onRecurringExpenseActionSelect}
+      />
     </section>
   );
 }
