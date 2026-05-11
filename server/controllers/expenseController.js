@@ -326,7 +326,43 @@ export const deleteExpense = async (req, res) => {
       return res.status(404).json({ message: "Expense not found" });
     }
 
-    await prisma.expense.delete({ where: { id: expenseId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.expense.delete({ where: { id: expenseId } });
+
+      if (!existing.recurringId) {
+        return;
+      }
+
+      const recurringExpense = await tx.recurringExpense.findFirst({
+        where: {
+          id: existing.recurringId,
+          userId,
+        },
+      });
+
+      if (!recurringExpense) {
+        return;
+      }
+
+      const nextOccurrencesDone = Math.max(
+        0,
+        Number(recurringExpense.occurrencesDone || 0) - 1,
+      );
+      const updateData = {
+        occurrencesDone: nextOccurrencesDone,
+        nextDueDate: recurringExpense.nextDueDate,
+      };
+
+      if (recurringExpense.endType === "COUNT" && Number.isFinite(recurringExpense.endCount)) {
+        updateData.isActive = nextOccurrencesDone < Number(recurringExpense.endCount);
+      }
+
+      await tx.recurringExpense.update({
+        where: { id: recurringExpense.id },
+        data: updateData,
+      });
+    });
+
     return res.json({ message: "Expense deleted" });
   } catch (error) {
     logError(error);
