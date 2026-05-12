@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createExpense, createRecurringExpense, fetchExpenses, getTodayDate, removeExpense, updateExpense } from "../lib/api";
+import { createExpense, createRecurringExpense, fetchExpenses, getTodayDate, removeExpense, removeRecurringExpense, updateExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
@@ -481,7 +481,29 @@ export default function useAppController() {
       } else if (prompt.actionType === "delete") {
         void handleDeleteExpense(prompt.expense.id);
       }
+      return;
     }
+
+    if (scope === "series" && prompt.actionType === "delete") {
+      setSubmitting(true);
+      setStatus(null);
+
+      void removeRecurringExpense(prompt.expense.recurringId || prompt.expense.id)
+        .then(async () => {
+          const syncedExpenses = await fetchExpenses();
+          setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+          showStatus("Recurring series deleted successfully", "success");
+        })
+        .catch((error) => {
+          handleApiError(error, "Unable to delete recurring series");
+        })
+        .finally(() => {
+          setSubmitting(false);
+        });
+      return;
+    }
+
+    showStatus("This action is not implemented yet.", "error");
   }
 
   function handleLogout() {

@@ -174,9 +174,8 @@ export const deleteRecurringExpense = async (req, res) => {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    await prisma.recurringExpense.update({
+    await prisma.recurringExpense.delete({
       where: { id: Number(id) },
-      data: { isActive: false },
     });
 
     return res.json({ success: true });
