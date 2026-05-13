@@ -442,7 +442,8 @@ export default function useAppController() {
     if (!confirmed) return;
     try {
       await removeExpense(id);
-      setExpenses((current) => current.filter((expense) => expense.id !== id));
+      const syncedExpenses = await fetchExpenses();
+      setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
       if (id === editingExpenseId) {
         handleCancelEditExpense();
       }
@@ -481,6 +482,11 @@ export default function useAppController() {
       } else if (prompt.actionType === "delete") {
         void handleDeleteExpense(prompt.expense.id);
       }
+      return;
+    }
+
+    if (scope === "future" && prompt.actionType === "delete") {
+      void handleDeleteExpense(prompt.expense.id);
       return;
     }
 

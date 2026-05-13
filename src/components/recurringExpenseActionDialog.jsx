@@ -60,8 +60,8 @@ export default function RecurringExpenseActionDialog({
           {expenseTitle || "this recurring expense"}.
         </p>
         <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
-          The buttons below are frontend-only for now. They will be connected to
-          the backend actions later.
+          Choose whether to change only the selected expense, this and future
+          ones, or the entire recurring series.
         </p>
 
         <div className="mt-5 grid gap-3">

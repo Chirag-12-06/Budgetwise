@@ -52,6 +52,10 @@ export async function materializeDueRecurringExpensesForUser(userId) {
     });
 
     for (const recurringExpense of dueRecurringExpenses) {
+      if (!recurringExpense.isActive) {
+        continue;
+      }
+
       const nextDueDate = cloneUtcDate(recurringExpense.nextDueDate);
       const currentOccurrencesDone = Number(recurringExpense.occurrencesDone || 0);
       const nextOccurrenceDate = addRecurringInterval(
@@ -327,9 +331,8 @@ export const deleteExpense = async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.expense.delete({ where: { id: expenseId } });
-
       if (!existing.recurringId) {
+        await tx.expense.delete({ where: { id: expenseId } });
         return;
       }
 
@@ -341,25 +344,33 @@ export const deleteExpense = async (req, res) => {
       });
 
       if (!recurringExpense) {
+        await tx.expense.delete({ where: { id: expenseId } });
         return;
       }
 
-      const nextOccurrencesDone = Math.max(
-        0,
-        Number(recurringExpense.occurrencesDone || 0) - 1,
-      );
-      const updateData = {
-        occurrencesDone: nextOccurrencesDone,
-        nextDueDate: recurringExpense.nextDueDate,
-      };
+      await tx.expense.deleteMany({
+        where: {
+          recurringId: recurringExpense.id,
+          userId,
+          createdAt: {
+            gte: existing.createdAt,
+          },
+        },
+      });
 
-      if (recurringExpense.endType === "COUNT" && Number.isFinite(recurringExpense.endCount)) {
-        updateData.isActive = nextOccurrencesDone < Number(recurringExpense.endCount);
-      }
+      const remainingOccurrences = await tx.expense.count({
+        where: {
+          recurringId: recurringExpense.id,
+          userId,
+        },
+      });
 
       await tx.recurringExpense.update({
         where: { id: recurringExpense.id },
-        data: updateData,
+        data: {
+          isActive: false,
+          occurrencesDone: remainingOccurrences,
+        },
       });
     });
 
