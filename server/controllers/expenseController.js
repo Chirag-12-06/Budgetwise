@@ -63,13 +63,9 @@ export async function materializeDueRecurringExpensesForUser(userId) {
         recurringExpense.frequency,
         recurringExpense.intervalValue,
       );
-      const nextOccurrencesDone = currentOccurrencesDone + 1;
       const hasReachedCountLimit = recurringExpense.endType === "COUNT"
         && Number.isFinite(recurringExpense.endCount)
         && currentOccurrencesDone >= Number(recurringExpense.endCount);
-      const willReachCountLimit = recurringExpense.endType === "COUNT"
-        && Number.isFinite(recurringExpense.endCount)
-        && nextOccurrencesDone >= Number(recurringExpense.endCount);
       const isUntilDateComplete = recurringExpense.endType === "UNTIL_DATE"
         && recurringExpense.endDate
         && nextOccurrenceDate > new Date(recurringExpense.endDate);
@@ -106,12 +102,23 @@ export async function materializeDueRecurringExpensesForUser(userId) {
           }
         }
 
+        const actualOccurrencesDone = await tx.expense.count({
+          where: {
+            recurringId: recurringExpense.id,
+            userId: recurringExpense.userId,
+          },
+        });
+
         await tx.recurringExpense.update({
           where: { id: recurringExpense.id },
           data: {
-            occurrencesDone: nextOccurrencesDone,
+            occurrencesDone: actualOccurrencesDone,
             nextDueDate: nextOccurrenceDate,
-            isActive: !(willReachCountLimit || isUntilDateComplete),
+            isActive: !(
+              recurringExpense.endType === "COUNT"
+              && Number.isFinite(recurringExpense.endCount)
+              && actualOccurrencesDone >= Number(recurringExpense.endCount)
+            ) && !isUntilDateComplete,
           },
         });
       });
@@ -365,13 +372,19 @@ export const deleteExpense = async (req, res) => {
         },
       });
 
-      await tx.recurringExpense.update({
-        where: { id: recurringExpense.id },
-        data: {
-          isActive: false,
-          occurrencesDone: remainingOccurrences,
-        },
-      });
+      if (remainingOccurrences === 0) {
+        await tx.recurringExpense.delete({
+          where: { id: recurringExpense.id },
+        });
+      } else {
+        await tx.recurringExpense.update({
+          where: { id: recurringExpense.id },
+          data: {
+            isActive: false,
+            occurrencesDone: remainingOccurrences,
+          },
+        });
+      }
     });
 
     return res.json({ message: "Expense deleted" });
