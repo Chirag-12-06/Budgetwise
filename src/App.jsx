@@ -37,6 +37,7 @@ function App() {
     user,
     expenses,
     editingExpenseId,
+    editingRecurringExpenseId,
     loginForm,
     setLoginForm,
     expenseForm,
@@ -51,6 +52,7 @@ function App() {
     handleAddExpense,
     handleStartEditExpense,
     handleCancelEditExpense,
+    handleCancelEditRecurringExpense,
     handleDeleteExpense,
     recurringExpenseActionPrompt,
     handleRecurringExpenseActionRequest,
@@ -111,7 +113,11 @@ function App() {
                   handleAddExpense={handleAddExpense}
                   submitting={submitting}
                   isEditingExpense={editingExpenseId !== null}
+                  isEditingRecurringSeries={editingRecurringExpenseId !== null}
                   handleCancelEditExpense={handleCancelEditExpense}
+                  handleCancelEditRecurringExpense={
+                    handleCancelEditRecurringExpense
+                  }
                   recurringExpenseActionPrompt={recurringExpenseActionPrompt}
                   onRecurringExpenseActionRequest={
                     handleRecurringExpenseActionRequest

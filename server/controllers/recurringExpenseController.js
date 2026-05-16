@@ -157,6 +157,188 @@ export const getRecurringExpenses = async (req, res) => {
   }
 };
 
+export const getRecurringExpenseById = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const recurringExpenseId = Number(req.params.id);
+
+    if (Number.isNaN(recurringExpenseId)) {
+      return res.status(400).json({ error: "Invalid recurring expense id" });
+    }
+
+    const recurringExpense = await prisma.recurringExpense.findFirst({
+      where: {
+        id: recurringExpenseId,
+        userId,
+      },
+    });
+
+    if (!recurringExpense) {
+      return res.status(404).json({ error: "Recurring expense not found" });
+    }
+
+    return res.json(serializeRecurringExpense(recurringExpense));
+  } catch (error) {
+    logRecurringExpenseError("fetch-by-id", error);
+    return res.status(500).json(buildErrorResponse(error, "Error fetching recurring expense"));
+  }
+};
+
+export const updateRecurringExpense = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const recurringExpenseId = Number(req.params.id);
+    const {
+      title,
+      amount,
+      category,
+      frequency,
+      intervalValue,
+      startDate,
+      endType,
+      endCount,
+      endDate,
+    } = req.body;
+
+    if (Number.isNaN(recurringExpenseId)) {
+      return res.status(400).json({ error: "Invalid recurring expense id" });
+    }
+
+    const existingRecurringExpense = await prisma.recurringExpense.findFirst({
+      where: {
+        id: recurringExpenseId,
+        userId,
+      },
+    });
+
+    if (!existingRecurringExpense) {
+      return res.status(404).json({ error: "Recurring expense not found" });
+    }
+
+    const normalizedFrequency = normalizeRecurrenceFrequency(frequency || existingRecurringExpense.frequency);
+    const normalizedEndType = normalizeRecurrenceEndType(endType || existingRecurringExpense.endType);
+    const nextTitle = String(title ?? existingRecurringExpense.title).trim();
+    const nextAmount = Number(amount ?? existingRecurringExpense.amount);
+    const nextCategory = String(category ?? existingRecurringExpense.category).trim();
+    const nextIntervalValue = Number(intervalValue ?? existingRecurringExpense.intervalValue) || 1;
+    const nextStartDate = parseFlexibleDate(startDate ?? existingRecurringExpense.startDate);
+    const nextEndCount = normalizedEndType === "COUNT"
+      ? Number(endCount ?? existingRecurringExpense.endCount)
+      : null;
+    const nextEndDate = normalizedEndType === "UNTIL_DATE"
+      ? parseFlexibleDate(endDate ?? existingRecurringExpense.endDate)
+      : null;
+
+    if (!nextTitle || !nextCategory || !normalizedFrequency || !normalizedEndType) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+      return res.status(400).json({ error: "Amount must be greater than 0" });
+    }
+
+    if (normalizedEndType === "UNTIL_DATE" && !nextEndDate) {
+      return res.status(400).json({ error: "End date is required for until-date recurring expenses" });
+    }
+
+    const scheduleChanged = normalizedFrequency !== existingRecurringExpense.frequency
+      || Number(nextIntervalValue) !== Number(existingRecurringExpense.intervalValue)
+      || nextStartDate.getTime() !== new Date(existingRecurringExpense.startDate).getTime()
+      || normalizedEndType !== existingRecurringExpense.endType
+      || String(nextEndCount ?? "") !== String(existingRecurringExpense.endCount ?? "")
+      || String(nextEndDate ? nextEndDate.toISOString() : "") !== String(existingRecurringExpense.endDate ? new Date(existingRecurringExpense.endDate).toISOString() : "");
+
+    if (!scheduleChanged) {
+      const updatedRecurringExpense = await prisma.$transaction(async (tx) => {
+        const recurring = await tx.recurringExpense.update({
+          where: { id: existingRecurringExpense.id },
+          data: {
+            title: nextTitle,
+            amount: nextAmount,
+            category: nextCategory,
+          },
+        });
+
+        await tx.expense.updateMany({
+          where: {
+            recurringId: existingRecurringExpense.id,
+            userId,
+          },
+          data: {
+            title: nextTitle,
+            amount: nextAmount,
+            category: nextCategory,
+          },
+        });
+
+        return recurring;
+      });
+
+      return res.json(serializeRecurringExpense(updatedRecurringExpense));
+    }
+
+    const updatedRecurringExpense = await prisma.$transaction(async (tx) => {
+      const nextRecurringExpense = await tx.recurringExpense.create({
+        data: {
+          title: nextTitle,
+          userId,
+          amount: nextAmount,
+          category: nextCategory,
+          frequency: normalizedFrequency,
+          intervalValue: nextIntervalValue,
+          startDate: nextStartDate,
+          endType: normalizedEndType,
+          endCount: nextEndCount,
+          endDate: nextEndDate,
+          nextDueDate: nextStartDate,
+          isActive: true,
+          occurrencesDone: 0,
+        },
+      });
+      // Delete all existing expenses produced by the old recurring template
+      await tx.expense.deleteMany({
+        where: {
+          recurringId: existingRecurringExpense.id,
+          userId,
+        },
+      });
+
+      // occurrencesDone starts at 0 for the new series; update to reflect actual rows (should be 0)
+      const actualOccurrencesDone = await tx.expense.count({
+        where: {
+          recurringId: nextRecurringExpense.id,
+          userId,
+        },
+      });
+
+      const recurring = await tx.recurringExpense.update({
+        where: { id: nextRecurringExpense.id },
+        data: {
+          occurrencesDone: actualOccurrencesDone,
+        },
+      });
+
+      // Remove the old recurring template
+      await tx.recurringExpense.delete({
+        where: { id: existingRecurringExpense.id },
+      });
+
+      return recurring;
+    });
+
+    try {
+      await materializeDueRecurringExpensesForUser(userId);
+    } catch (error) {
+      logError("❌ Failed to materialize after updating recurring expense:", error);
+    }
+
+    return res.json(serializeRecurringExpense(updatedRecurringExpense));
+  } catch (error) {
+    logRecurringExpenseError("update", error);
+    return res.status(500).json(buildErrorResponse(error, "Error updating recurring expense"));
+  }
+};
+
 export const deleteRecurringExpense = async (req, res) => {
   try {
     const userId = req.user.id;

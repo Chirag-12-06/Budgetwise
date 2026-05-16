@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createExpense, createRecurringExpense, fetchExpenses, getTodayDate, removeExpense, removeRecurringExpense, updateExpense } from "../lib/api";
+import { createExpense, createRecurringExpense, fetchExpenses, fetchRecurringExpense, getTodayDate, removeExpense, removeRecurringExpense, updateExpense, updateRecurringExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
@@ -34,6 +34,7 @@ export default function useAppController() {
   const [expenses, setExpenses] = useState([]);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [recurringExpenseActionPrompt, setRecurringExpenseActionPrompt] = useState(null);
+    const [editingRecurringExpenseId, setEditingRecurringExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [expenseForm, setExpenseForm] = useState({
     title: "",
@@ -355,7 +356,12 @@ export default function useAppController() {
     };
 
     try {
-      if (editingExpenseId !== null) {
+      if (editingRecurringExpenseId !== null) {
+        await updateRecurringExpense(editingRecurringExpenseId, recurringPayload);
+        const syncedExpenses = await fetchExpenses();
+        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+        showStatus("Recurring expense updated successfully", "success");
+      } else if (editingExpenseId !== null) {
         await updateExpense(editingExpenseId, payload);
         const syncedExpenses = await fetchExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
@@ -388,8 +394,9 @@ export default function useAppController() {
         endDate: "",
       });
       setEditingExpenseId(null);
+      setEditingRecurringExpenseId(null);
     } catch (error) {
-      handleApiError(error, editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense");
+      handleApiError(error, editingRecurringExpenseId !== null ? "Unable to update recurring expense" : editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense");
     } finally {
       setSubmitting(false);
     }
@@ -419,8 +426,53 @@ export default function useAppController() {
     setStatus(null);
   }
 
+  async function handleStartEditRecurringExpense(recurringExpenseId) {
+    const numericId = Number(recurringExpenseId);
+    if (Number.isNaN(numericId)) {
+      return;
+    }
+
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const recurringExpense = await fetchRecurringExpense(numericId);
+      const startDateValue = recurringExpense?.startDate ? formatDateKey(recurringExpense.startDate) : getTodayDate();
+      setEditingExpenseId(null);
+      setEditingRecurringExpenseId(recurringExpense.id);
+      setExpenseForm({
+        title: recurringExpense.title || "",
+        amount:
+          recurringExpense.amount !== undefined && recurringExpense.amount !== null
+            ? String(recurringExpense.amount)
+            : "",
+        category: recurringExpense.category || "",
+        date: startDateValue,
+      });
+      setRecurringForm({
+        enabled: true,
+        frequency: recurringExpense.frequency || "MONTHLY",
+        intervalValue:
+          recurringExpense.intervalValue !== undefined && recurringExpense.intervalValue !== null
+            ? String(recurringExpense.intervalValue)
+            : "1",
+        endType: recurringExpense.endType || "FOREVER",
+        endCount:
+          recurringExpense.endCount !== undefined && recurringExpense.endCount !== null
+            ? String(recurringExpense.endCount)
+            : "",
+        endDate: recurringExpense.endDate ? formatDateKey(recurringExpense.endDate) : "",
+      });
+      setView(ADD_EXPENSE);
+    } catch (error) {
+      handleApiError(error, "Unable to load recurring expense");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function handleCancelEditExpense() {
     setEditingExpenseId(null);
+    setEditingRecurringExpenseId(null);
     setExpenseForm({
       title: "",
       amount: "",
@@ -435,6 +487,10 @@ export default function useAppController() {
       endCount: "",
       endDate: "",
     });
+  }
+
+  function handleCancelEditRecurringExpense() {
+    handleCancelEditExpense();
   }
 
   async function handleDeleteExpense(id) {
@@ -478,7 +534,11 @@ export default function useAppController() {
 
     if (scope === "single") {
       if (prompt.actionType === "edit") {
-        handleStartEditExpense(prompt.expense);
+        if (scope === "single") {
+          handleStartEditExpense(prompt.expense);
+        } else if (scope === "series") {
+          void handleStartEditRecurringExpense(prompt.expense.recurringId || prompt.expense.id);
+        }
       } else if (prompt.actionType === "delete") {
         void handleDeleteExpense(prompt.expense.id);
       }
@@ -506,6 +566,11 @@ export default function useAppController() {
         .finally(() => {
           setSubmitting(false);
         });
+      return;
+    }
+
+    if (scope === "series" && prompt.actionType === "edit") {
+      void handleStartEditRecurringExpense(prompt.expense.recurringId || prompt.expense.id);
       return;
     }
 
@@ -791,6 +856,7 @@ export default function useAppController() {
     user,
     expenses,
     editingExpenseId,
+    editingRecurringExpenseId,
     recurringExpenseActionPrompt,
     loginForm,
     setLoginForm,
@@ -805,7 +871,9 @@ export default function useAppController() {
     handleUpdateProfile,
     handleAddExpense,
     handleStartEditExpense,
+    handleStartEditRecurringExpense,
     handleCancelEditExpense,
+    handleCancelEditRecurringExpense,
     handleDeleteExpense,
     handleRecurringExpenseActionRequest,
     handleCloseRecurringExpenseActionPrompt,

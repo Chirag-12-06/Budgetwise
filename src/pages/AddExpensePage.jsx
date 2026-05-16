@@ -50,8 +50,11 @@ export default function AddExpensePage({
   handleAddExpense,
   submitting,
   isEditingExpense,
+  isEditingRecurringSeries,
   handleCancelEditExpense,
+  handleCancelEditRecurringExpense,
 }) {
+  const isFormLocked = isEditingExpense || isEditingRecurringSeries;
   const {
     isCategoryMenuOpen,
     setIsCategoryMenuOpen,
@@ -63,7 +66,7 @@ export default function AddExpensePage({
     expenses,
     expenseForm,
     setExpenseForm,
-    isEditingExpense,
+    isEditingExpense: isFormLocked,
   });
 
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
@@ -80,6 +83,9 @@ export default function AddExpensePage({
     Boolean(recurringForm.endDate) &&
     Boolean(expenseForm.date) &&
     recurringForm.endDate <= expenseForm.date;
+  const showRecurringSection = !isEditingExpense || isEditingRecurringSeries;
+  const showRecurringFields =
+    recurringForm.enabled && (!isEditingExpense || isEditingRecurringSeries);
 
   const isDeployed =
     typeof window !== "undefined" &&
@@ -103,7 +109,9 @@ export default function AddExpensePage({
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
-          {isEditingExpense ? "Edit Expense" : "Add New Expense"}
+          {isEditingExpense || isEditingRecurringSeries
+            ? "Edit Expense"
+            : "Add New Expense"}
         </h2>
         <Button
           variant="plain"
@@ -277,7 +285,7 @@ export default function AddExpensePage({
           }
         />
 
-        {!isEditingExpense ? (
+        {showRecurringSection ? (
           <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/60">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -299,7 +307,7 @@ export default function AddExpensePage({
               </Button>
             </div>
 
-            {recurringForm.enabled ? (
+            {showRecurringFields ? (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
@@ -436,7 +444,27 @@ export default function AddExpensePage({
           </section>
         ) : null}
 
-        {isEditingExpense ? (
+        {isEditingRecurringSeries ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              variant="plain"
+              className={updateButtonClasses}
+              type="submit"
+              disabled={submitting}
+            >
+              {submitting ? "Saving..." : "Update Series"}
+            </Button>
+            <Button
+              variant="plain"
+              className={cancelButtonClasses}
+              type="button"
+              onClick={handleCancelEditRecurringExpense}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : isEditingExpense ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
               variant="plain"

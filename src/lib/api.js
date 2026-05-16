@@ -110,6 +110,19 @@ export async function fetchRecurringExpenses() {
   });
 }
 
+export async function fetchRecurringExpense(id) {
+  return apiRequest(`/recurring-expenses/${id}`, {
+    method: "GET",
+  });
+}
+
+export async function updateRecurringExpense(id, payload) {
+  return apiRequest(`/recurring-expenses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function removeRecurringExpense(id) {
   return apiRequest(`/recurring-expenses/${id}`, {
     method: "DELETE",
