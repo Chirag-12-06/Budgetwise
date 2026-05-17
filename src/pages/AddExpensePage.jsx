@@ -77,6 +77,8 @@ export default function AddExpensePage({
     showRecurringUnderDevelopmentPopup,
     setShowRecurringUnderDevelopmentPopup,
   ] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [tempRecurring, setTempRecurring] = useState(recurringForm);
 
   const recurringUntilDateMin = getNextDateKey(expenseForm.date);
   const recurringUntilDateIsInvalid =
@@ -98,14 +100,19 @@ export default function AddExpensePage({
     if (isDeployed) {
       setShowRecurringUnderDevelopmentPopup(true);
     } else {
-      setRecurringForm((current) => ({
-        ...current,
-        enabled: !current.enabled,
-        endCount: !current.enabled ? current.endCount : "",
-        endDate: !current.enabled ? current.endDate : "",
-      }));
+      // Open modal; do not persist until Save. If it was disabled, pre-check enabled in temp state
+      if (!recurringForm.enabled) {
+        setTempRecurring({ ...recurringForm, enabled: true });
+      } else {
+        setTempRecurring(recurringForm);
+      }
+      setShowRecurringModal(true);
     }
   };
+
+  const displayRecurringEnabled = showRecurringModal
+    ? Boolean(tempRecurring && tempRecurring.enabled)
+    : Boolean(recurringForm && recurringForm.enabled);
 
   return (
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
@@ -289,160 +296,27 @@ export default function AddExpensePage({
 
         {showRecurringSection ? (
           <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/60">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-slate-300">
-                  Recurring expense
-                </p>
-                <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">
-                  Save this expense as a recurring template instead of a
-                  one-time entry.
-                </p>
-              </div>
+            <div className="flex items-center gap-4">
               <Button
                 variant="plain"
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${recurringForm.enabled ? "bg-indigo-600 text-white hover:bg-indigo-500" : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-slate-500 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"}`}
                 type="button"
                 onClick={handleRecurringToggle}
+                aria-pressed={displayRecurringEnabled}
+                aria-label={
+                  displayRecurringEnabled ? "Recurring" : "Don't Repeat"
+                }
+                title={displayRecurringEnabled ? "Recurring" : "Don't Repeat"}
+                className={`${fieldClasses} flex items-center justify-center gap-3 text-left ${displayRecurringEnabled ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100"} min-h-13 w-14`}
               >
-                {recurringForm.enabled ? "Recurring on" : "Make recurring"}
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-md text-sm ${displayRecurringEnabled ? "bg-white text-indigo-600" : "bg-gray-200 text-gray-600 dark:bg-slate-600/90 dark:text-slate-200"}`}
+                >
+                  <i className="fas fa-repeat" aria-hidden="true" />
+                </span>
               </Button>
             </div>
 
-            {showRecurringFields ? (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <label className="grid gap-2">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                    Repeat every
-                  </span>
-                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
-                    <input
-                      className={fieldClasses}
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={recurringForm.intervalValue}
-                      onChange={(event) =>
-                        setRecurringForm((current) => ({
-                          ...current,
-                          intervalValue: event.target.value,
-                        }))
-                      }
-                    />
-                    <select
-                      className={fieldClasses}
-                      value={recurringForm.frequency}
-                      onChange={(event) =>
-                        setRecurringForm((current) => ({
-                          ...current,
-                          frequency: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="DAILY">day(s)</option>
-                      <option value="WEEKLY">week(s)</option>
-                      <option value="MONTHLY">month(s)</option>
-                      <option value="YEARLY">year(s)</option>
-                    </select>
-                  </div>
-                </label>
-
-                <div className="grid gap-2">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                    Repeat ends
-                  </span>
-                  <div className="grid gap-2 rounded-2xl border border-gray-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-700/70">
-                    <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
-                      <input
-                        type="radio"
-                        name="recurring-end-type"
-                        value="FOREVER"
-                        checked={recurringForm.endType === "FOREVER"}
-                        onChange={(event) =>
-                          setRecurringForm((current) => ({
-                            ...current,
-                            endType: event.target.value,
-                            endCount: "",
-                            endDate: "",
-                          }))
-                        }
-                      />
-                      Forever
-                    </label>
-                    <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
-                      <input
-                        type="radio"
-                        name="recurring-end-type"
-                        value="COUNT"
-                        checked={recurringForm.endType === "COUNT"}
-                        onChange={(event) =>
-                          setRecurringForm((current) => ({
-                            ...current,
-                            endType: event.target.value,
-                            endDate: "",
-                          }))
-                        }
-                      />
-                      <span className="flex flex-wrap items-center gap-2">
-                        After
-                        <input
-                          className={`${fieldClasses} w-28`}
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={recurringForm.endCount}
-                          onChange={(event) =>
-                            setRecurringForm((current) => ({
-                              ...current,
-                              endType: "COUNT",
-                              endCount: event.target.value,
-                            }))
-                          }
-                          placeholder="12"
-                        />
-                        occurrences
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-3 text-sm text-gray-800 dark:text-slate-100">
-                      <input
-                        type="radio"
-                        name="recurring-end-type"
-                        value="UNTIL_DATE"
-                        checked={recurringForm.endType === "UNTIL_DATE"}
-                        onChange={(event) =>
-                          setRecurringForm((current) => ({
-                            ...current,
-                            endType: event.target.value,
-                            endCount: "",
-                          }))
-                        }
-                        className="mt-1"
-                      />
-                      <span className="grid flex-1 gap-2">
-                        Until date
-                        <Calendar
-                          className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
-                          value={recurringForm.endDate}
-                          minDate={recurringUntilDateMin}
-                          onChange={(event) =>
-                            setRecurringForm((current) => ({
-                              ...current,
-                              endType: "UNTIL_DATE",
-                              endDate: event.target.value,
-                            }))
-                          }
-                        />
-                        {recurringUntilDateIsInvalid ? (
-                          <span className="text-xs font-medium text-red-600 dark:text-red-300">
-                            Until date must be after the start date.
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            {/* Recurring details are edited in a modal for a cleaner UX */}
           </section>
         ) : null}
 
@@ -533,6 +407,191 @@ export default function AddExpensePage({
         labelledBy="recurring-popup-title"
         onClose={() => setShowRecurringUnderDevelopmentPopup(false)}
       />
+      {showRecurringModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
+          onClick={() => setShowRecurringModal(false)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-800"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recurring-details-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3
+              id="recurring-details-dialog-title"
+              className="text-xl font-bold text-gray-900 dark:text-white"
+            >
+              Recurring
+            </h3>
+
+            <div className="mt-5 grid gap-4">
+              <label className="grid gap-2">
+                <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
+                  <input
+                    type="checkbox"
+                    checked={tempRecurring.enabled}
+                    onChange={(e) =>
+                      setTempRecurring((c) => ({
+                        ...c,
+                        enabled: e.target.checked,
+                      }))
+                    }
+                  />
+                  Enable recurring
+                </label>
+                <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+                  Repeat every
+                </span>
+                <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
+                  <input
+                    className={fieldClasses}
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={tempRecurring.intervalValue}
+                    onChange={(event) =>
+                      setTempRecurring((current) => ({
+                        ...current,
+                        intervalValue: event.target.value,
+                      }))
+                    }
+                  />
+                  <select
+                    className={fieldClasses}
+                    value={tempRecurring.frequency}
+                    onChange={(event) =>
+                      setTempRecurring((current) => ({
+                        ...current,
+                        frequency: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="DAILY">day(s)</option>
+                    <option value="WEEKLY">week(s)</option>
+                    <option value="MONTHLY">month(s)</option>
+                    <option value="YEARLY">year(s)</option>
+                  </select>
+                </div>
+              </label>
+
+              <div className="grid gap-2">
+                <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+                  Repeat ends
+                </span>
+                <div className="grid gap-2 rounded-2xl border border-gray-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-700/70">
+                  <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
+                    <input
+                      type="radio"
+                      name="recurring-end-type-modal"
+                      value="FOREVER"
+                      checked={tempRecurring.endType === "FOREVER"}
+                      onChange={(event) =>
+                        setTempRecurring((current) => ({
+                          ...current,
+                          endType: event.target.value,
+                          endCount: "",
+                          endDate: "",
+                        }))
+                      }
+                    />
+                    Forever
+                  </label>
+                  <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
+                    <input
+                      type="radio"
+                      name="recurring-end-type-modal"
+                      value="COUNT"
+                      checked={tempRecurring.endType === "COUNT"}
+                      onChange={(event) =>
+                        setTempRecurring((current) => ({
+                          ...current,
+                          endType: event.target.value,
+                          endDate: "",
+                        }))
+                      }
+                    />
+                    <span className="flex flex-wrap items-center gap-2">
+                      After
+                      <input
+                        className={`${fieldClasses} w-28`}
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={tempRecurring.endCount}
+                        onChange={(event) =>
+                          setTempRecurring((current) => ({
+                            ...current,
+                            endType: "COUNT",
+                            endCount: event.target.value,
+                          }))
+                        }
+                        placeholder="12"
+                      />
+                      occurrences
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 text-sm text-gray-800 dark:text-slate-100">
+                    <input
+                      type="radio"
+                      name="recurring-end-type-modal"
+                      value="UNTIL_DATE"
+                      checked={tempRecurring.endType === "UNTIL_DATE"}
+                      onChange={(event) =>
+                        setTempRecurring((current) => ({
+                          ...current,
+                          endType: event.target.value,
+                          endCount: "",
+                        }))
+                      }
+                      className="mt-1"
+                    />
+                    <span className="grid flex-1 gap-2">
+                      Until date
+                      <Calendar
+                        className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
+                        value={tempRecurring.endDate}
+                        minDate={recurringUntilDateMin}
+                        onChange={(event) =>
+                          setTempRecurring((current) => ({
+                            ...current,
+                            endType: "UNTIL_DATE",
+                            endDate: event.target.value,
+                          }))
+                        }
+                      />
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <Button
+                variant="plain"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                type="button"
+                onClick={() => {
+                  setRecurringForm(tempRecurring);
+                  setShowRecurringModal(false);
+                }}
+              >
+                Save
+              </Button>
+              <Button
+                variant="plain"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                type="button"
+                onClick={() => setShowRecurringModal(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PanelCard>
   );
 }

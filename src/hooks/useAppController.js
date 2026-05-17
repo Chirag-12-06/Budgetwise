@@ -360,7 +360,7 @@ export default function useAppController() {
     try {
       if (editingRecurringExpenseId !== null) {
         await updateRecurringExpense(editingRecurringExpenseId, recurringPayload);
-        const syncedExpenses = await fetchExpenses();
+        const syncedExpenses = await refreshExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Recurring expense updated successfully", "success");
       } else if (editingExpenseId !== null) {
@@ -368,17 +368,17 @@ export default function useAppController() {
           ? { ...payload, scope: "future", recurring: recurringForm }
           : payload;
         await updateExpense(editingExpenseId, updatePayload);
-        const syncedExpenses = await fetchExpenses();
+        const syncedExpenses = await refreshExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Expense updated successfully", "success");
       } else if (recurringForm.enabled) {
         await createRecurringExpense(recurringPayload);
-        const syncedExpenses = await fetchExpenses();
+        const syncedExpenses = await refreshExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Recurring expense saved successfully", "success");
       } else {
         await createExpense(payload);
-        const syncedExpenses = await fetchExpenses();
+        const syncedExpenses = await refreshExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Expense added successfully", "success");
       }
@@ -507,7 +507,7 @@ export default function useAppController() {
     if (!confirmed) return;
     try {
       await removeExpense(id);
-      const syncedExpenses = await fetchExpenses();
+      const syncedExpenses = await refreshExpenses();
       setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
       if (id === editingExpenseId) {
         handleCancelEditExpense();
@@ -533,7 +533,7 @@ export default function useAppController() {
     setRecurringExpenseActionPrompt(null);
   }
 
-  function handleRecurringExpenseActionSelect(scope) {
+  async function handleRecurringExpenseActionSelect(scope) {
     const prompt = recurringExpenseActionPrompt;
     if (!prompt) {
       return;
@@ -555,7 +555,38 @@ export default function useAppController() {
     }
 
     if (scope === "future" && prompt.actionType === "delete") {
-      void handleDeleteExpense(prompt.expense.id);
+      setSubmitting(true);
+      setStatus(null);
+
+      try {
+        await removeExpense(prompt.expense.id);
+
+        // Optimistically remove the selected and future-generated expenses
+        // from local state so the UI updates immediately.
+        setExpenses((current) =>
+          Array.isArray(current)
+            ? current.filter((e) => {
+                // If recurringId doesn't match, keep the expense.
+                if (!prompt.expense.recurringId) return true;
+                if (e.recurringId !== prompt.expense.recurringId) return true;
+
+                // Keep only expenses that occurred before the selected one.
+                return new Date(e.createdAt) < new Date(prompt.expense.createdAt);
+              })
+            : [],
+        );
+
+        if (prompt.expense.id === editingExpenseId) {
+          handleCancelEditExpense();
+        }
+
+        showStatus("Selected and future expenses deleted", "success");
+      } catch (error) {
+        handleApiError(error, "Unable to delete selected and future expenses");
+      } finally {
+        setSubmitting(false);
+      }
+
       return;
     }
 
@@ -565,7 +596,7 @@ export default function useAppController() {
 
       void removeRecurringExpense(prompt.expense.recurringId || prompt.expense.id)
         .then(async () => {
-          const syncedExpenses = await fetchExpenses();
+          const syncedExpenses = await refreshExpenses();
           setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
           showStatus("Recurring series deleted successfully", "success");
         })

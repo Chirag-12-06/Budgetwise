@@ -28,14 +28,19 @@ export function getApiBase() {
 
 export async function apiRequest(path, options = {}) {
   const token = localStorage.getItem("bw-token");
-  const response = await fetch(`${getApiBase()}${path}`, {
+  const method = (options.method || "GET").toUpperCase();
+  const fetchOptions = {
+    // default to no-store for GET requests so clients always receive fresh data
+    ...(method === "GET" ? { cache: "no-store" } : {}),
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
-  });
+  };
+
+  const response = await fetch(`${getApiBase()}${path}`, fetchOptions);
 
   let data = null;
   try {

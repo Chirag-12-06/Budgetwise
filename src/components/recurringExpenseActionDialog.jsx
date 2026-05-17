@@ -4,18 +4,14 @@ const scopeOptions = [
   {
     value: "single",
     title: "Only this expense",
-    description: "Apply the change to the selected occurrence only.",
   },
   {
     value: "future",
     title: "This and future expenses",
-    description: "Apply the change to this occurrence and all upcoming ones.",
   },
   {
     value: "series",
     title: "Entire series",
-    description:
-      "Apply the change to every occurrence in the recurring series.",
   },
 ];
 
@@ -32,8 +28,8 @@ export default function RecurringExpenseActionDialog({
 
   const isDeleteAction = actionType === "delete";
   const title = isDeleteAction
-    ? "Delete recurring expense"
-    : "Edit recurring expense";
+    ? `Delete ${expenseTitle || "this recurring expense"} recurring expense`
+    : `Edit ${expenseTitle || "this recurring expense"} recurring expense`;
   const verb = isDeleteAction ? "delete" : "edit";
 
   return (
@@ -55,14 +51,6 @@ export default function RecurringExpenseActionDialog({
         >
           {title}
         </h3>
-        <p className="mt-2 text-base text-gray-600 dark:text-slate-200">
-          Choose what you want to {verb} for{" "}
-          {expenseTitle || "this recurring expense"}.
-        </p>
-        <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
-          Choose whether to change only the selected expense, this and future
-          ones, or the entire recurring series.
-        </p>
 
         <div className="mt-5 grid gap-3">
           {scopeOptions.map((option) => (
