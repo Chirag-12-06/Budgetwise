@@ -50,11 +50,13 @@ export default function AddExpensePage({
   handleAddExpense,
   submitting,
   isEditingExpense,
+  isEditingFuture,
   isEditingRecurringSeries,
   handleCancelEditExpense,
   handleCancelEditRecurringExpense,
 }) {
-  const isFormLocked = isEditingExpense || isEditingRecurringSeries;
+  const isFormLocked =
+    isEditingExpense || isEditingRecurringSeries || isEditingFuture;
   const {
     isCategoryMenuOpen,
     setIsCategoryMenuOpen,
@@ -83,9 +85,9 @@ export default function AddExpensePage({
     Boolean(recurringForm.endDate) &&
     Boolean(expenseForm.date) &&
     recurringForm.endDate <= expenseForm.date;
-  const showRecurringSection = !isEditingExpense || isEditingRecurringSeries;
-  const showRecurringFields =
-    recurringForm.enabled && (!isEditingExpense || isEditingRecurringSeries);
+  const showRecurringSection =
+    !isEditingExpense || isEditingRecurringSeries || isEditingFuture;
+  const showRecurringFields = recurringForm.enabled && showRecurringSection;
 
   const isDeployed =
     typeof window !== "undefined" &&
@@ -109,7 +111,7 @@ export default function AddExpensePage({
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
-          {isEditingExpense || isEditingRecurringSeries
+          {isEditingExpense || isEditingRecurringSeries || isEditingFuture
             ? "Edit Expense"
             : "Add New Expense"}
         </h2>
@@ -444,7 +446,27 @@ export default function AddExpensePage({
           </section>
         ) : null}
 
-        {isEditingRecurringSeries ? (
+        {isEditingFuture ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              variant="plain"
+              className={updateButtonClasses}
+              type="submit"
+              disabled={submitting}
+            >
+              {submitting ? "Saving..." : "Update This & Future"}
+            </Button>
+            <Button
+              variant="plain"
+              className={cancelButtonClasses}
+              type="button"
+              onClick={handleCancelEditExpense}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : isEditingRecurringSeries ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
               variant="plain"

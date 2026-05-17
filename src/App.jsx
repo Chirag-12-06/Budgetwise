@@ -113,6 +113,7 @@ function App() {
                   handleAddExpense={handleAddExpense}
                   submitting={submitting}
                   isEditingExpense={editingExpenseId !== null}
+                  isEditingFuture={expenseForm.editScope === "future"}
                   isEditingRecurringSeries={editingRecurringExpenseId !== null}
                   handleCancelEditExpense={handleCancelEditExpense}
                   handleCancelEditRecurringExpense={

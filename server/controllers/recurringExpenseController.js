@@ -318,10 +318,26 @@ export const updateRecurringExpense = async (req, res) => {
         },
       });
 
-      // Remove the old recurring template
-      await tx.recurringExpense.delete({
-        where: { id: existingRecurringExpense.id },
+      // Instead of deleting the old recurring template, mark it inactive
+      // and set occurrencesDone to the number of remaining occurrences.
+      const remainingOccurrences = await tx.expense.count({
+        where: {
+          recurringId: existingRecurringExpense.id,
+          userId,
+        },
       });
+
+      if (remainingOccurrences === 0) {
+        await tx.recurringExpense.delete({ where: { id: existingRecurringExpense.id } });
+      } else {
+        await tx.recurringExpense.update({
+          where: { id: existingRecurringExpense.id },
+          data: {
+            isActive: false,
+            occurrencesDone: remainingOccurrences,
+          },
+        });
+      }
 
       return recurring;
     });

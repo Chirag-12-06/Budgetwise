@@ -372,10 +372,11 @@ export const deleteExpense = async (req, res) => {
         },
       });
 
+      // If there are no remaining occurrences, delete the recurring
+      // template record; otherwise, mark it inactive and update the
+      // occurrencesDone to reflect how many occurrences remain.
       if (remainingOccurrences === 0) {
-        await tx.recurringExpense.delete({
-          where: { id: recurringExpense.id },
-        });
+        await tx.recurringExpense.delete({ where: { id: recurringExpense.id } });
       } else {
         await tx.recurringExpense.update({
           where: { id: recurringExpense.id },
@@ -408,7 +409,7 @@ export const updateExpense = async (req, res) => {
       return res.status(404).json({ message: "Expense not found" });
     }
 
-    const { title, amount, category, date } = req.body;
+    const { title, amount, category, date, scope, recurring } = req.body;
     const updateData = {};
 
     if (title) {
@@ -429,6 +430,99 @@ export const updateExpense = async (req, res) => {
 
     if (date) {
       updateData.createdAt = parseFlexibleDate(date);
+    }
+
+    // If the client requested a "this and future" edit, delete the
+    // selected occurrence and everything after it, keep earlier
+    // occurrences untouched, deactivate the old recurring template,
+    // and insert a brand-new expense or recurring series.
+    if (scope === "future") {
+      let createdExpense = null;
+      await prisma.$transaction(async (tx) => {
+        const startDate = updateData.createdAt || existing.createdAt;
+
+        if (existing.recurringId) {
+          const oldRecurring = await tx.recurringExpense.findFirst({
+            where: { id: existing.recurringId, userId },
+          });
+
+          if (oldRecurring) {
+            const pastCount = await tx.expense.count({
+              where: {
+                recurringId: oldRecurring.id,
+                userId,
+                createdAt: { lt: existing.createdAt },
+              },
+            });
+
+            await tx.expense.deleteMany({
+              where: {
+                recurringId: oldRecurring.id,
+                userId,
+                createdAt: { gte: existing.createdAt },
+              },
+            });
+
+            if (pastCount === 0) {
+              await tx.recurringExpense.delete({ where: { id: oldRecurring.id } });
+            } else {
+              await tx.recurringExpense.update({
+                where: { id: oldRecurring.id },
+                data: {
+                  isActive: false,
+                  occurrencesDone: pastCount,
+                },
+              });
+            }
+          }
+        } else {
+          await tx.expense.delete({ where: { id: expenseId } });
+        }
+
+        if (recurring && recurring.enabled) {
+          const nextDueDate = addRecurringInterval(startDate, recurring.frequency, recurring.intervalValue);
+          const newRecurring = await tx.recurringExpense.create({
+            data: {
+              title: updateData.title || existing.title,
+              amount: updateData.amount !== undefined ? updateData.amount : existing.amount,
+              category: updateData.category || existing.category,
+              frequency: recurring.frequency,
+              intervalValue: Number(recurring.intervalValue) || 1,
+              startDate,
+              endType: recurring.endType || "FOREVER",
+              endCount: recurring.endCount ? Number(recurring.endCount) : null,
+              endDate: recurring.endDate ? toStartOfDay(recurring.endDate) : null,
+              userId,
+              occurrencesDone: 1,
+              nextDueDate,
+              isActive: true,
+            },
+          });
+
+          createdExpense = await tx.expense.create({
+            data: {
+              title: updateData.title || existing.title,
+              amount: updateData.amount !== undefined ? updateData.amount : existing.amount,
+              category: updateData.category || existing.category,
+              createdAt: startDate,
+              userId,
+              recurringId: newRecurring.id,
+            },
+          });
+        } else {
+          createdExpense = await tx.expense.create({
+            data: {
+              title: updateData.title || existing.title,
+              amount: updateData.amount !== undefined ? updateData.amount : existing.amount,
+              category: updateData.category || existing.category,
+              createdAt: startDate,
+              userId,
+            },
+          });
+        }
+      });
+
+      return res.json(createdExpense);
     }
 
     const updated = await prisma.expense.update({

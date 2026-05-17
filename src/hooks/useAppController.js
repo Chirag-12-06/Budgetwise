@@ -41,6 +41,7 @@ export default function useAppController() {
     amount: "",
     category: "",
     date: getTodayDate(),
+    editScope: null,
   });
   const [recurringForm, setRecurringForm] = useState({
     enabled: false,
@@ -127,6 +128,7 @@ export default function useAppController() {
       amount: "",
       category: "",
       date: getTodayDate(),
+      editScope: null,
     });
     setRecurringForm({
       enabled: false,
@@ -362,7 +364,10 @@ export default function useAppController() {
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Recurring expense updated successfully", "success");
       } else if (editingExpenseId !== null) {
-        await updateExpense(editingExpenseId, payload);
+        const updatePayload = expenseForm.editScope === "future"
+          ? { ...payload, scope: "future", recurring: recurringForm }
+          : payload;
+        await updateExpense(editingExpenseId, updatePayload);
         const syncedExpenses = await fetchExpenses();
         setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
         showStatus("Expense updated successfully", "success");
@@ -384,6 +389,7 @@ export default function useAppController() {
         amount: "",
         category: "",
         date: getTodayDate(),
+        editScope: null,
       }));
       setRecurringForm({
         enabled: false,
@@ -413,6 +419,7 @@ export default function useAppController() {
           : "",
       category: expense.category || "",
       date: dateValue,
+      editScope: null,
     });
     setRecurringForm({
       enabled: false,
@@ -447,6 +454,7 @@ export default function useAppController() {
             : "",
         category: recurringExpense.category || "",
         date: startDateValue,
+        editScope: null,
       });
       setRecurringForm({
         enabled: true,
@@ -478,6 +486,7 @@ export default function useAppController() {
       amount: "",
       category: "",
       date: getTodayDate(),
+      editScope: null,
     });
     setRecurringForm({
       enabled: false,
@@ -571,6 +580,18 @@ export default function useAppController() {
 
     if (scope === "series" && prompt.actionType === "edit") {
       void handleStartEditRecurringExpense(prompt.expense.recurringId || prompt.expense.id);
+      return;
+    }
+
+    if (scope === "future" && prompt.actionType === "edit") {
+      handleStartEditExpense({
+        ...prompt.expense,
+        id: prompt.expense.id,
+      });
+      setExpenseForm((current) => ({
+        ...current,
+        editScope: "future",
+      }));
       return;
     }
 
