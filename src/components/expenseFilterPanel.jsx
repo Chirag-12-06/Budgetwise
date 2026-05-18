@@ -1,3 +1,4 @@
+import React, { useState, useRef, useEffect } from "react";
 import Button from "./button";
 import Calendar from "./calendar";
 import { formatCurrency } from "../lib/api";
@@ -10,11 +11,16 @@ import {
 const summaryCardClasses =
   "rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:p-4";
 
-const quickDateModes = [
-  { value: "allTime", label: "All Time" },
-  { value: "thisMonth", label: "This Month" },
-  { value: "lastMonth", label: "Last Month" },
-  { value: "thisYear", label: "This Year" },
+const periodModes = [
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+];
+
+const relativeModes = [
+  { value: "current", label: "Current" },
+  { value: "previous", label: "Previous" },
 ];
 
 const summaryGridTemplateColumns =
@@ -130,6 +136,45 @@ export default function ExpenseFilterPanel({
   const categoryGridColumnsClass =
     availableCategoryOptions.length <= 3 ? "grid-cols-1" : "sm:grid-cols-2";
 
+  // Resolve current period and relative from the incoming mode and manage dropdown state
+  const normalizedMode = String(dateFilterMode || "");
+  let currentPeriod = "month";
+  let currentRelative = "current";
+
+  if (normalizedMode.includes(":")) {
+    const [p, r] = normalizedMode.split(":");
+    if (p) currentPeriod = p;
+    if (r) currentRelative = r;
+  } else if (normalizedMode === "thisMonth") {
+    currentPeriod = "month";
+    currentRelative = "current";
+  } else if (normalizedMode === "lastMonth") {
+    currentPeriod = "month";
+    currentRelative = "previous";
+  } else if (normalizedMode === "thisYear") {
+    currentPeriod = "year";
+    currentRelative = "current";
+  }
+
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const [relativeOpen, setRelativeOpen] = useState(false);
+  const periodRef = useRef(null);
+  const relativeRef = useRef(null);
+
+  useEffect(() => {
+    function handler(e) {
+      if (periodRef.current && !periodRef.current.contains(e.target)) {
+        setPeriodOpen(false);
+      }
+      if (relativeRef.current && !relativeRef.current.contains(e.target)) {
+        setRelativeOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, []);
+
   function handleCategoryGroupClick(groupValues) {
     if (!onCategoryFilterToggle) {
       return;
@@ -157,217 +202,290 @@ export default function ExpenseFilterPanel({
       <div className="grid gap-4 xl:grid-cols-2 xl:items-stretch">
         <div className="grid gap-4">
           <div className="bw-quick-date-grid flex flex-wrap gap-2 sm:gap-3">
-            {quickDateModes.map((mode) => (
-              <Button
-                key={mode.value}
-                active={dateFilterMode === mode.value}
-                className="bw-quick-date-button h-12 w-32 shrink-0 px-3 py-2 text-sm"
-                onClick={() => onDateFilterModeChange(mode.value)}
-              >
-                <span className="truncate">{mode.label}</span>
-              </Button>
-            ))}
-          </div>
+            {/* Period selector (month/week/day/year) with dropdowns */}
+            <div className="flex items-center gap-3">
+              <div className="flex w-full items-center gap-3">
+                <div className="relative flex-1" ref={periodRef}>
+                  <Button
+                    className="bw-quick-date-button h-12 w-full shrink-0 px-3 py-2 text-sm flex items-center justify-between"
+                    onClick={() => setPeriodOpen((s) => !s)}
+                    active={true}
+                  >
+                    <span className="truncate">
+                      {
+                        periodModes.find((p) => p.value === currentPeriod)
+                          ?.label
+                      }
+                    </span>
+                    <i
+                      className="fas fa-chevron-down text-xs"
+                      aria-hidden="true"
+                    />
+                  </Button>
 
-          <div className="grid gap-3">
-            <div className="bw-date-range-grid grid grid-cols-2 gap-3">
-              <label className="grid min-w-0 gap-2">
-                <span className="text-[0.92rem] font-semibold">From</span>
-                <Calendar
-                  expenses={expenses}
-                  value={customDateFrom}
-                  onChange={(event) =>
-                    onCustomDateFromChange(event.target.value)
-                  }
-                />
-              </label>
-              <label className="grid min-w-0 gap-2">
-                <span className="text-[0.92rem] font-semibold">To</span>
-                <Calendar
-                  expenses={expenses}
-                  value={customDateTo}
-                  onChange={(event) => onCustomDateToChange(event.target.value)}
-                />
-              </label>
+                  {periodOpen ? (
+                    <div className="absolute left-0 top-full mt-2 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
+                      {periodModes.map((mode) => (
+                        <button
+                          key={mode.value}
+                          className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 ${currentPeriod === mode.value ? "font-semibold" : ""}`}
+                          onClick={() => {
+                            setPeriodOpen(false);
+                            onDateFilterModeChange(
+                              `${mode.value}:${currentRelative}`,
+                            );
+                          }}
+                        >
+                          {mode.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="relative flex-1" ref={relativeRef}>
+                  <Button
+                    className="bw-quick-date-button h-12 w-full shrink-0 px-3 py-2 text-sm flex items-center justify-between"
+                    onClick={() => setRelativeOpen((s) => !s)}
+                    active={true}
+                  >
+                    <span className="truncate">
+                      {
+                        relativeModes.find((r) => r.value === currentRelative)
+                          ?.label
+                      }
+                    </span>
+                    <i
+                      className="fas fa-chevron-down text-xs"
+                      aria-hidden="true"
+                    />
+                  </Button>
+
+                  {relativeOpen ? (
+                    <div className="absolute left-0 top-full mt-2 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
+                      {relativeModes.map((mode) => (
+                        <button
+                          key={mode.value}
+                          className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 ${currentRelative === mode.value ? "font-semibold" : ""}`}
+                          onClick={() => {
+                            setRelativeOpen(false);
+                            onDateFilterModeChange(
+                              `${currentPeriod}:${mode.value}`,
+                            );
+                          }}
+                        >
+                          {mode.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             </div>
+
+            <div className="grid gap-3 w-full">
+              <div className="bw-date-range-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="grid min-w-0 gap-2">
+                  <span className="text-[0.92rem] font-semibold">From</span>
+                  <Calendar
+                    expenses={expenses}
+                    value={customDateFrom}
+                    onChange={(event) =>
+                      onCustomDateFromChange(event.target.value)
+                    }
+                  />
+                </label>
+                <label className="grid min-w-0 gap-2">
+                  <span className="text-[0.92rem] font-semibold">To</span>
+                  <Calendar
+                    expenses={expenses}
+                    value={customDateTo}
+                    onChange={(event) =>
+                      onCustomDateToChange(event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            {dateRangeError ? (
+              <p className="text-sm font-semibold text-red-600 dark:text-red-300">
+                {dateRangeError}
+              </p>
+            ) : null}
           </div>
 
-          {dateRangeError ? (
-            <p className="text-sm font-semibold text-red-600 dark:text-red-300">
-              {dateRangeError}
-            </p>
-          ) : null}
-        </div>
+          <section className="grid gap-2">
+            {availableCategoryOptions.length ? (
+              <div
+                className={`grid gap-2 ${
+                  availableCategoryGroups.length
+                    ? "md:grid-cols-[minmax(11rem,0.95fr)_minmax(0,1.25fr)]"
+                    : "grid-cols-1"
+                } items-start`}
+              >
+                {availableCategoryGroups.length ? (
+                  <div className="grid gap-1 self-start">
+                    <div className="flex h-5 items-center px-1">
+                      <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
+                        Quick Groups
+                      </p>
+                    </div>
+                    <div
+                      className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
+                        shouldConstrainGroupHeight
+                          ? "max-h-40 overflow-y-auto overscroll-y-contain"
+                          : ""
+                      }`}
+                    >
+                      <div className="grid gap-2">
+                        {availableCategoryGroups.map((group) => {
+                          const progressPercent =
+                            (group.selectedCount / group.values.length) * 100;
 
-        <section className="grid gap-2">
-          {availableCategoryOptions.length ? (
-            <div
-              className={`grid gap-2 ${
-                availableCategoryGroups.length
-                  ? "md:grid-cols-[minmax(11rem,0.95fr)_minmax(0,1.25fr)]"
-                  : "grid-cols-1"
-              } items-start`}
-            >
-              {availableCategoryGroups.length ? (
+                          return (
+                            <Button
+                              variant="plain"
+                              aria-pressed={group.isAllSelected}
+                              className={`relative grid h-10 grid-cols-[auto_1fr_auto] items-center gap-2 overflow-hidden rounded-xl border px-2 py-1 text-left transition-colors ${
+                                group.isAllSelected
+                                  ? "border-indigo-500 bg-indigo-50/90 dark:border-indigo-300 dark:bg-indigo-500/15"
+                                  : "border-gray-300 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-indigo-400/70 dark:hover:bg-gray-700/70"
+                              }`}
+                              key={group.label}
+                              type="button"
+                              onClick={() =>
+                                handleCategoryGroupClick(group.values)
+                              }
+                            >
+                              <span
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[0.68rem] text-white"
+                                style={{ backgroundColor: group.accentColor }}
+                              >
+                                <i className={group.icon} aria-hidden="true" />
+                              </span>
+
+                              <span className="min-w-0 flex items-center gap-1.5">
+                                <span className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
+                                  {group.label}
+                                </span>
+                                <span className="shrink-0 text-[0.62rem] text-gray-500 dark:text-gray-300">
+                                  {group.selectedCount}/{group.values.length}
+                                </span>
+                              </span>
+
+                              <span
+                                className={`rounded-full px-1.5 py-0.5 text-[0.55rem] font-semibold uppercase tracking-wide ${
+                                  group.isAllSelected
+                                    ? "bg-indigo-600 text-white dark:bg-indigo-400 dark:text-slate-900"
+                                    : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200"
+                                }`}
+                              >
+                                {group.isAllSelected ? "All" : "Pick"}
+                              </span>
+
+                              <span
+                                aria-hidden="true"
+                                className="absolute bottom-0 left-0 h-1 transition-all duration-200"
+                                style={{
+                                  width: `${progressPercent}%`,
+                                  backgroundColor: group.accentColor,
+                                }}
+                              />
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="grid gap-1 self-start">
-                  <div className="flex h-5 items-center px-1">
+                  <div className="flex h-5 items-center justify-between gap-2 px-1">
                     <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
-                      Quick Groups
+                      Categories
                     </p>
+                    {selectedCategoryFilters.length ? (
+                      <Button
+                        variant="plain"
+                        className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                        type="button"
+                        onClick={onClearCategoryFilters}
+                      >
+                        Clear
+                      </Button>
+                    ) : null}
                   </div>
                   <div
                     className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
-                      shouldConstrainGroupHeight
+                      shouldConstrainCategoryHeight
                         ? "max-h-40 overflow-y-auto overscroll-y-contain"
                         : ""
                     }`}
                   >
-                    <div className="grid gap-2">
-                      {availableCategoryGroups.map((group) => {
-                        const progressPercent =
-                          (group.selectedCount / group.values.length) * 100;
-
-                        return (
-                          <Button
-                            variant="plain"
-                            aria-pressed={group.isAllSelected}
-                            className={`relative grid h-10 grid-cols-[auto_1fr_auto] items-center gap-2 overflow-hidden rounded-xl border px-2 py-1 text-left transition-colors ${
-                              group.isAllSelected
-                                ? "border-indigo-500 bg-indigo-50/90 dark:border-indigo-300 dark:bg-indigo-500/15"
-                                : "border-gray-300 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-indigo-400/70 dark:hover:bg-gray-700/70"
-                            }`}
-                            key={group.label}
-                            type="button"
-                            onClick={() =>
-                              handleCategoryGroupClick(group.values)
+                    <div className={`grid gap-2 ${categoryGridColumnsClass}`}>
+                      {availableCategoryOptions.map((option) => (
+                        <label
+                          className="flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/70"
+                          key={option.value}
+                        >
+                          <input
+                            checked={selectedCategoryFilters.includes(
+                              option.value,
+                            )}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            type="checkbox"
+                            onChange={() =>
+                              onCategoryFilterToggle?.(option.value)
                             }
+                          />
+                          <span
+                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
+                            style={{
+                              backgroundColor:
+                                CATEGORY_COLORS[option.value] ||
+                                CATEGORY_COLORS.uncategorized,
+                            }}
                           >
-                            <span
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[0.68rem] text-white"
-                              style={{ backgroundColor: group.accentColor }}
-                            >
-                              <i className={group.icon} aria-hidden="true" />
-                            </span>
-
-                            <span className="min-w-0 flex items-center gap-1.5">
-                              <span className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
-                                {group.label}
-                              </span>
-                              <span className="shrink-0 text-[0.62rem] text-gray-500 dark:text-gray-300">
-                                {group.selectedCount}/{group.values.length}
-                              </span>
-                            </span>
-
-                            <span
-                              className={`rounded-full px-1.5 py-0.5 text-[0.55rem] font-semibold uppercase tracking-wide ${
-                                group.isAllSelected
-                                  ? "bg-indigo-600 text-white dark:bg-indigo-400 dark:text-slate-900"
-                                  : "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200"
-                              }`}
-                            >
-                              {group.isAllSelected ? "All" : "Pick"}
-                            </span>
-
-                            <span
-                              aria-hidden="true"
-                              className="absolute bottom-0 left-0 h-1 transition-all duration-200"
-                              style={{
-                                width: `${progressPercent}%`,
-                                backgroundColor: group.accentColor,
-                              }}
-                            />
-                          </Button>
-                        );
-                      })}
+                            <i className={option.icon} aria-hidden="true" />
+                          </span>
+                          <span className="truncate">{option.label}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ) : null}
-
-              <div className="grid gap-1 self-start">
-                <div className="flex h-5 items-center justify-between gap-2 px-1">
-                  <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
-                    Categories
-                  </p>
-                  {selectedCategoryFilters.length ? (
-                    <Button
-                      variant="plain"
-                      className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
-                      type="button"
-                      onClick={onClearCategoryFilters}
-                    >
-                      Clear
-                    </Button>
-                  ) : null}
-                </div>
-                <div
-                  className={`rounded-lg border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800 ${
-                    shouldConstrainCategoryHeight
-                      ? "max-h-40 overflow-y-auto overscroll-y-contain"
-                      : ""
-                  }`}
-                >
-                  <div className={`grid gap-2 ${categoryGridColumnsClass}`}>
-                    {availableCategoryOptions.map((option) => (
-                      <label
-                        className="flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/70"
-                        key={option.value}
-                      >
-                        <input
-                          checked={selectedCategoryFilters.includes(
-                            option.value,
-                          )}
-                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          type="checkbox"
-                          onChange={() =>
-                            onCategoryFilterToggle?.(option.value)
-                          }
-                        />
-                        <span
-                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
-                          style={{
-                            backgroundColor:
-                              CATEGORY_COLORS[option.value] ||
-                              CATEGORY_COLORS.uncategorized,
-                          }}
-                        >
-                          <i className={option.icon} aria-hidden="true" />
-                        </span>
-                        <span className="truncate">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-300">
-              No categories available yet.
-            </p>
-          )}
-        </section>
-      </div>
-
-      {resolvedStats.length ? (
-        <div
-          className="grid gap-2 sm:gap-3"
-          style={{ gridTemplateColumns: summaryGridTemplateColumns }}
-        >
-          {resolvedStats.map((stat) => (
-            <article
-              className={`${summaryCardClasses} min-w-0`}
-              key={stat.label}
-            >
-              <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
-                {stat.label}
-              </span>
-              <strong className="block truncate text-base sm:text-lg">
-                {stat.value}
-              </strong>
-            </article>
-          ))}
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-300">
+                No categories available yet.
+              </p>
+            )}
+          </section>
         </div>
-      ) : null}
+
+        {resolvedStats.length ? (
+          <div
+            className="grid gap-2 sm:gap-3"
+            style={{ gridTemplateColumns: summaryGridTemplateColumns }}
+          >
+            {resolvedStats.map((stat) => (
+              <article
+                className={`${summaryCardClasses} min-w-0`}
+                key={stat.label}
+              >
+                <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
+                  {stat.label}
+                </span>
+                <strong className="block truncate text-base sm:text-lg">
+                  {stat.value}
+                </strong>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      );
     </div>
   );
 }

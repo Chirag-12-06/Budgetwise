@@ -24,7 +24,7 @@ export default function useAppController() {
   const [submitting, setSubmitting] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
-  const [dateFilterMode, setDateFilterMode] = useState("allTime");
+  const [dateFilterMode, setDateFilterMode] = useState("month:current");
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState("daily");
   const [customDateFrom, setCustomDateFrom] = useState("");
@@ -140,7 +140,7 @@ export default function useAppController() {
     });
     setEditingExpenseId(null);
     setView(ADD_EXPENSE);
-    setDateFilterMode("allTime");
+    setDateFilterMode("month:current");
     setSelectedCategoryFilters([]);
     setCustomDateFrom("");
     setCustomDateTo("");

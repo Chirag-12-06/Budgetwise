@@ -55,14 +55,81 @@ function getDateKey(value) {
 }
 
 function resolveDateRange({ dateFilterMode, customDateFrom, customDateTo, now = new Date() }) {
-  if (dateFilterMode === "allTime") {
-    return { startDate: null, endDate: null, dateFilterMode, customDateFrom, customDateTo };
-  }
 
   let startDate = null;
   let endDate = null;
 
-  if (dateFilterMode === "thisMonth") {
+  // Support composite modes like "month:current", "week:previous", "day:current", "year:previous"
+  if (dateFilterMode === "custom") {
+    if (customDateFrom) {
+      startDate = parseDateBoundary(customDateFrom, "start");
+    }
+    if (customDateTo) {
+      endDate = parseDateBoundary(customDateTo, "end");
+    }
+    return { startDate, endDate, dateFilterMode, customDateFrom, customDateTo };
+  }
+
+  const normalized = String(dateFilterMode || "");
+  if (normalized.includes(":")) {
+    const [period, relative] = normalized.split(":");
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    if (period === "month") {
+      if (relative === "current") {
+        startDate = new Date(year, month, 1);
+        endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
+      } else {
+        // previous
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      }
+    } else if (period === "year") {
+      if (relative === "current") {
+        startDate = new Date(year, 0, 1);
+        endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+      } else {
+        startDate = new Date(year - 1, 0, 1);
+        endDate = new Date(year - 1, 11, 31, 23, 59, 59, 999);
+      }
+    } else if (period === "week") {
+      // Treat week as Monday - Sunday
+      const day = now.getDay();
+      const daysSinceMonday = (day + 6) % 7;
+      const thisMonday = new Date(now);
+      thisMonday.setHours(0, 0, 0, 0);
+      thisMonday.setDate(now.getDate() - daysSinceMonday);
+
+      if (relative === "current") {
+        startDate = new Date(thisMonday);
+        endDate = new Date(thisMonday);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        const prevMonday = new Date(thisMonday);
+        prevMonday.setDate(prevMonday.getDate() - 7);
+        startDate = new Date(prevMonday);
+        endDate = new Date(prevMonday);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+      }
+    } else if (period === "day") {
+      if (relative === "current") {
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        startDate = new Date(yesterday);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(yesterday);
+        endDate.setHours(23, 59, 59, 999);
+      }
+    }
+  } else if (dateFilterMode === "thisMonth") {
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   } else if (dateFilterMode === "lastMonth") {
@@ -71,13 +138,6 @@ function resolveDateRange({ dateFilterMode, customDateFrom, customDateTo, now = 
   } else if (dateFilterMode === "thisYear") {
     startDate = new Date(now.getFullYear(), 0, 1);
     endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-  } else if (dateFilterMode === "custom") {
-    if (customDateFrom) {
-      startDate = parseDateBoundary(customDateFrom, "start");
-    }
-    if (customDateTo) {
-      endDate = parseDateBoundary(customDateTo, "end");
-    }
   }
 
   return { startDate, endDate, dateFilterMode, customDateFrom, customDateTo };

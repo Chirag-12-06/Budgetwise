@@ -32,6 +32,23 @@ function getNextDateKey(dateKey) {
   return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
+function frequencyLabel(frequency, count) {
+  const n = Number(count);
+  const plural = n > 1;
+  switch (frequency) {
+    case "DAILY":
+      return plural ? "days" : "day";
+    case "WEEKLY":
+      return plural ? "weeks" : "week";
+    case "MONTHLY":
+      return plural ? "months" : "month";
+    case "YEARLY":
+      return plural ? "years" : "year";
+    default:
+      return frequency.toLowerCase();
+  }
+}
+
 const submitButtonClasses =
   "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
 const updateButtonClasses =
@@ -295,29 +312,36 @@ export default function AddExpensePage({
         />
 
         {showRecurringSection ? (
-          <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/60">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="plain"
-                type="button"
-                onClick={handleRecurringToggle}
-                aria-pressed={displayRecurringEnabled}
-                aria-label={
-                  displayRecurringEnabled ? "Recurring" : "Don't Repeat"
-                }
-                title={displayRecurringEnabled ? "Recurring" : "Don't Repeat"}
-                className={`${fieldClasses} flex items-center justify-center gap-3 text-left ${displayRecurringEnabled ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-slate-700 dark:text-slate-100"} min-h-13 w-14`}
+          <label className="grid gap-2">
+            <Button
+              variant="plain"
+              type="button"
+              onClick={handleRecurringToggle}
+              aria-pressed={displayRecurringEnabled}
+              aria-label={
+                displayRecurringEnabled ? "Recurring" : "Don't Repeat"
+              }
+              title={displayRecurringEnabled ? "Recurring" : "Don't Repeat"}
+              className={`${fieldClasses} flex items-center gap-2 px-3 text-left ${displayRecurringEnabled ? "bg-indigo-600 text-white hover:bg-indigo-500" : ""}`}
+            >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm ${displayRecurringEnabled ? "bg-white text-indigo-600" : "bg-gray-200 text-gray-600 dark:bg-slate-600/90 dark:text-slate-200"}`}
               >
-                <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-md text-sm ${displayRecurringEnabled ? "bg-white text-indigo-600" : "bg-gray-200 text-gray-600 dark:bg-slate-600/90 dark:text-slate-200"}`}
-                >
-                  <i className="fas fa-repeat" aria-hidden="true" />
-                </span>
-              </Button>
-            </div>
+                <i className="fas fa-repeat" aria-hidden="true" />
+              </span>
+              <span
+                className={`flex-1 min-w-0 text-base ${displayRecurringEnabled ? "text-white" : "text-gray-500 dark:text-slate-300"} text-left`}
+              >
+                {displayRecurringEnabled ? "Recurring" : "Don't Repeat"}
+              </span>
+              <i
+                className={`fas ${displayRecurringEnabled ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-gray-500 dark:text-slate-300`}
+                aria-hidden="true"
+              />
+            </Button>
 
             {/* Recurring details are edited in a modal for a cleaner UX */}
-          </section>
+          </label>
         ) : null}
 
         {isEditingFuture ? (
@@ -428,20 +452,7 @@ export default function AddExpensePage({
             </h3>
 
             <div className="mt-5 grid gap-4">
-              <label className="grid gap-2">
-                <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
-                  <input
-                    type="checkbox"
-                    checked={tempRecurring.enabled}
-                    onChange={(e) =>
-                      setTempRecurring((c) => ({
-                        ...c,
-                        enabled: e.target.checked,
-                      }))
-                    }
-                  />
-                  Enable recurring
-                </label>
+              <div className="grid gap-2">
                 <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
                   Repeat every
                 </span>
@@ -469,20 +480,28 @@ export default function AddExpensePage({
                       }))
                     }
                   >
-                    <option value="DAILY">day(s)</option>
-                    <option value="WEEKLY">week(s)</option>
-                    <option value="MONTHLY">month(s)</option>
-                    <option value="YEARLY">year(s)</option>
+                    <option value="DAILY">
+                      {frequencyLabel("DAILY", tempRecurring.intervalValue)}
+                    </option>
+                    <option value="WEEKLY">
+                      {frequencyLabel("WEEKLY", tempRecurring.intervalValue)}
+                    </option>
+                    <option value="MONTHLY">
+                      {frequencyLabel("MONTHLY", tempRecurring.intervalValue)}
+                    </option>
+                    <option value="YEARLY">
+                      {frequencyLabel("YEARLY", tempRecurring.intervalValue)}
+                    </option>
                   </select>
                 </div>
-              </label>
+              </div>
 
               <div className="grid gap-2">
                 <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
                   Repeat ends
                 </span>
-                <div className="grid gap-2 rounded-2xl border border-gray-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-700/70">
-                  <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
+                <div className="grid gap-0 rounded-2xl border border-gray-200 bg-white p-0 dark:border-slate-600 dark:bg-slate-700/70">
+                  <label className="flex items-center gap-3 px-3 py-3 text-sm text-gray-800 dark:text-slate-100">
                     <input
                       type="radio"
                       name="recurring-end-type-modal"
@@ -497,9 +516,10 @@ export default function AddExpensePage({
                         }))
                       }
                     />
-                    Forever
+                    <span className="ml-2">Forever</span>
                   </label>
-                  <label className="flex items-center gap-3 text-sm text-gray-800 dark:text-slate-100">
+
+                  <label className="flex items-center gap-3 px-3 py-3 text-sm text-gray-800 dark:text-slate-100 border-t border-gray-200 dark:border-slate-600 group">
                     <input
                       type="radio"
                       name="recurring-end-type-modal"
@@ -513,27 +533,38 @@ export default function AddExpensePage({
                         }))
                       }
                     />
-                    <span className="flex flex-wrap items-center gap-2">
-                      After
-                      <input
-                        className={`${fieldClasses} w-28`}
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={tempRecurring.endCount}
-                        onChange={(event) =>
-                          setTempRecurring((current) => ({
-                            ...current,
-                            endType: "COUNT",
-                            endCount: event.target.value,
-                          }))
-                        }
-                        placeholder="12"
-                      />
-                      occurrences
-                    </span>
+
+                    {tempRecurring.endType === "COUNT" ? null : (
+                      <span className="flex-1 min-w-0 ml-2">
+                        Specific number of times
+                      </span>
+                    )}
+
+                    {tempRecurring.endType === "COUNT" ? (
+                      <div className="ml-3 flex items-center gap-1 opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
+                        <input
+                          className="h-6 w-15  px-3 text-base text-gray-900 dark:text-white"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={tempRecurring.endCount}
+                          onChange={(event) =>
+                            setTempRecurring((current) => ({
+                              ...current,
+                              endType: "COUNT",
+                              endCount: event.target.value,
+                            }))
+                          }
+                          placeholder="1"
+                        />
+                        <span className="text-sm text-gray-500 dark:text-slate-300">
+                          times total
+                        </span>
+                      </div>
+                    ) : null}
                   </label>
-                  <label className="flex items-start gap-3 text-sm text-gray-800 dark:text-slate-100">
+
+                  <label className="flex items-start gap-3 px-3 py-3 text-sm text-gray-800 dark:text-slate-100 border-t border-gray-200 dark:border-slate-600">
                     <input
                       type="radio"
                       name="recurring-end-type-modal"
@@ -549,7 +580,7 @@ export default function AddExpensePage({
                       className="mt-1"
                     />
                     <span className="grid flex-1 gap-2">
-                      Until date
+                      Until
                       <Calendar
                         className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
                         value={tempRecurring.endDate}
