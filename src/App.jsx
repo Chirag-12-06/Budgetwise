@@ -89,7 +89,7 @@ function App() {
       <main className="min-h-screen px-4 pb-8">
         <section className={`mx-auto w-full ${user ? "" : "max-w-xl"}`}>
           {user ? (
-            <section className="grid gap-12">
+            <section className="grid gap-6">
               <Navbar
                 user={user}
                 view={view}

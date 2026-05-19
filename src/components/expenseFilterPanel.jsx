@@ -201,15 +201,16 @@ export default function ExpenseFilterPanel({
     <div className={className}>
       <div className="grid gap-4 xl:grid-cols-2 xl:items-stretch">
         <div className="grid gap-4">
-          <div className="bw-quick-date-grid flex flex-wrap gap-2 sm:gap-3">
+          <div className="bw-quick-date-grid grid gap-2 sm:gap-3">
             {/* Period selector (month/week/day/year) with dropdowns */}
-            <div className="flex items-center gap-3">
-              <div className="flex w-full items-center gap-3">
-                <div className="relative flex-1" ref={periodRef}>
+            <div className="flex items-center gap-3 w-full basis-full">
+              <div className="grid w-full grid-cols-2 gap-3">
+                <div className="relative" ref={periodRef}>
                   <Button
-                    className="bw-quick-date-button h-12 w-full shrink-0 px-3 py-2 text-sm flex items-center justify-between"
+                    variant="plain"
+                    className="bw-quick-date-button h-12 w-full px-3 py-2 text-sm flex items-center justify-between rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
                     onClick={() => setPeriodOpen((s) => !s)}
-                    active={true}
+                    active={false}
                   >
                     <span className="truncate">
                       {
@@ -224,7 +225,7 @@ export default function ExpenseFilterPanel({
                   </Button>
 
                   {periodOpen ? (
-                    <div className="absolute left-0 top-full mt-2 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
+                    <div className="absolute right-0 left-auto top-full mt-2 w-max min-w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
                       {periodModes.map((mode) => (
                         <button
                           key={mode.value}
@@ -243,11 +244,12 @@ export default function ExpenseFilterPanel({
                   ) : null}
                 </div>
 
-                <div className="relative flex-1" ref={relativeRef}>
+                <div className="relative" ref={relativeRef}>
                   <Button
-                    className="bw-quick-date-button h-12 w-full shrink-0 px-3 py-2 text-sm flex items-center justify-between"
+                    variant="plain"
+                    className="bw-quick-date-button h-12 w-full px-3 py-2 text-sm flex items-center justify-between rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
                     onClick={() => setRelativeOpen((s) => !s)}
-                    active={true}
+                    active={false}
                   >
                     <span className="truncate">
                       {
@@ -262,7 +264,7 @@ export default function ExpenseFilterPanel({
                   </Button>
 
                   {relativeOpen ? (
-                    <div className="absolute left-0 top-full mt-2 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
+                    <div className="absolute right-0 left-auto top-full mt-2 w-max min-w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
                       {relativeModes.map((mode) => (
                         <button
                           key={mode.value}
@@ -283,8 +285,8 @@ export default function ExpenseFilterPanel({
               </div>
             </div>
 
-            <div className="grid gap-3 w-full">
-              <div className="bw-date-range-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid gap-3 w-full basis-full">
+              <div className="bw-date-range-grid grid grid-cols-2 gap-3">
                 <label className="grid min-w-0 gap-2">
                   <span className="text-[0.92rem] font-semibold">From</span>
                   <Calendar
@@ -315,18 +317,39 @@ export default function ExpenseFilterPanel({
             ) : null}
           </div>
 
-          <section className="grid gap-2">
+          {resolvedStats.length ? (
+            <div
+              className="grid gap-2 sm:gap-3"
+              style={{ gridTemplateColumns: summaryGridTemplateColumns }}
+            >
+              {resolvedStats.map((stat) => (
+                <article
+                  className={`${summaryCardClasses} min-w-0`}
+                  key={stat.label}
+                >
+                  <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
+                    {stat.label}
+                  </span>
+                  <strong className="block truncate text-base sm:text-lg">
+                    {stat.value}
+                  </strong>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-4">
+          <section className="grid gap-2 h-full">
             {availableCategoryOptions.length ? (
               <div
                 className={`grid gap-2 ${
-                  availableCategoryGroups.length
-                    ? "md:grid-cols-[minmax(11rem,0.95fr)_minmax(0,1.25fr)]"
-                    : "grid-cols-1"
-                } items-start`}
+                  availableCategoryGroups.length ? "grid-cols-2" : "grid-cols-1"
+                } items-stretch h-full`}
               >
                 {availableCategoryGroups.length ? (
-                  <div className="grid gap-1 self-start">
-                    <div className="flex h-5 items-center px-1">
+                  <div className="grid gap-0 self-stretch">
+                    <div className="flex items-center px-1 mb-1 sm:mb-0">
                       <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
                         Quick Groups
                       </p>
@@ -336,7 +359,7 @@ export default function ExpenseFilterPanel({
                         shouldConstrainGroupHeight
                           ? "max-h-40 overflow-y-auto overscroll-y-contain"
                           : ""
-                      }`}
+                      } h-full min-h-full`}
                     >
                       <div className="grid gap-2">
                         {availableCategoryGroups.map((group) => {
@@ -400,8 +423,8 @@ export default function ExpenseFilterPanel({
                   </div>
                 ) : null}
 
-                <div className="grid gap-1 self-start">
-                  <div className="flex h-5 items-center justify-between gap-2 px-1">
+                <div className="grid gap-0 self-stretch">
+                  <div className="flex items-center justify-between gap-2 px-1 mb-1 sm:mb-0">
                     <p className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-gray-500 dark:text-gray-300">
                       Categories
                     </p>
@@ -421,7 +444,7 @@ export default function ExpenseFilterPanel({
                       shouldConstrainCategoryHeight
                         ? "max-h-40 overflow-y-auto overscroll-y-contain"
                         : ""
-                    }`}
+                    } h-full min-h-full`}
                   >
                     <div className={`grid gap-2 ${categoryGridColumnsClass}`}>
                       {availableCategoryOptions.map((option) => (
@@ -463,29 +486,7 @@ export default function ExpenseFilterPanel({
             )}
           </section>
         </div>
-
-        {resolvedStats.length ? (
-          <div
-            className="grid gap-2 sm:gap-3"
-            style={{ gridTemplateColumns: summaryGridTemplateColumns }}
-          >
-            {resolvedStats.map((stat) => (
-              <article
-                className={`${summaryCardClasses} min-w-0`}
-                key={stat.label}
-              >
-                <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
-                  {stat.label}
-                </span>
-                <strong className="block truncate text-base sm:text-lg">
-                  {stat.value}
-                </strong>
-              </article>
-            ))}
-          </div>
-        ) : null}
       </div>
-      );
     </div>
   );
 }
