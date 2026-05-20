@@ -78,11 +78,11 @@ export default function ExpensesPage({
                         <strong>{expense.title}</strong>
                         {expense.isRecurring && (
                           <span
-                            className="inline-flex items-center justify-center rounded-lg bg-indigo-50 p-2 text-sm text-indigo-700 dark:bg-indigo-700 dark:text-indigo-200"
+                            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 p-2 text-sm text-white"
                             title="Recurring"
                           >
                             <i
-                              className="fas fa-repeat text-sm text-indigo-200"
+                              className="fas fa-repeat text-sm"
                               aria-hidden="true"
                             />
                           </span>

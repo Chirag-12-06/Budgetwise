@@ -90,10 +90,6 @@ export default function AddExpensePage({
 
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
     useState(false);
-  const [
-    showRecurringUnderDevelopmentPopup,
-    setShowRecurringUnderDevelopmentPopup,
-  ] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
 
@@ -108,23 +104,14 @@ export default function AddExpensePage({
     !isEditingExpense || isEditingRecurringSeries || isEditingFuture;
   const showRecurringFields = recurringForm.enabled && showRecurringSection;
 
-  const isDeployed =
-    typeof window !== "undefined" &&
-    !window.location.hostname.includes("localhost") &&
-    window.location.hostname !== "127.0.0.1";
-
   const handleRecurringToggle = () => {
-    if (isDeployed) {
-      setShowRecurringUnderDevelopmentPopup(true);
+    // Open modal; do not persist until Save. If it was disabled, pre-check enabled in temp state
+    if (!recurringForm.enabled) {
+      setTempRecurring({ ...recurringForm, enabled: true });
     } else {
-      // Open modal; do not persist until Save. If it was disabled, pre-check enabled in temp state
-      if (!recurringForm.enabled) {
-        setTempRecurring({ ...recurringForm, enabled: true });
-      } else {
-        setTempRecurring(recurringForm);
-      }
-      setShowRecurringModal(true);
+      setTempRecurring(recurringForm);
     }
+    setShowRecurringModal(true);
   };
 
   const displayRecurringEnabled = showRecurringModal
@@ -424,13 +411,6 @@ export default function AddExpensePage({
         onClose={() => setShowScanUnderDevelopmentPopup(false)}
       />
 
-      <UnderDevelopmentDialog
-        open={showRecurringUnderDevelopmentPopup}
-        title="Feature Under Development"
-        message="Recurring expenses feature is under development and will be available soon."
-        labelledBy="recurring-popup-title"
-        onClose={() => setShowRecurringUnderDevelopmentPopup(false)}
-      />
       {showRecurringModal ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"

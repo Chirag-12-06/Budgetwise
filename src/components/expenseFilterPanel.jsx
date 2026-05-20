@@ -133,8 +133,7 @@ export default function ExpenseFilterPanel({
   }).filter(Boolean);
   const shouldConstrainGroupHeight = availableCategoryGroups.length > 3;
   const shouldConstrainCategoryHeight = availableCategoryOptions.length > 4;
-  const categoryGridColumnsClass =
-    availableCategoryOptions.length <= 3 ? "grid-cols-1" : "sm:grid-cols-2";
+  const categoryGridColumnsClass = "grid-cols-1";
 
   // Resolve current period and relative from the incoming mode and manage dropdown state
   const normalizedMode = String(dateFilterMode || "");
