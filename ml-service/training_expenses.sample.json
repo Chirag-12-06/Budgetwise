@@ -10,5 +10,9 @@
   {"title": "Fuel refill", "amount": 2500, "category": "fuel"},
   {"title": "Rent payment", "amount": 22000, "category": "rent"},
   {"title": "Internet bill", "amount": 799, "category": "internet"},
-  {"title": "Pharmacy medicines", "amount": 460, "category": "medicine"}
+  {"title": "Pharmacy medicines", "amount": 460, "category": "medicine"},
+  {"title": "SIP investment", "amount": 3000, "category": "savings"},
+  {"title": "FD deposit", "amount": 10000, "category": "savings"},
+  {"title": "PPF contribution", "amount": 2000, "category": "savings"},
+  {"title": "NPS contribution", "amount": 1500, "category": "savings"}
 ]
