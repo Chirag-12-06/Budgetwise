@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   CATEGORY_COLORS,
   CATEGORY_GROUPS,
@@ -90,6 +90,7 @@ export default function AddExpensePage({
 
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
     useState(false);
+  const fileInputRef = useRef(null);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
 
@@ -126,11 +127,42 @@ export default function AddExpensePage({
             ? "Edit Expense"
             : "Add New Expense"}
         </h2>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async () => {
+              try {
+                const dataUrl = reader.result;
+                const resp = await fetch("/api/process-receipt", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    image_b64: dataUrl,
+                    filename: file.name,
+                  }),
+                });
+                const json = await resp.json();
+                console.log("Receipt processed:", json);
+                // TODO: populate form fields using json.data if desired
+              } catch (err) {
+                console.error("Upload failed", err);
+              }
+            };
+            reader.readAsDataURL(file);
+          }}
+        />
+
         <Button
           variant="plain"
           className={scanButtonClasses}
           type="button"
-          onClick={() => setShowScanUnderDevelopmentPopup(true)}
+          onClick={() => fileInputRef.current && fileInputRef.current.click()}
         >
           <i className="fas fa-camera" aria-hidden="true" />
           <span>Scan Receipt</span>

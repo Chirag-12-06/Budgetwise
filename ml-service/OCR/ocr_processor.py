@@ -15,6 +15,10 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 def ocr_processor(input_folder, output_file):
     extracted_text = ""
     validate_Extensions = (".jpg", ".jpeg", ".png")
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+
+    if not Path(input_folder).exists():
+        raise FileNotFoundError(f"Input folder not found: {input_folder}")
 
     for filename in os.listdir(input_folder):
         if filename.lower().endswith(validate_Extensions):

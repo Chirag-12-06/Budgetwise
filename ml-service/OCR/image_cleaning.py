@@ -12,6 +12,10 @@ OUTPUT_FOLDER = PROJECT_ROOT / "inputs" / "bills_cleaned"
 
 def image_cleaning(input_folder, output_folder):
     validate_Extensions = (".jpg", ".jpeg", ".png")
+    Path(output_folder).mkdir(parents=True, exist_ok=True)
+
+    if not Path(input_folder).exists():
+        raise FileNotFoundError(f"Input folder not found: {input_folder}")
 
     for filename in os.listdir(input_folder):
         if filename.lower().endswith(validate_Extensions):

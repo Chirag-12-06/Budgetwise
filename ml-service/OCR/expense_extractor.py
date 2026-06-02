@@ -31,18 +31,14 @@ EXPENSE_SCHEMA = {
                 "type": "object",
                 "additionalProperties": False,
                 "required": [
-                    "source_file",
                     "restaurant_name",
                     "date",
                     "currency",
                     "items",
                     "taxes_and_charges",
                     "subtotal",
-                    "confidence",
-                    "warnings",
                 ],
                 "properties": {
-                    "source_file": {"type": ["string", "null"]},
                     "restaurant_name": {"type": ["string", "null"]},
                     "date": {"type": ["string", "null"]},
                     "currency": {"type": ["string", "null"]},
@@ -86,8 +82,6 @@ EXPENSE_SCHEMA = {
                         },
                     },
                     "subtotal": {"type": ["number", "null"]},
-                    "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
-                    "warnings": {"type": "array", "items": {"type": "string"}},
                 },
             },
         }
@@ -200,12 +194,6 @@ def dedupe_bills(bills):
         kept_bill = choose_preferred_bill(deduped[signature], bill)
         duplicate_bill = bill if kept_bill is deduped[signature] else deduped[signature]
 
-        warnings = kept_bill.setdefault("warnings", [])
-        duplicate_name = duplicate_bill.get("restaurant_name") or "Unknown merchant"
-        if duplicate_name not in warnings:
-            warnings.append(
-                f"Duplicate entry detected under different restaurant names: {duplicate_name}."
-            )
 
         deduped[signature] = kept_bill
 
@@ -385,7 +373,6 @@ def call_openai(extracted_text, model, max_retries):
         "and include that tax_percentage on every item. For each item, keep base_amount as the receipt line amount "
         "before bill-level taxes. Set taxes_and_charges_allocated to the item's tax amount calculated from its base_amount and tax_percentage, "
         "then set final_item_amount to base_amount plus taxes_and_charges_allocated. Do not include any bill-level final amount field. "
-        "If the OCR is unclear, use nulls and add a warning."
     )
 
     payload = {
@@ -439,19 +426,13 @@ def write_json(data, output_json):
 
 def write_csv(data, output_csv):
     columns = [
-        "source_file",
         "restaurant_name",
         "date",
         "currency",
         "item_name",
         "quantity",
         "unit_price",
-        "base_amount",
-        "tax_percentage",
-        "taxes_and_charges_allocated",
         "final_item_amount",
-        "confidence",
-        "warnings",
     ]
 
     with open(output_csv, "w", newline="", encoding="utf-8") as file:
@@ -459,11 +440,9 @@ def write_csv(data, output_csv):
         writer.writeheader()
 
         for bill in data.get("bills", []):
-            warnings = " | ".join(bill.get("warnings", []))
             for item in bill.get("items", []):
                 writer.writerow(
                     {
-                        "source_file": bill.get("source_file") or "",
                         "restaurant_name": bill.get("restaurant_name") or "",
                         "date": bill.get("date") or "",
                         "currency": bill.get("currency") or "",
@@ -476,8 +455,6 @@ def write_csv(data, output_csv):
                             item.get("taxes_and_charges_allocated")
                         ),
                         "final_item_amount": money(item.get("final_item_amount")),
-                        "confidence": bill.get("confidence") or "",
-                        "warnings": warnings,
                     }
                 )
 

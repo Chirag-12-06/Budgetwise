@@ -18,7 +18,17 @@ import { logError, logInfo, logWarn } from "./utils/logger.js";
 // ✅ Handle ES modules dirname and load server-local env file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, ".env") });
+const dotenvResult = dotenv.config({ path: path.join(__dirname, ".env") });
+if (dotenvResult.error) {
+  // Fallback: allow a repo-root .env (useful for dev setups).
+  dotenv.config({ path: path.join(__dirname, "..", ".env") });
+}
+
+dotenv.config({
+  path: path.join(__dirname, ".env"),
+  override: true
+});
+console.log(process.env.OPENAI_API_KEY);
 
 const app = express();
 const prisma = new PrismaClient();
@@ -46,6 +56,12 @@ let fetchPromise;
 let internalMlProcess = null;
 let internalMlStarting = false;
 let shuttingDown = false;
+
+if (!String(process.env.OPENAI_API_KEY || "").trim()) {
+  logWarn(
+    "⚠ OPENAI_API_KEY is not set. Receipt scanning (OCR -> extraction) will fail until you add it to server/.env or your environment.",
+  );
+}
 
 const DEFAULT_CORS_ORIGINS = [
   "http://127.0.0.1:5500",
@@ -484,6 +500,25 @@ app.get("/api/ml-health", async (_req, res) => {
     logError("❌ ML health check error:", error);
     const status = Number(error?.status || 503);
     res.status(status >= 400 && status < 600 ? status : 503).json({ error: error.message });
+  }
+});
+
+// ✅ Proxy endpoint to ML service for receipt processing
+app.post("/api/process-receipt", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const result = await callMlService("/api/process-receipt", {
+      method: "POST",
+      body,
+    });
+    res.json(result);
+  } catch (error) {
+    logError("❌ Receipt processing error:", error);
+    const status = Number(error?.status || 503);
+    res.status(status >= 400 && status < 600 ? status : 503).json({
+      error: "ML receipt processing is temporarily unavailable.",
+      detail: String(error?.message || error),
+    });
   }
 });
 

@@ -4,6 +4,10 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 from category_predictor import CategoryPredictor
+import base64
+import time
+import importlib.util
+import os as _os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -127,6 +131,92 @@ def health():
 def root_health():
     """Root endpoint for platforms that probe '/' by default."""
     return health()
+
+
+@app.route('/api/process-receipt', methods=['POST'])
+def process_receipt():
+    try:
+        data = request.json or {}
+        image_b64 = data.get('image_b64')
+        filename = data.get('filename') or f"receipt_{int(time.time())}.jpg"
+
+        if not image_b64:
+            return jsonify({'error': 'image_b64 is required'}), 400
+
+        # Remove data URI prefix if present
+        if image_b64.startswith('data:'):
+            image_b64 = image_b64.split(',', 1)[1]
+
+        try:
+            binary = base64.b64decode(image_b64)
+        except Exception as e:
+            return jsonify({'error': 'invalid base64 image', 'detail': str(e)}), 400
+
+        base_dir = Path(__file__).resolve().parent
+        inputs_dir = base_dir / 'inputs'
+        outputs_dir = base_dir / 'outputs'
+        bills_dir = inputs_dir / 'bills'
+        bills_cleaned_dir = inputs_dir / 'bills_cleaned'
+        ocr_output_file = inputs_dir / 'bills_cleaned.txt'
+
+        bills_dir.mkdir(parents=True, exist_ok=True)
+        bills_cleaned_dir.mkdir(parents=True, exist_ok=True)
+        outputs_dir.mkdir(parents=True, exist_ok=True)
+
+        saved_path = bills_dir / filename
+        with open(saved_path, 'wb') as f:
+            f.write(binary)
+
+        # Dynamically load OCR modules (avoid package import issues)
+        def _load_module(name, rel_path):
+            path = base_dir / rel_path
+            spec = importlib.util.spec_from_file_location(name, str(path))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+
+        _image_cleaning = _load_module('image_cleaning', Path('OCR') / 'image_cleaning.py')
+        _ocr_processor = _load_module('ocr_processor', Path('OCR') / 'ocr_processor.py')
+        _expense_extractor = _load_module('expense_extractor', Path('OCR') / 'expense_extractor.py')
+
+        # Run cleaning -> OCR -> extraction
+        _image_cleaning.image_cleaning(str(bills_dir), str(bills_cleaned_dir))
+        _ocr_processor.ocr_processor(str(bills_cleaned_dir), str(ocr_output_file))
+
+        if not ocr_output_file.exists():
+            return jsonify({'error': 'OCR output missing'}), 500
+
+        extracted_text = ocr_output_file.read_text(encoding='utf-8').strip()
+        if not extracted_text:
+            return jsonify({'error': 'No text extracted from image'}), 500
+
+        api_key = os.getenv('OPENAI_API_KEY', '').strip()
+        print(os.getenv("OPENAI_API_KEY"))
+        if not api_key:
+            return jsonify({
+                'error': 'OPENAI_API_KEY is not set for the ML service process.',
+                'how_to_fix': 'Create server/.env (copy from server/.env.example) and set OPENAI_API_KEY, then restart the Node server so it respawns the ML service with the right environment.',
+            }), 500
+
+        model = _os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+        max_retries = int(_os.getenv('OPENAI_MAX_RETRIES', '3'))
+
+        data = _expense_extractor.call_openai(extracted_text, model, max_retries)
+        _expense_extractor.normalize_expense_data(data)
+        _expense_extractor.write_json(data, _expense_extractor.OUTPUT_JSON)
+        _expense_extractor.write_csv(data, _expense_extractor.OUTPUT_CSV)
+
+        return jsonify({
+            'ok': True,
+            'data': data,
+            'files': {
+                'ocr_text': str(ocr_output_file),
+                'json': str(_expense_extractor.OUTPUT_JSON),
+                'csv': str(_expense_extractor.OUTPUT_CSV),
+            },
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('ML_PORT') or os.getenv('PORT', '5001'))
