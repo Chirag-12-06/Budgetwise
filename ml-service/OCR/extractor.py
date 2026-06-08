@@ -1,20 +1,11 @@
 import argparse
-import csv
 import json
 import os
 import re
 import time
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from pathlib import Path
-
 import requests
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-INPUT_FILE = PROJECT_ROOT / "inputs" / "bills_cleaned.txt"
-OUTPUT_DIR = PROJECT_ROOT / "outputs"
-OUTPUT_CSV = OUTPUT_DIR / "expenses_table.csv"
-OUTPUT_JSON = OUTPUT_DIR / "expenses_table.json"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_MAX_RETRIES = 3
@@ -31,14 +22,18 @@ EXPENSE_SCHEMA = {
                 "type": "object",
                 "additionalProperties": False,
                 "required": [
+                    "source_file",
                     "restaurant_name",
                     "date",
                     "currency",
                     "items",
                     "taxes_and_charges",
                     "subtotal",
+                    "confidence",
+                    "warnings",
                 ],
                 "properties": {
+                    "source_file": {"type": ["string", "null"]},
                     "restaurant_name": {"type": ["string", "null"]},
                     "date": {"type": ["string", "null"]},
                     "currency": {"type": ["string", "null"]},
@@ -82,6 +77,8 @@ EXPENSE_SCHEMA = {
                         },
                     },
                     "subtotal": {"type": ["number", "null"]},
+                    "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+                    "warnings": {"type": "array", "items": {"type": "string"}},
                 },
             },
         }
@@ -194,6 +191,12 @@ def dedupe_bills(bills):
         kept_bill = choose_preferred_bill(deduped[signature], bill)
         duplicate_bill = bill if kept_bill is deduped[signature] else deduped[signature]
 
+        warnings = kept_bill.setdefault("warnings", [])
+        duplicate_name = duplicate_bill.get("restaurant_name") or "Unknown merchant"
+        if duplicate_name not in warnings:
+            warnings.append(
+                f"Duplicate entry detected under different restaurant names: {duplicate_name}."
+            )
 
         deduped[signature] = kept_bill
 
@@ -373,6 +376,7 @@ def call_openai(extracted_text, model, max_retries):
         "and include that tax_percentage on every item. For each item, keep base_amount as the receipt line amount "
         "before bill-level taxes. Set taxes_and_charges_allocated to the item's tax amount calculated from its base_amount and tax_percentage, "
         "then set final_item_amount to base_amount plus taxes_and_charges_allocated. Do not include any bill-level final amount field. "
+        "If the OCR is unclear, use nulls and add a warning."
     )
 
     payload = {
@@ -424,47 +428,13 @@ def write_json(data, output_json):
         json.dump(data, file, indent=2, ensure_ascii=False)
 
 
-def write_csv(data, output_csv):
-    columns = [
-        "restaurant_name",
-        "date",
-        "currency",
-        "item_name",
-        "quantity",
-        "unit_price",
-        "final_item_amount",
-    ]
-
-    with open(output_csv, "w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=columns)
-        writer.writeheader()
-
-        for bill in data.get("bills", []):
-            for item in bill.get("items", []):
-                writer.writerow(
-                    {
-                        "restaurant_name": bill.get("restaurant_name") or "",
-                        "date": bill.get("date") or "",
-                        "currency": bill.get("currency") or "",
-                        "item_name": item.get("name") or "",
-                        "quantity": item.get("quantity") or "",
-                        "unit_price": money(item.get("unit_price")),
-                        "base_amount": money(item.get("base_amount")),
-                        "tax_percentage": money(item.get("tax_percentage")),
-                        "taxes_and_charges_allocated": money(
-                            item.get("taxes_and_charges_allocated")
-                        ),
-                        "final_item_amount": money(item.get("final_item_amount")),
-                    }
-                )
 
 
-def main():
+def extract(INPUT_FILE, OUTPUT_DIR, OUTPUT_JSON):
     parser = argparse.ArgumentParser(
         description="Use the OpenAI API to convert OCR receipt text into an expense table."
     )
     parser.add_argument("--input", default=str(INPUT_FILE), help="OCR text file to read.")
-    parser.add_argument("--csv", default=str(OUTPUT_CSV), help="CSV table to write.")
     parser.add_argument("--json", default=str(OUTPUT_JSON), help="Structured JSON to write.")
     parser.add_argument(
         "--model",
@@ -490,11 +460,5 @@ def main():
     data = call_openai(extracted_text, args.model, args.max_retries)
     normalize_expense_data(data)
     write_json(data, args.json)
-    write_csv(data, args.csv)
 
-    print(f"Wrote {args.csv}")
     print(f"Wrote {args.json}")
-
-
-if __name__ == "__main__":
-    main()

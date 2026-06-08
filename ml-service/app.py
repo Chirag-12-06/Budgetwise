@@ -191,7 +191,6 @@ def process_receipt():
             return jsonify({'error': 'No text extracted from image'}), 500
 
         api_key = os.getenv('OPENAI_API_KEY', '').strip()
-        print(os.getenv("OPENAI_API_KEY"))
         if not api_key:
             return jsonify({
                 'error': 'OPENAI_API_KEY is not set for the ML service process.',
@@ -204,7 +203,6 @@ def process_receipt():
         data = _expense_extractor.call_openai(extracted_text, model, max_retries)
         _expense_extractor.normalize_expense_data(data)
         _expense_extractor.write_json(data, _expense_extractor.OUTPUT_JSON)
-        _expense_extractor.write_csv(data, _expense_extractor.OUTPUT_CSV)
 
         return jsonify({
             'ok': True,
@@ -212,7 +210,6 @@ def process_receipt():
             'files': {
                 'ocr_text': str(ocr_output_file),
                 'json': str(_expense_extractor.OUTPUT_JSON),
-                'csv': str(_expense_extractor.OUTPUT_CSV),
             },
         })
     except Exception as e:

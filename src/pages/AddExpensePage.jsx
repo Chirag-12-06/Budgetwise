@@ -58,6 +58,46 @@ const cancelButtonClasses =
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
+// function normalizeReceiptMoney(value) {
+//   if (value === null || value === undefined || value === "") {
+//     return 0;
+//   }
+
+//   if (typeof value === "number" && Number.isFinite(value)) {
+//     return value;
+//   }
+
+//   const asNumber = Number(String(value).replace(/[^0-9.-]/g, ""));
+//   if (Number.isFinite(asNumber)) {
+//     return asNumber;
+//   }
+//   return 0;
+// }
+
+// function resolveReceiptItemAmount(item) {
+//   if (!item || typeof item !== "object") {
+//     return 0;
+//   }
+
+//   const finalAmount = normalizeReceiptMoney(item.final_item_amount);
+//   if (finalAmount) {
+//     return finalAmount;
+//   }
+
+//   const baseAmount = normalizeReceiptMoney(item.base_amount);
+//   if (baseAmount) {
+//     return baseAmount;
+//   }
+
+//   const unitPrice = normalizeReceiptMoney(item.unit_price);
+//   const quantity = normalizeReceiptMoney(item.quantity || 1);
+//   if (unitPrice) {
+//     return unitPrice * (quantity || 1);
+//   }
+
+//   return 0;
+// }
+
 export default function AddExpensePage({
   expenses,
   expenseForm,
@@ -88,9 +128,12 @@ export default function AddExpensePage({
     isEditingExpense: isFormLocked,
   });
 
-  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
-    useState(false);
+  const [scanError, setScanError] = useState("");
+  const [scanErrorOpen, setScanErrorOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [receiptBill, setReceiptBill] = useState(null);
+  const [receiptPaidMap, setReceiptPaidMap] = useState({});
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
 
@@ -148,13 +191,34 @@ export default function AddExpensePage({
                   }),
                 });
                 const json = await resp.json();
-                console.log("Receipt processed:", json);
-                // TODO: populate form fields using json.data if desired
+                if (!resp.ok || json?.error) {
+                  const message = json?.error || "Receipt processing failed.";
+                  setScanError(String(message));
+                  setScanErrorOpen(true);
+                  return;
+                }
+
+                const bill =
+                  json?.data?.bills && json.data.bills[0]
+                    ? json.data.bills[0]
+                    : null;
+                const items = Array.isArray(bill?.items) ? bill.items : [];
+                const paidMap = {};
+                items.forEach((_, index) => {
+                  paidMap[String(index)] = true;
+                });
+
+                setReceiptBill(bill);
+                setReceiptPaidMap(paidMap);
+                setReceiptDialogOpen(true);
               } catch (err) {
                 console.error("Upload failed", err);
+                setScanError("Upload failed. Please try again.");
+                setScanErrorOpen(true);
               }
             };
             reader.readAsDataURL(file);
+            e.target.value = "";
           }}
         />
 
@@ -168,6 +232,145 @@ export default function AddExpensePage({
           <span>Scan Receipt</span>
         </Button>
       </div>
+
+      {/* {receiptDialogOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
+          onClick={() => setReceiptDialogOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-800"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="receipt-scan-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3
+              id="receipt-scan-dialog-title"
+              className="text-xl font-bold text-gray-900 dark:text-white"
+            >
+              {receiptBill?.restaurant_name || "Receipt"}
+            </h3>
+
+            <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-600">
+              <table className="min-w-full border-collapse text-left text-sm">
+                <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:bg-slate-700/60 dark:text-slate-200">
+                  <tr>
+                    <th className="px-3 py-2">Item</th>
+                    <th className="px-3 py-2">Qty</th>
+                    <th className="px-3 py-2">Unit</th>
+                    <th className="px-3 py-2">Amount</th>
+                    <th className="px-3 py-2">Paid</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
+                  {(Array.isArray(receiptBill?.items) ? receiptBill.items : [])
+                    .length ? (
+                    (receiptBill.items || []).map((item, index) => {
+                      const amount = resolveReceiptItemAmount(item);
+                      const key = String(index);
+                      const isPaid = Boolean(receiptPaidMap[key]);
+
+                      return (
+                        <tr
+                          key={key}
+                          className="text-gray-800 dark:text-slate-100"
+                        >
+                          <td className="px-3 py-2">
+                            {item?.name || "(unnamed)"}
+                          </td>
+                          <td className="px-3 py-2">{item?.quantity ?? ""}</td>
+                          <td className="px-3 py-2">
+                            {item?.unit_price ?? ""}
+                          </td>
+                          <td className="px-3 py-2">
+                            {amount ? amount.toFixed(2) : ""}
+                          </td>
+                          <td className="px-3 py-2">
+                            <label className="inline-flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={isPaid}
+                                onChange={(event) => {
+                                  const checked = event.target.checked;
+                                  setReceiptPaidMap((current) => ({
+                                    ...current,
+                                    [key]: checked,
+                                  }));
+                                }}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-500"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-slate-200">
+                                {isPaid ? "Paid" : "Not paid"}
+                              </span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        className="px-3 py-4 text-sm text-gray-600 dark:text-slate-200"
+                        colSpan={5}
+                      >
+                        No items detected on this receipt.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <Button
+                variant="plain"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                type="button"
+                onClick={() => setReceiptDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="plain"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+                type="button"
+                onClick={() => {
+                  const items = Array.isArray(receiptBill?.items)
+                    ? receiptBill.items
+                    : [];
+                  const selectedTotal = items.reduce((sum, item, index) => {
+                    const key = String(index);
+                    if (!receiptPaidMap[key]) return sum;
+                    return sum + resolveReceiptItemAmount(item);
+                  }, 0);
+
+                  const restaurantName = receiptBill?.restaurant_name || "";
+                  setExpenseForm((current) => ({
+                    ...current,
+                    title: restaurantName ? restaurantName : current.title,
+                    amount: selectedTotal
+                      ? selectedTotal.toFixed(2)
+                      : current.amount,
+                  }));
+                  setReceiptDialogOpen(false);
+                }}
+              >
+                Use selection
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <UnderDevelopmentDialog
+        open={scanErrorOpen}
+        title="Receipt scan failed"
+        message={scanError || "Please try again."}
+        onClose={() => setScanErrorOpen(false)}
+        labelledBy="receipt-scan-error-dialog"
+      /> */}
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
         <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">

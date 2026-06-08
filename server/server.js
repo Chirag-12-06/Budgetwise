@@ -28,7 +28,6 @@ dotenv.config({
   path: path.join(__dirname, ".env"),
   override: true
 });
-console.log(process.env.OPENAI_API_KEY);
 
 const app = express();
 const prisma = new PrismaClient();
