@@ -40,7 +40,6 @@ EXPENSE_SCHEMA = {
                             "required": [
                                 "name",
                                 "quantity",
-                                "unit_price",
                                 "base_amount",
                                 "tax_percentage",
                                 "taxes_and_charges_allocated",
@@ -49,7 +48,6 @@ EXPENSE_SCHEMA = {
                             "properties": {
                                 "name": {"type": "string"},
                                 "quantity": {"type": ["number", "null"]},
-                                "unit_price": {"type": ["number", "null"]},
                                 "base_amount": {"type": ["number", "null"]},
                                 "tax_percentage": {"type": ["number", "null"]},
                                 "taxes_and_charges_allocated": {"type": ["number", "null"]},
@@ -87,7 +85,6 @@ def item_signature(item):
     return (
         item.get("name") or "",
         bill_value_signature(item.get("quantity")),
-        bill_value_signature(item.get("unit_price")),
         bill_value_signature(item.get("base_amount")),
         bill_value_signature(item.get("tax_percentage")),
         bill_value_signature(item.get("taxes_and_charges_allocated")),
@@ -167,7 +164,7 @@ def dedupe_bills(bills):
 
     return list(deduped.values())
 
-def get_base_amount(bill):
+def base_amount_calc(bill):
     for item in bill["items"]:
         qty = item.get("quantity") or 1
         final_amount = item.get("final_item_amount")
@@ -180,7 +177,8 @@ def normalize_expense_data(data):
     for bill in data.get("bills", []):
         for item in bill.get("items", []):
 
-            base_amount = get_base_amount(bill)
+            base_amount_calc(bill)
+            base_amount = item.get("base_amount")
             if base_amount in (None, ""):
                 continue
 
@@ -303,7 +301,7 @@ def call_openai(extracted_text, model, max_retries):
         "Fix obvious OCR mistakes when context is clear. "
         "Check each word for missing, swapped, or incorrect letters and autocorrect likely OCR errors when the surrounding context makes the intended word clear. "
         "Correct common OCR confusions such as 0/O, 1/I/l, rn/m, cl/d, and broken characters inside item names or tax labels. "
-        "Extract item names, quantities, unit prices, base amounts, subtotal, taxes, restaurant name, date, and currency exactly as supported by the receipt. "
+        "Extract item names, quantities, base amounts, subtotal, taxes, restaurant name, date, and currency exactly as supported by the receipt. "
         "If 2 columns not given, calculate base_amount as price / quantity. "
         "Keep base_amount as the receipt line amount before bill-level taxes. "
         "Extract the total bill-level tax percentage and store it in tax_percentage for each item. "
