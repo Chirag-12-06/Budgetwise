@@ -84,12 +84,7 @@ function resolveReceiptItemAmount(item) {
     return finalAmount;
   }
 
-  const baseAmount = normalizeReceiptMoney(item.base_amount);
-  if (baseAmount) {
-    return baseAmount;
-  }
-
-  const unitPrice = normalizeReceiptMoney(item.unit_price);
+  const unitPrice = normalizeReceiptMoney(item.base_amount);
   const quantity = normalizeReceiptMoney(item.quantity || 1);
   if (unitPrice) {
     return unitPrice * (quantity || 1);
@@ -262,7 +257,7 @@ showScanUnderDevelopmentPopup
                   <tr>
                     <th className="px-3 py-2">Item</th>
                     <th className="px-3 py-2">Qty</th>
-                    <th className="px-3 py-2">Unit</th>
+                    <th className="px-3 py-2">Unit_Price</th>
                     <th className="px-3 py-2">Amount</th>
                     <th className="px-3 py-2">Paid</th>
                   </tr>
@@ -285,7 +280,7 @@ showScanUnderDevelopmentPopup
                           </td>
                           <td className="px-3 py-2">{item?.quantity ?? ""}</td>
                           <td className="px-3 py-2">
-                            {item?.unit_price ?? ""}
+                            {item?.base_amount ?? ""}
                           </td>
                           <td className="px-3 py-2">
                             {amount ? amount.toFixed(2) : ""}

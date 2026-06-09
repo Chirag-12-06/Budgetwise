@@ -168,9 +168,7 @@ def base_amount_calc(bill):
     for item in bill["items"]:
         qty = item.get("quantity") or 1
         final_amount = item.get("final_item_amount")
-
-        if item.get("base_amount") in (None, "") and final_amount not in (None, ""):
-            item["base_amount"] = round(final_amount / qty, 2)
+        item["base_amount"] = round(final_amount / qty, 2)
 
 
 def normalize_expense_data(data):
