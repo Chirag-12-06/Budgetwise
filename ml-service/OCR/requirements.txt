@@ -13,7 +13,7 @@ pytesseract==0.3.13
 albumentations==1.4.0
 albucore==0.1.6
 packaging==24.0
-rapidfuzz==3.9.7
+rapidfuzz==3.11.0
 tqdm==4.65.0
 # Install paddlepaddle from the Paddle CPU index before installing paddleocr.
 # pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
