@@ -26,7 +26,6 @@ EXPENSE_SCHEMA = {
                     "date",
                     "currency",
                     "items",
-                    "subtotal",
                     "confidence",
                 ],
                 "properties": {
@@ -58,7 +57,6 @@ EXPENSE_SCHEMA = {
                             },
                         },
                     },
-                    "subtotal": {"type": ["number", "null"]},
                     "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
                 },
             },
@@ -101,7 +99,6 @@ def bill_signature(bill):
     return (
         bill.get("date") or "",
         bill.get("currency") or "",
-        bill_value_signature(bill.get("subtotal")),
         tuple(item_signature(item) for item in bill.get("items", [])),
     )
 
@@ -170,55 +167,20 @@ def dedupe_bills(bills):
 
     return list(deduped.values())
 
+def get_base_amount(bill):
+    for item in bill["items"]:
+        qty = item.get("quantity") or 1
+        final_amount = item.get("final_item_amount")
 
-# def bill_tax_percentage(bill):
-#     tax_percentages = []
-
-#     for tax in bill.get("taxes_and_charges", []):
-#         name = tax.get("name") or ""
-#         percentages = re.findall(r"(-?\d+(?:\.\d+)?)\s*%", name)
-#         for percentage in percentages:
-#             try:
-#                 tax_percentages.append(Decimal(percentage))
-#             except InvalidOperation:
-#                 continue
-
-#     if tax_percentages:
-#         total_percentage = sum(tax_percentages, Decimal("0"))
-#         return float(total_percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-
-#     subtotal = bill.get("subtotal")
-#     if subtotal in (None, "", 0, 0.0):
-#         return None
-
-#     total_tax_amount = Decimal("0")
-#     for tax in bill.get("taxes_and_charges", []):
-#         amount = tax.get("amount")
-#         if amount in (None, ""):
-#             continue
-#         try:
-#             total_tax_amount += Decimal(str(amount))
-#         except (InvalidOperation, ValueError):
-#             continue
-
-#     try:
-#         subtotal_value = Decimal(str(subtotal))
-#         if subtotal_value == 0:
-#             return None
-#         percentage = (total_tax_amount / subtotal_value) * Decimal("100")
-#         return float(percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-#     except (InvalidOperation, ValueError, ZeroDivisionError):
-#         return None
+        if item.get("base_amount") in (None, "") and final_amount not in (None, ""):
+            item["base_amount"] = round(final_amount / qty, 2)
 
 
 def normalize_expense_data(data):
     for bill in data.get("bills", []):
-        # tax_percentage = bill_tax_percentage(bill)
         for item in bill.get("items", []):
-            # if tax_percentage is not None:
-            #     item["tax_percentage"] = tax_percentage
 
-            base_amount = item.get("base_amount")
+            base_amount = get_base_amount(bill)
             if base_amount in (None, ""):
                 continue
 
@@ -342,7 +304,7 @@ def call_openai(extracted_text, model, max_retries):
         "Check each word for missing, swapped, or incorrect letters and autocorrect likely OCR errors when the surrounding context makes the intended word clear. "
         "Correct common OCR confusions such as 0/O, 1/I/l, rn/m, cl/d, and broken characters inside item names or tax labels. "
         "Extract item names, quantities, unit prices, base amounts, subtotal, taxes, restaurant name, date, and currency exactly as supported by the receipt. "
-        "If 2 columns not given, calculate base amount as price / quantity. "
+        "If 2 columns not given, calculate base_amount as price / quantity. "
         "Keep base_amount as the receipt line amount before bill-level taxes. "
         "Extract the total bill-level tax percentage and store it in tax_percentage for each item. "
         "If multiple taxes are present (for example CGST 9% and SGST 9%), add them together and use the combined percentage (18% in this example). "
