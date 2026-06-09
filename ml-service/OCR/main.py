@@ -15,12 +15,7 @@ OCR_TEXT_FILE = INPUT_FOLDER / "bills_cleaned.txt"
 
 # OUTPUTS
 OUTPUT_FOLDER = PROJECT_ROOT / "outputs"
-CSV_FOLDER = OUTPUT_FOLDER / "csv"
-JSON_FOLDER = OUTPUT_FOLDER / "json"
-
-CSV_FILE = CSV_FOLDER / "expenses_table.csv"
-JSON_FILE = JSON_FOLDER / "expenses_table.json"
-
+JSON_FILE = OUTPUT_FOLDER / "expenses_table.json"
 
 def main():
 
@@ -28,7 +23,7 @@ def main():
 
     ocr(CLEANED_FOLDER, OCR_TEXT_FILE)
 
-    extract(OCR_TEXT_FILE, OUTPUT_FOLDER, CSV_FILE, JSON_FILE)
+    extract(OCR_TEXT_FILE, OUTPUT_FOLDER, JSON_FILE)
 
 if __name__ == "__main__":
     main()

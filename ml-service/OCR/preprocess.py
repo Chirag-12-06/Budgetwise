@@ -86,4 +86,3 @@ def image_cleaning(project_root,input_folder, output_folder):
 
             except Exception as e:
                 print(f"Problem processing {filename}: {e}")
-

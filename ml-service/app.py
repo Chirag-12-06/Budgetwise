@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, json, request, jsonify
 from flask_cors import CORS
 import os
 from pathlib import Path
@@ -153,63 +153,50 @@ def process_receipt():
             return jsonify({'error': 'invalid base64 image', 'detail': str(e)}), 400
 
         base_dir = Path(__file__).resolve().parent
-        inputs_dir = base_dir / 'inputs'
-        outputs_dir = base_dir / 'outputs'
-        bills_dir = inputs_dir / 'bills'
-        bills_cleaned_dir = inputs_dir / 'bills_cleaned'
-        ocr_output_file = inputs_dir / 'bills_cleaned.txt'
-
-        bills_dir.mkdir(parents=True, exist_ok=True)
-        bills_cleaned_dir.mkdir(parents=True, exist_ok=True)
+        inputs_dir = base_dir / "inputs"
+        outputs_dir = base_dir / "outputs"
+        raw_dir = inputs_dir / "raw"
+        ocr_output_file = inputs_dir / "bills_cleaned.txt"
+        json_file = outputs_dir / "expenses_table.json"
+        raw_dir.mkdir(parents=True, exist_ok=True)
         outputs_dir.mkdir(parents=True, exist_ok=True)
 
-        saved_path = bills_dir / filename
-        with open(saved_path, 'wb') as f:
+        # Save uploaded image into inputs/raw
+        saved_path = raw_dir / filename
+        with open(saved_path, "wb") as f:
             f.write(binary)
 
-        # Dynamically load OCR modules (avoid package import issues)
-        def _load_module(name, rel_path):
-            path = base_dir / rel_path
-            spec = importlib.util.spec_from_file_location(name, str(path))
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            return module
+        # Import and run the new pipeline
+        import sys
 
-        _image_cleaning = _load_module('image_cleaning', Path('OCR') / 'image_cleaning.py')
-        _ocr_processor = _load_module('ocr_processor', Path('OCR') / 'ocr_processor.py')
-        _expense_extractor = _load_module('expense_extractor', Path('OCR') / 'expense_extractor.py')
+        ocr_dir = base_dir / "OCR"
+        sys.path.insert(0, str(ocr_dir))
 
-        # Run cleaning -> OCR -> extraction
-        _image_cleaning.image_cleaning(str(bills_dir), str(bills_cleaned_dir))
-        _ocr_processor.ocr_processor(str(bills_cleaned_dir), str(ocr_output_file))
+        from main import main
 
+        # Run preprocessing -> OCR -> extraction
+        main()
+
+        # Verify OCR output exists
         if not ocr_output_file.exists():
-            return jsonify({'error': 'OCR output missing'}), 500
+            return jsonify({"error": "OCR output missing"}), 500
 
-        extracted_text = ocr_output_file.read_text(encoding='utf-8').strip()
+        extracted_text = ocr_output_file.read_text(encoding="utf-8").strip()
         if not extracted_text:
-            return jsonify({'error': 'No text extracted from image'}), 500
+            return jsonify({"error": "No text extracted from image"}), 500
 
-        api_key = os.getenv('OPENAI_API_KEY', '').strip()
-        if not api_key:
-            return jsonify({
-                'error': 'OPENAI_API_KEY is not set for the ML service process.',
-                'how_to_fix': 'Create server/.env (copy from server/.env.example) and set OPENAI_API_KEY, then restart the Node server so it respawns the ML service with the right environment.',
-            }), 500
+        # Verify JSON output exists
+        if not json_file.exists():
+            return jsonify({"error": "JSON output missing"}), 500
 
-        model = _os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
-        max_retries = int(_os.getenv('OPENAI_MAX_RETRIES', '3'))
-
-        data = _expense_extractor.call_openai(extracted_text, model, max_retries)
-        _expense_extractor.normalize_expense_data(data)
-        _expense_extractor.write_json(data, _expense_extractor.OUTPUT_JSON)
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
         return jsonify({
             'ok': True,
             'data': data,
             'files': {
-                'ocr_text': str(ocr_output_file),
-                'json': str(_expense_extractor.OUTPUT_JSON),
+                'json': str(json_file),
             },
         })
     except Exception as e:

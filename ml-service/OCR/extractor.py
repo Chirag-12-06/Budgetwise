@@ -22,18 +22,14 @@ EXPENSE_SCHEMA = {
                 "type": "object",
                 "additionalProperties": False,
                 "required": [
-                    "source_file",
                     "restaurant_name",
                     "date",
                     "currency",
                     "items",
-                    "taxes_and_charges",
                     "subtotal",
                     "confidence",
-                    "warnings",
                 ],
                 "properties": {
-                    "source_file": {"type": ["string", "null"]},
                     "restaurant_name": {"type": ["string", "null"]},
                     "date": {"type": ["string", "null"]},
                     "currency": {"type": ["string", "null"]},
@@ -50,7 +46,6 @@ EXPENSE_SCHEMA = {
                                 "tax_percentage",
                                 "taxes_and_charges_allocated",
                                 "final_item_amount",
-                                "notes",
                             ],
                             "properties": {
                                 "name": {"type": "string"},
@@ -60,25 +55,11 @@ EXPENSE_SCHEMA = {
                                 "tax_percentage": {"type": ["number", "null"]},
                                 "taxes_and_charges_allocated": {"type": ["number", "null"]},
                                 "final_item_amount": {"type": ["number", "null"]},
-                                "notes": {"type": ["string", "null"]},
-                            },
-                        },
-                    },
-                    "taxes_and_charges": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "additionalProperties": False,
-                            "required": ["name", "amount"],
-                            "properties": {
-                                "name": {"type": "string"},
-                                "amount": {"type": ["number", "null"]},
                             },
                         },
                     },
                     "subtotal": {"type": ["number", "null"]},
                     "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
-                    "warnings": {"type": "array", "items": {"type": "string"}},
                 },
             },
         }
@@ -113,7 +94,6 @@ def item_signature(item):
         bill_value_signature(item.get("tax_percentage")),
         bill_value_signature(item.get("taxes_and_charges_allocated")),
         bill_value_signature(item.get("final_item_amount")),
-        item.get("notes") or "",
     )
 
 
@@ -122,10 +102,6 @@ def bill_signature(bill):
         bill.get("date") or "",
         bill.get("currency") or "",
         bill_value_signature(bill.get("subtotal")),
-        tuple(
-            (tax.get("name") or "", bill_value_signature(tax.get("amount")))
-            for tax in bill.get("taxes_and_charges", [])
-        ),
         tuple(item_signature(item) for item in bill.get("items", [])),
     )
 
@@ -189,66 +165,58 @@ def dedupe_bills(bills):
             continue
 
         kept_bill = choose_preferred_bill(deduped[signature], bill)
-        duplicate_bill = bill if kept_bill is deduped[signature] else deduped[signature]
-
-        warnings = kept_bill.setdefault("warnings", [])
-        duplicate_name = duplicate_bill.get("restaurant_name") or "Unknown merchant"
-        if duplicate_name not in warnings:
-            warnings.append(
-                f"Duplicate entry detected under different restaurant names: {duplicate_name}."
-            )
 
         deduped[signature] = kept_bill
 
     return list(deduped.values())
 
 
-def bill_tax_percentage(bill):
-    tax_percentages = []
+# def bill_tax_percentage(bill):
+#     tax_percentages = []
 
-    for tax in bill.get("taxes_and_charges", []):
-        name = tax.get("name") or ""
-        percentages = re.findall(r"(-?\d+(?:\.\d+)?)\s*%", name)
-        for percentage in percentages:
-            try:
-                tax_percentages.append(Decimal(percentage))
-            except InvalidOperation:
-                continue
+#     for tax in bill.get("taxes_and_charges", []):
+#         name = tax.get("name") or ""
+#         percentages = re.findall(r"(-?\d+(?:\.\d+)?)\s*%", name)
+#         for percentage in percentages:
+#             try:
+#                 tax_percentages.append(Decimal(percentage))
+#             except InvalidOperation:
+#                 continue
 
-    if tax_percentages:
-        total_percentage = sum(tax_percentages, Decimal("0"))
-        return float(total_percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+#     if tax_percentages:
+#         total_percentage = sum(tax_percentages, Decimal("0"))
+#         return float(total_percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
-    subtotal = bill.get("subtotal")
-    if subtotal in (None, "", 0, 0.0):
-        return None
+#     subtotal = bill.get("subtotal")
+#     if subtotal in (None, "", 0, 0.0):
+#         return None
 
-    total_tax_amount = Decimal("0")
-    for tax in bill.get("taxes_and_charges", []):
-        amount = tax.get("amount")
-        if amount in (None, ""):
-            continue
-        try:
-            total_tax_amount += Decimal(str(amount))
-        except (InvalidOperation, ValueError):
-            continue
+#     total_tax_amount = Decimal("0")
+#     for tax in bill.get("taxes_and_charges", []):
+#         amount = tax.get("amount")
+#         if amount in (None, ""):
+#             continue
+#         try:
+#             total_tax_amount += Decimal(str(amount))
+#         except (InvalidOperation, ValueError):
+#             continue
 
-    try:
-        subtotal_value = Decimal(str(subtotal))
-        if subtotal_value == 0:
-            return None
-        percentage = (total_tax_amount / subtotal_value) * Decimal("100")
-        return float(percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-    except (InvalidOperation, ValueError, ZeroDivisionError):
-        return None
+#     try:
+#         subtotal_value = Decimal(str(subtotal))
+#         if subtotal_value == 0:
+#             return None
+#         percentage = (total_tax_amount / subtotal_value) * Decimal("100")
+#         return float(percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+#     except (InvalidOperation, ValueError, ZeroDivisionError):
+#         return None
 
 
 def normalize_expense_data(data):
     for bill in data.get("bills", []):
-        tax_percentage = bill_tax_percentage(bill)
+        # tax_percentage = bill_tax_percentage(bill)
         for item in bill.get("items", []):
-            if tax_percentage is not None:
-                item["tax_percentage"] = tax_percentage
+            # if tax_percentage is not None:
+            #     item["tax_percentage"] = tax_percentage
 
             base_amount = item.get("base_amount")
             if base_amount in (None, ""):
@@ -369,14 +337,20 @@ def call_openai(extracted_text, model, max_retries):
 
     instructions = (
         "You extract restaurant expense data from noisy OCR receipt text. "
-        "Return only data supported by the OCR. Fix obvious OCR mistakes when context is clear. "
+        "Return only data supported by the OCR. "
+        "Fix obvious OCR mistakes when context is clear. "
         "Check each word for missing, swapped, or incorrect letters and autocorrect likely OCR errors when the surrounding context makes the intended word clear. "
         "Correct common OCR confusions such as 0/O, 1/I/l, rn/m, cl/d, and broken characters inside item names or tax labels. "
-        "Read the bill-level tax percentages from the receipt tax lines, combine them into a total tax percentage, "
-        "and include that tax_percentage on every item. For each item, keep base_amount as the receipt line amount "
-        "before bill-level taxes. Set taxes_and_charges_allocated to the item's tax amount calculated from its base_amount and tax_percentage, "
-        "then set final_item_amount to base_amount plus taxes_and_charges_allocated. Do not include any bill-level final amount field. "
-        "If the OCR is unclear, use nulls and add a warning."
+        "Extract item names, quantities, unit prices, base amounts, subtotal, taxes, restaurant name, date, and currency exactly as supported by the receipt. "
+        "If 2 columns not given, calculate base amount as price / quantity. "
+        "Keep base_amount as the receipt line amount before bill-level taxes. "
+        "Extract the total bill-level tax percentage and store it in tax_percentage for each item. "
+        "If multiple taxes are present (for example CGST 9% and SGST 9%), add them together and use the combined percentage (18% in this example). "
+        "If a tax percentage is explicitly written on the receipt, use that value. "
+        "If only tax amounts are available, calculate the effective tax percentage using subtotal and total tax amount when supported by the receipt. "
+        "If these values are not explicitly present on the receipt, return null for them. "
+        "Do not invent, estimate, or infer monetary values that are not supported by the OCR text. "
+        "Do not include any bill-level final amount field."
     )
 
     payload = {
@@ -426,8 +400,6 @@ def call_openai(extracted_text, model, max_retries):
 def write_json(data, output_json):
     with open(output_json, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=2, ensure_ascii=False)
-
-
 
 
 def extract(INPUT_FILE, OUTPUT_DIR, OUTPUT_JSON):

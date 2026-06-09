@@ -58,45 +58,45 @@ const cancelButtonClasses =
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
-// function normalizeReceiptMoney(value) {
-//   if (value === null || value === undefined || value === "") {
-//     return 0;
-//   }
+function normalizeReceiptMoney(value) {
+  if (value === null || value === undefined || value === "") {
+    return 0;
+  }
 
-//   if (typeof value === "number" && Number.isFinite(value)) {
-//     return value;
-//   }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
 
-//   const asNumber = Number(String(value).replace(/[^0-9.-]/g, ""));
-//   if (Number.isFinite(asNumber)) {
-//     return asNumber;
-//   }
-//   return 0;
-// }
+  const asNumber = Number(String(value).replace(/[^0-9.-]/g, ""));
+  if (Number.isFinite(asNumber)) {
+    return asNumber;
+  }
+  return 0;
+}
 
-// function resolveReceiptItemAmount(item) {
-//   if (!item || typeof item !== "object") {
-//     return 0;
-//   }
+function resolveReceiptItemAmount(item) {
+  if (!item || typeof item !== "object") {
+    return 0;
+  }
 
-//   const finalAmount = normalizeReceiptMoney(item.final_item_amount);
-//   if (finalAmount) {
-//     return finalAmount;
-//   }
+  const finalAmount = normalizeReceiptMoney(item.final_item_amount);
+  if (finalAmount) {
+    return finalAmount;
+  }
 
-//   const baseAmount = normalizeReceiptMoney(item.base_amount);
-//   if (baseAmount) {
-//     return baseAmount;
-//   }
+  const baseAmount = normalizeReceiptMoney(item.base_amount);
+  if (baseAmount) {
+    return baseAmount;
+  }
 
-//   const unitPrice = normalizeReceiptMoney(item.unit_price);
-//   const quantity = normalizeReceiptMoney(item.quantity || 1);
-//   if (unitPrice) {
-//     return unitPrice * (quantity || 1);
-//   }
+  const unitPrice = normalizeReceiptMoney(item.unit_price);
+  const quantity = normalizeReceiptMoney(item.quantity || 1);
+  if (unitPrice) {
+    return unitPrice * (quantity || 1);
+  }
 
-//   return 0;
-// }
+  return 0;
+}
 
 export default function AddExpensePage({
   expenses,
@@ -130,12 +130,15 @@ export default function AddExpensePage({
 
   const [scanError, setScanError] = useState("");
   const [scanErrorOpen, setScanErrorOpen] = useState(false);
+  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] = useState(false);
   const fileInputRef = useRef(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [receiptBill, setReceiptBill] = useState(null);
   const [receiptPaidMap, setReceiptPaidMap] = useState({});
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
+
+showScanUnderDevelopmentPopup
 
   const recurringUntilDateMin = getNextDateKey(expenseForm.date);
   const recurringUntilDateIsInvalid =
@@ -207,7 +210,7 @@ export default function AddExpensePage({
                 items.forEach((_, index) => {
                   paidMap[String(index)] = true;
                 });
-
+                
                 setReceiptBill(bill);
                 setReceiptPaidMap(paidMap);
                 setReceiptDialogOpen(true);
@@ -233,7 +236,7 @@ export default function AddExpensePage({
         </Button>
       </div>
 
-      {/* {receiptDialogOpen ? (
+      {receiptDialogOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
           onClick={() => setReceiptDialogOpen(false)}
@@ -370,7 +373,7 @@ export default function AddExpensePage({
         message={scanError || "Please try again."}
         onClose={() => setScanErrorOpen(false)}
         labelledBy="receipt-scan-error-dialog"
-      /> */}
+      /> 
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
         <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">

@@ -526,7 +526,6 @@ app.use((req, res) => {
   if (req.path.startsWith("/api")) {
     return res.status(404).json({ error: "API route not found" });
   }
-
   sendFrontendIndex(res);
 });
 
