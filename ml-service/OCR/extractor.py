@@ -166,6 +166,7 @@ def dedupe_bills(bills):
 
 def base_amount_calc(bill):
     for item in bill["items"]:
+        print(item)
         qty = item.get("quantity") or 1
         final_amount = item.get("final_item_amount")
         item["base_amount"] = round(final_amount / qty, 2)
@@ -173,15 +174,18 @@ def base_amount_calc(bill):
 
 def normalize_expense_data(data):
     for bill in data.get("bills", []):
+
+        base_amount_calc(bill)
+
         for item in bill.get("items", []):
 
-            base_amount_calc(bill)
             base_amount = item.get("base_amount")
+            qty = item.get("quantity") or 1
             if base_amount in (None, ""):
                 continue
 
             try:
-                base_amount_decimal = Decimal(str(base_amount))
+                base_amount_decimal = Decimal(str(base_amount))* Decimal(str(qty))
             except (InvalidOperation, ValueError):
                 continue
 
@@ -299,14 +303,18 @@ def call_openai(extracted_text, model, max_retries):
         "Fix obvious OCR mistakes when context is clear. "
         "Check each word for missing, swapped, or incorrect letters and autocorrect likely OCR errors when the surrounding context makes the intended word clear. "
         "Correct common OCR confusions such as 0/O, 1/I/l, rn/m, cl/d, and broken characters inside item names or tax labels. "
-        "Extract item names, quantities, base amounts, subtotal, taxes, restaurant name, date, and currency exactly as supported by the receipt. "
-        "If 2 columns not given, calculate base_amount as price / quantity. "
-        "Keep base_amount as the receipt line amount before bill-level taxes. "
+        "Extract item names, quantities, and monetary values exactly as they appear on the receipt. "
+        "When only one monetary value is shown for an item, always treat that value as final_item_amount. "
+        "Do not assume that a unit price exists unless two distinct monetary values are explicitly present for the item. "
+        "Only set base_amount to a different value when both a unit price and a line total are clearly present on the receipt. "
+        "If only one amount is present together with a quantity, set final_item_amount to the printed amount and leave base_amount equal to that same amount. "
+        "Do not multiply monetary values by quantity unless the receipt explicitly provides separate unit prices. "
         "Extract the total bill-level tax percentage and store it in tax_percentage for each item. "
         "If multiple taxes are present (for example CGST 9% and SGST 9%), add them together and use the combined percentage (18% in this example). "
         "If a tax percentage is explicitly written on the receipt, use that value. "
         "If only tax amounts are available, calculate the effective tax percentage using subtotal and total tax amount when supported by the receipt. "
         "If these values are not explicitly present on the receipt, return null for them. "
+        "Do not modify final_item_amount using taxes. "
         "Do not invent, estimate, or infer monetary values that are not supported by the OCR text. "
         "Do not include any bill-level final amount field."
     )
