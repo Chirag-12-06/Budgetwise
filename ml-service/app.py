@@ -1,13 +1,13 @@
-from flask import Flask, json, request, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from pathlib import Path
 from datetime import datetime, timezone
 from category_predictor import CategoryPredictor
 import base64
-import time
-import importlib.util
-import os as _os
+import cv2
+import numpy as np
+from OCR.main import main
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -138,7 +138,6 @@ def process_receipt():
     try:
         data = request.json or {}
         image_b64 = data.get('image_b64')
-        filename = data.get('filename') or f"receipt_{int(time.time())}.jpg"
 
         if not image_b64:
             return jsonify({'error': 'image_b64 is required'}), 400
@@ -152,55 +151,19 @@ def process_receipt():
         except Exception as e:
             return jsonify({'error': 'invalid base64 image', 'detail': str(e)}), 400
 
-        base_dir = Path(__file__).resolve().parent
-        inputs_dir = base_dir / "inputs"
-        outputs_dir = base_dir / "outputs"
-        raw_dir = inputs_dir / "raw"
-        ocr_output_file = inputs_dir / "bills_cleaned.txt"
-        json_file = outputs_dir / "expenses_table.json"
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        outputs_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save uploaded image into inputs/raw
-        saved_path = raw_dir / filename
-        with open(saved_path, "wb") as f:
-            f.write(binary)
-
-        # Import and run the new pipeline
-        import sys
-
-        ocr_dir = base_dir / "OCR"
-        sys.path.insert(0, str(ocr_dir))
-
-        from main import main
-
-        # Run preprocessing -> OCR -> extraction
-        main()
-
-        # Verify OCR output exists
-        if not ocr_output_file.exists():
-            return jsonify({"error": "OCR output missing"}), 500
-
-        extracted_text = ocr_output_file.read_text(encoding="utf-8").strip()
-        if not extracted_text:
-            return jsonify({"error": "No text extracted from image"}), 500
-
-        # Verify JSON output exists
-        if not json_file.exists():
-            return jsonify({"error": "JSON output missing"}), 500
-
-        with open(json_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        image = cv2.imdecode(
+            np.frombuffer(binary, np.uint8),
+            cv2.IMREAD_COLOR
+        )
+        result=main(image)
 
         return jsonify({
             'ok': True,
-            'data': data,
-            'files': {
-                'json': str(json_file),
-            },
+            'data': result,
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv('ML_PORT') or os.getenv('PORT', '5001'))

@@ -1,4 +1,3 @@
-import argparse
 import json
 import os
 import re
@@ -363,40 +362,13 @@ def call_openai(extracted_text, model, max_retries):
     return json.loads(output_text)
 
 
-def write_json(data, output_json):
-    with open(output_json, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
+def extract(ocr_text):
+    if not ocr_text.strip():
+        raise RuntimeError("No OCR text found.")
 
 
-def extract(INPUT_FILE, OUTPUT_DIR, OUTPUT_JSON):
-    parser = argparse.ArgumentParser(
-        description="Use the OpenAI API to convert OCR receipt text into an expense table."
-    )
-    parser.add_argument("--input", default=str(INPUT_FILE), help="OCR text file to read.")
-    parser.add_argument("--json", default=str(OUTPUT_JSON), help="Structured JSON to write.")
-    parser.add_argument(
-        "--model",
-        default=os.getenv("OPENAI_MODEL", DEFAULT_MODEL),
-        help="OpenAI model to use. Defaults to OPENAI_MODEL or gpt-5.4-mini.",
-    )
-    parser.add_argument(
-        "--max-retries",
-        type=int,
-        default=DEFAULT_MAX_RETRIES,
-        help="Number of retries for temporary OpenAI rate limits.",
-    )
-    args = parser.parse_args()
-
-    with open(args.input, "r", encoding="utf-8") as file:
-        extracted_text = file.read().strip()
-
-    if not extracted_text:
-        raise RuntimeError(f"No OCR text found in {args.input}.")
-
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    data = call_openai(extracted_text, args.model, args.max_retries)
+    data = call_openai(ocr_text, DEFAULT_MODEL, DEFAULT_MAX_RETRIES)
     normalize_expense_data(data)
-    write_json(data, args.json)
 
-    print(f"Wrote {args.json}")
+    return data
+

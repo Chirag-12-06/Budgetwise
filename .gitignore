@@ -45,5 +45,3 @@ ml-service/__pycache__/
 ml-service/*.pyc
 ml-service/.pytest_cache/
 ml-service/.ipynb_checkpoints/
-ml-service/inputs/
-ml-service/outputs/
