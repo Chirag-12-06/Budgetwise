@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../lib/prisma.js";
 import jwt from "jsonwebtoken";
 import { logError } from "../utils/logger.js";
 
-const prisma = new PrismaClient();
 const sessionLastActivity = new Map();
 
 function parsePositiveNumber(value, fallback) {

@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../lib/prisma.js";
 import { logError, logInfo } from "../utils/logger.js";
 import { materializeDueRecurringExpensesForUser } from "./expenseController.js";
-
-const prisma = new PrismaClient();
 
 const RECURRENCE_FREQUENCY_MAP = {
   daily: "DAILY",

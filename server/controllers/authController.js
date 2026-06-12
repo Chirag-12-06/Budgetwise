@@ -1,11 +1,10 @@
 // User authentication and management routes
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import jwt from "jsonwebtoken";
 import { invalidateAuthSession } from "../middleware/authMiddleware.js";
 import { logError } from "../utils/logger.js";
-const prisma = new PrismaClient();
 
 const PASSWORD_SALT_ROUNDS = 12;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";

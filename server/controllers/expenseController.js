@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../lib/prisma.js";
 import { logError } from "../utils/logger.js";
 
-const prisma = new PrismaClient();
 const activeMaterializationUserIds = new Set();
 
 function cloneUtcDate(dateInput) {
