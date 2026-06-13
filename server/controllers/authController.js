@@ -1,5 +1,5 @@
 // User authentication and management routes
-import { PrismaClient } from "../lib/prisma.js";
+import PrismaClient from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import jwt from "jsonwebtoken";
