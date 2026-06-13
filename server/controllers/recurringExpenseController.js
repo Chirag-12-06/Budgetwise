@@ -1,4 +1,4 @@
-import PrismaClient from "../lib/prisma.js";
+import prisma from "../lib/prisma.js";
 import { logError, logInfo } from "../utils/logger.js";
 import { materializeDueRecurringExpensesForUser } from "./expenseController.js";
 

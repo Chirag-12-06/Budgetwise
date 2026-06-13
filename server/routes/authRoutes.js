@@ -1,6 +1,6 @@
 // Authentication routes
 import express from "express";
-import { signup, login, getProfile, updateProfile, logout } from "../controllers/authController.js";
+import { signup, login, getProfile, updateProfile, logout, forgotPassword, resetPassword } from "../controllers/authController.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -35,4 +35,7 @@ router.patch("/profile", requireAuth, updateProfile);
  */
 router.post("/logout", requireAuth, logout);
 
+router.post("/forgot-password", forgotPassword);
+
+router.post("/reset-password/:token", resetPassword);
 export default router;

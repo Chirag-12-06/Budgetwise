@@ -1,4 +1,4 @@
-import PrismaClient from "../lib/prisma.js";
+import prisma from "../lib/prisma.js";
 import { logError } from "../utils/logger.js";
 
 const activeMaterializationUserIds = new Set();

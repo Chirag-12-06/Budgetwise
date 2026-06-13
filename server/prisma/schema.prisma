@@ -1,62 +1,43 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  //output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  name      String
-  email     String    @unique
-  password  String
-  avatarDataUrl String?
-  createdAt DateTime  @default(now())
-  expenses  Expense[]
-  recurringExpenses RecurringExpense[]
+  id                  Int                @id @default(autoincrement())
+  name                String
+  email               String             @unique
+  password            String
+  avatarDataUrl       String?
+  createdAt           DateTime           @default(now())
+  passwordResetExpiry DateTime?
+  passwordResetToken  String?
+  expenses            Expense[]
+  recurringExpenses   RecurringExpense[]
 }
 
 model Expense {
-  id        Int      @id @default(autoincrement())
-  title     String
-  amount    Float
-  category  String
-  createdAt DateTime @default(now())
-  userId    Int?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id          Int               @id @default(autoincrement())
+  title       String
+  amount      Float
+  category    String
+  createdAt   DateTime          @default(now())
+  userId      Int?
+  recurringId Int?
+  recurring   RecurringExpense? @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+  user        User?             @relation(fields: [userId], references: [id])
 
-  recurringId  Int?
-  recurring    RecurringExpense? @relation(fields: [recurringId], references: [id], onDelete: Cascade)
-
-  @@unique([recurringId, createdAt, userId])
   @@index([userId, createdAt])
   @@index([recurringId])
 }
 
-enum RecurrenceFrequency {
-  DAILY   @map("daily")
-  WEEKLY  @map("weekly")
-  MONTHLY @map("monthly")
-  YEARLY  @map("yearly")
-}
-
-enum RecurrenceEndType {
-  FOREVER    @map("forever")
-  COUNT      @map("count")
-  UNTIL_DATE @map("until_date")
-}
-
 model RecurringExpense {
-  id              Int                 @id @default(autoincrement())
+  id              Int                 @id(map: "recurring_expenses_pkey") @default(autoincrement())
   title           String
   userId          Int                 @map("user_id")
   amount          Float
@@ -70,11 +51,22 @@ model RecurringExpense {
   occurrencesDone Int                 @default(0) @map("occurrences_done")
   nextDueDate     DateTime            @map("next_due_date")
   isActive        Boolean             @default(true) @map("is_active")
+  expenses        Expense[]
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade, map: "recurring_expenses_user_id_fkey")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expenses Expense[]
+  @@index([nextDueDate], map: "recurring_expenses_next_due_date_idx")
+  @@index([userId, isActive], map: "recurring_expenses_user_id_is_active_idx")
+}
 
-  @@index([userId, isActive])
-  @@index([nextDueDate])
-  @@map("recurring_expenses")
+enum RecurrenceFrequency {
+  DAILY   @map("daily")
+  WEEKLY  @map("weekly")
+  MONTHLY @map("monthly")
+  YEARLY  @map("yearly")
+}
+
+enum RecurrenceEndType {
+  FOREVER    @map("forever")
+  COUNT      @map("count")
+  UNTIL_DATE @map("until_date")
 }
