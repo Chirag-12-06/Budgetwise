@@ -1,41 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatDate, buildFormFromUser } from "../utils/profileUtils";
+import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
 
-const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
-
-function formatDate(value) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "Not available";
-  }
-
-  return parsed.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function buildFormFromUser(user) {
-  return {
-    name: user?.name || "",
-    email: user?.email || "",
-    avatarDataUrl: user?.avatarDataUrl || "",
-  };
-}
 
 export default function useProfile({ user, onUpdateProfile }) {
   const [isEditing, setIsEditing] = useState(false);
   const [feedback, setFeedback] = useState(null);
-  const [form, setForm] = useState(() => buildFormFromUser(user));
-
   const displayName = user?.name || user?.email || "Budgetwise user";
   const displayEmail = user?.email || "No email available";
   const displayInitial = String(displayName).trim().charAt(0).toUpperCase() || "U";
-  const joinedOn = useMemo(() => formatDate(user?.createdAt), [user?.createdAt]);
 
   useEffect(() => {
     if (isEditing) {

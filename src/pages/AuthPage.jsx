@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const LOGIN = "login";
 const SIGNUP = "signup";
 
@@ -26,6 +28,12 @@ export default function AuthPage({
   dark,
   setDark,
 }) {
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
+
   function handleAvatarFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -104,14 +112,40 @@ export default function AuthPage({
 
           <label className={fieldLabelClasses}>
             <span className={fieldTextClasses}>Password</span>
-            <input
+            {/* <input
               className={fieldInputClasses}
               type="password"
               value={loginForm.password}
               onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
               required
               placeholder="••••••••"
-            />
+            /> */}
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                🔒
+              </span>
+
+              <input
+                className={`${fieldInputClasses} pl-10 pr-12`}
+                type={showPassword ? "text" : "password"}
+                value={loginForm.password}
+                onChange={(event) =>
+                  setLoginForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+                placeholder="••••••••"
+              />
+
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? "🙈" : "👁"}
+              </button>
+            </div>
           </label>
 
           <button className={primaryButtonClasses} type="submit" disabled={submitting}>
