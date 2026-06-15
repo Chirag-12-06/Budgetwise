@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatDate, buildFormFromUser } from "../utils/profileUtils";
+import { formatDate, buildFormFromUser } from "../utils/profile";
 import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
 
 
@@ -9,6 +9,8 @@ export default function useProfile({ user, onUpdateProfile }) {
   const displayName = user?.name || user?.email || "Budgetwise user";
   const displayEmail = user?.email || "No email available";
   const displayInitial = String(displayName).trim().charAt(0).toUpperCase() || "U";
+  const joinedOn = useMemo(() => formatDate(user?.createdAt), [user?.createdAt]);
+  const [form, setForm] = useState(() => buildFormFromUser(user));
 
   useEffect(() => {
     if (isEditing) {

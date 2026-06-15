@@ -1,8 +1,4 @@
-const joinedOn = useMemo(() => formatDate(user?.createdAt), [user?.createdAt]);
-const [form, setForm] = useState(() => buildFormFromUser(user));
-
-
-function formatDate(value) {
+export function formatDate(value) {
   if (!value) {
     return "Not available";
   }
@@ -20,7 +16,7 @@ function formatDate(value) {
 }
 
 
-function buildFormFromUser(user) {
+export function buildFormFromUser(user) {
   return {
     name: user?.name || "",
     email: user?.email || "",
