@@ -21,41 +21,6 @@ export default function useAnalyticsPage({
   
   const [useLogScale, setUseLogScale] = useState(false);
   const isDarkMode = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
-  const {
-    bubblePanelHeight,
-    bubbleLayout,
-  } = useBubbleLayout({
-    visibleCategories,
-    bubbleBoardSize,
-    totalCategoryAmount,
-  });
-  const {
-    hiddenBubbleCategories,
-    visibleCategories,
-    toggleBubbleCategory,
-  } = useBubbleVisibility(chartCategories);
-  const {
-    excludeOutliers,
-    setExcludeOutliers,
-    visibleTrendPoints,
-    displayedAnalyticsExpenses,
-    chartCategories,
-    summaryTotalSpending,
-    outlierWarningText,
-  } = useOutlierFiltering({
-    trendPoints,
-    analyticsExpenses,
-    rawCategoryEntries,
-    analyticsTotal,
-  });
-const { lineCanvasRef } = useTrendChart({
-  visibleTrendPoints,
-  analyticsGroupBy,
-  isDarkMode,
-  useLogScale,
-  onTrendPointSelect,
-});
-
   const trendPoints = useMemo(
     () =>
       (trendData || [])
@@ -70,8 +35,6 @@ const { lineCanvasRef } = useTrendChart({
         .filter((point) => Number.isFinite(point.value) && point.value >= 0),
     [trendData],
   );
-
-  
   const rawCategoryEntries = useMemo(
     () =>
       Object.entries(categoryTotals || {})
@@ -80,12 +43,57 @@ const { lineCanvasRef } = useTrendChart({
         .sort((left, right) => right[1] - left[1]),
     [categoryTotals],
   );
- 
-
+  const {
+    excludeOutliers,
+    setExcludeOutliers,
+    visibleTrendPoints,
+    displayedAnalyticsExpenses,
+    chartCategories,
+    summaryTotalSpending,
+    outlierWarningText,
+  } = useOutlierFiltering({
+    trendPoints,
+    analyticsExpenses,
+    rawCategoryEntries,
+    analyticsTotal,
+  });
   const totalCategoryAmount = useMemo(
     () => chartCategories.reduce((sum, [, value]) => sum + value, 0),
     [chartCategories],
   );
+  const {
+    hiddenBubbleCategories,
+    visibleCategories,
+    toggleBubbleCategory,
+  } = useBubbleVisibility(chartCategories);
+  const { bubbleBoardSize, bubbleBoardRef } =
+  useBubbleBoardSize(
+    chartCategories.length,
+  visibleCategories.length);
+  const {
+    bubblePanelHeight,
+    bubbleLayout,
+  } = useBubbleLayout({
+    visibleCategories,
+    totalCategoryAmount,
+    bubbleBoardSize,
+  });
+const { lineCanvasRef } = useTrendChart({
+  visibleTrendPoints,
+  analyticsGroupBy,
+  isDarkMode,
+  useLogScale,
+  onTrendPointSelect,
+});
+
+
+  
+
+  
+  
+ 
+
+  
 
 
   function resetChartOptions() {

@@ -44,7 +44,7 @@ export default function useBubbleBoardSize(
     return () => {
       resizeObserver.disconnect();
     };
-  }, [chartCategories.length, visibleCategories.length]);
+  }, [chartCategoriesLength, visibleCategoriesLength]);
   return { bubbleBoardRef, bubbleBoardSize
   };
 }

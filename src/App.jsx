@@ -7,6 +7,9 @@ import Navbar from "./layout/Navbar";
 import StatusBanner from "./layout/StatusBanner";
 import useAppController from "./hooks/useAppController";
 import useWindowResize from "./hooks/useWindowResize";
+import { Routes, Route } from "react-router-dom";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+
 
 const ADD_EXPENSE = "addExpense";
 const EXPENSES = "expenses";
@@ -48,6 +51,7 @@ function App() {
     setSignupForm,
     handleLogin,
     handleSignup,
+    handleForgotPassword,
     handleUpdateProfile,
     handleAddExpense,
     handleStartEditExpense,
@@ -81,7 +85,16 @@ function App() {
   } = useAppController();
 
   return (
-    <div
+    <Routes>
+    <Route
+      path="/"
+      element={
+        <div
+          className={`min-h-screen transition-colors duration-200 ${
+            dark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+          }`}
+        >
+          <div
       className={`min-h-screen transition-colors duration-200 ${
         dark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
       }`}
@@ -203,6 +216,7 @@ function App() {
               setMode={setMode}
               handleLogin={handleLogin}
               handleSignup={handleSignup}
+              handleForgotPassword={handleForgotPassword}
               loginForm={loginForm}
               setLoginForm={setLoginForm}
               signupForm={signupForm}
@@ -219,7 +233,18 @@ function App() {
         </section>
       </main>
     </div>
+        </div>
+      }
+    />
+
+    <Route
+      path="/reset-password/:token"
+      element={<ResetPasswordPage />}
+    />
+  </Routes>
   );
 }
 
 export default App;
+
+

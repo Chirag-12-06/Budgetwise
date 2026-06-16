@@ -119,6 +119,47 @@ export async function signupUser({ name, email, password, avatarDataUrl }) {
   return { ...data, user: userWithAvatar };
 }
 
+export async function forgotPasswordUser(email) {
+  const response = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to send reset link");
+  }
+
+  return data;
+}
+
+export async function resetPasswordUser(token, password) {
+  const response = await fetch(
+    `/api/auth/reset-password/${token}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        password,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to reset password");
+  }
+
+  return data;
+}
+
 export async function updateProfileUser({ name, email, avatarDataUrl }) {
   const previousUser = getStoredUser();
   const previousEmail = previousUser?.email || "";

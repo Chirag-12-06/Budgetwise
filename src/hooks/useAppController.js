@@ -18,7 +18,7 @@ const ADD_EXPENSE = "addExpense";
 export default function useAppController() {
   const { dark, setDark } = useDarkMode();
   const [mode, setMode] = useState(LOGIN);
-  const [view, setView] = useState(ADD_EXPENSE);
+  const [view, setView] = useState(LOGIN);
   const [submitting, setSubmitting] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
@@ -156,6 +156,7 @@ const {
   handleLogin,
   handleSignup,
   handleUpdateProfile,
+  handleForgotPassword,
   handleLogout,
 } = useAuthController({
   loginForm,
@@ -193,7 +194,7 @@ const {
       endDate: "",
     });
     setEditingExpenseId(null);
-    setView(ADD_EXPENSE);
+    setView(LOGIN);
     setDateFilterMode("month:current");
     setSelectedCategoryFilters([]);
     setCustomDateFrom("");
@@ -417,6 +418,7 @@ const {
     setSignupForm,
     handleLogin,
     handleSignup,
+    handleForgotPassword,
     handleUpdateProfile,
     handleAddExpense,
     handleStartEditExpense,

@@ -6,6 +6,8 @@ import jwt from "jsonwebtoken";
 import { invalidateAuthSession } from "../middleware/authMiddleware.js";
 import { logError } from "../utils/logger.js";
 import crypto from "crypto";
+import { sendPasswordResetEmail } from "../utils/email.js";
+
 
 const PASSWORD_SALT_ROUNDS = 12;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
@@ -330,6 +332,9 @@ export const forgotPassword = async (req, res) => {
 
   const expiry = new Date(Date.now() + 30 * 60 * 1000);
 
+  const resetLink =
+  `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
   await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -337,6 +342,8 @@ export const forgotPassword = async (req, res) => {
         passwordResetExpiry: expiry,
       },
     });
+
+    await sendPasswordResetEmail(email, resetLink);
   }
 
   return res.json({

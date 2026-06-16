@@ -2,6 +2,7 @@ import {
   loginUser,
   signupUser,
   updateProfileUser,
+  forgotPasswordUser,
 } from "../lib/auth";
 
 export default function useAuthController({
@@ -19,7 +20,7 @@ export default function useAuthController({
 async function handleLogin(event) {
     event.preventDefault();
     setSubmitting(true);
-    setStatus(null);
+    // setStatus(null);
     try {
       const data = await loginUser(loginForm);
       setUser(data.user);
@@ -34,7 +35,7 @@ async function handleLogin(event) {
 
   async function handleSignup(event) {
     event.preventDefault();
-    setStatus(null);
+    // setStatus(null);
     if (signupForm.password !== signupForm.confirmPassword) {
       showStatus("Passwords do not match", "error");
       return;
@@ -51,6 +52,29 @@ async function handleLogin(event) {
       setSubmitting(false);
     }
   }
+
+  async function handleForgotPassword(email) {
+  try {
+    const data = await forgotPasswordUser(email);
+
+    showStatus(
+      data.message || "Reset instructions sent.",
+      "success"
+    );
+
+    return { ok: true };
+  } catch (error) {
+    showStatus(
+      error.message || "Unable to send reset instructions",
+      "error"
+    );
+
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+}
 
   async function handleUpdateProfile(profilePayload) {
     setUpdatingProfile(true);
@@ -82,6 +106,7 @@ async function handleLogin(event) {
   return {
       handleLogin,
       handleSignup,
+      handleForgotPassword,
       handleUpdateProfile,
       handleLogout,
    };

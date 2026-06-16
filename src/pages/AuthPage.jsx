@@ -2,6 +2,7 @@ import { useState } from "react";
 
 const LOGIN = "login";
 const SIGNUP = "signup";
+const FORGOT_PASSWORD = "forgot-password";
 
 const authTabClasses =
   "rounded-md px-4 py-3 transition-colors";
@@ -20,6 +21,7 @@ export default function AuthPage({
   setMode,
   handleLogin,
   handleSignup,
+  handleForgotPassword,
   loginForm,
   setLoginForm,
   signupForm,
@@ -30,7 +32,6 @@ export default function AuthPage({
 }) {
 
   const [showPassword, setShowPassword] = useState(false);
-  const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState("");
 
@@ -99,27 +100,29 @@ export default function AuthPage({
       {mode === LOGIN ? (
         <form className="grid gap-4" onSubmit={handleLogin}>
           <label className={fieldLabelClasses}>
-            <span className={fieldTextClasses}>Email</span>
-            <input
-              className={fieldInputClasses}
-              type="email"
-              value={loginForm.email}
-              onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))}
-              required
-              placeholder="your@email.com"
-            />
-          </label>
+              <span className={fieldTextClasses}>Email</span>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  📧
+                </span>
+                <input
+                  className={`${fieldInputClasses} pl-10`}
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(event) =>
+                    setLoginForm((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
+                  required
+                  placeholder="your@email.com"
+                />
+              </div>
+            </label>
 
           <label className={fieldLabelClasses}>
             <span className={fieldTextClasses}>Password</span>
-            {/* <input
-              className={fieldInputClasses}
-              type="password"
-              value={loginForm.password}
-              onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
-              required
-              placeholder="••••••••"
-            /> */}
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 🔒
@@ -148,10 +151,73 @@ export default function AuthPage({
             </div>
           </label>
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-sm text-indigo-500 hover:text-indigo-600"
+              onClick={() => {
+                setMode(FORGOT_PASSWORD);
+                setForgotMessage("");
+                setForgotEmail("");
+              }}
+            >
+              Forgot Password?
+            </button>
+          </div>
+
           <button className={primaryButtonClasses} type="submit" disabled={submitting}>
             {submitting ? "Signing In..." : "Login"}
           </button>
         </form>
+      ) : mode === FORGOT_PASSWORD ? (
+          <form
+            className="grid gap-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              handleForgotPassword(forgotEmail);
+            }}
+          >
+            <label className={fieldLabelClasses}>
+              <span className={fieldTextClasses}>Email</span>
+
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  📧
+                </span>
+
+                <input
+                  className={`${fieldInputClasses} pl-10`}
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(event) => setForgotEmail(event.target.value)}
+                  required
+                  placeholder="your@email.com"
+                />
+              </div>
+            </label>
+
+            {forgotMessage && (
+              <div className="rounded-md bg-green-100 px-4 py-3 text-sm text-green-700 dark:bg-green-900 dark:text-green-200">
+                {forgotMessage}
+              </div>
+            )}
+
+            <button className={primaryButtonClasses} disabled={submitting}>
+              {submitting ? "Sending..." : "Send Reset Link"}
+            </button>
+
+            <button
+              type="button"
+              className="text-sm text-indigo-500 hover:text-indigo-600"
+              onClick={() => {
+                setMode(LOGIN);
+                setForgotEmail("");
+                setForgotMessage("");
+              }}
+            >
+              ← Back to Login
+            </button>
+          </form>
       ) : (
         <form className="grid gap-4" onSubmit={handleSignup}>
           <label className={fieldLabelClasses}>
@@ -245,3 +311,5 @@ export default function AuthPage({
     </>
   );
 }
+
+
