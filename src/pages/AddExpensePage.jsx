@@ -1,14 +1,14 @@
-import { useState, useRef } from "react";
-import {
-  CATEGORY_COLORS,
-  CATEGORY_GROUPS,
-  CATEGORY_OPTIONS,
-} from "../lib/categoryConfig";
+import { useRef, useState } from "react";
 import Button from "../components/button";
 import Calendar from "../components/calendar";
 import PanelCard from "../components/panelCard";
 import UnderDevelopmentDialog from "../components/underDevelopmentDialog";
 import useAddExpensePage from "../hooks/useExpenseCategory";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_GROUPS,
+  CATEGORY_OPTIONS,
+} from "../lib/categoryConfig";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";

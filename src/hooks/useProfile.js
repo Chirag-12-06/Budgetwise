@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatDate, buildFormFromUser } from "../utils/profile";
 import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
+import { buildFormFromUser, formatDate } from "../utils/profile";
 
 
 export default function useProfile({ user, onUpdateProfile }) {

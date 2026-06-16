@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
+import {ROUTES} from "../lib/routes";
 
 const authTabClasses =
   "rounded-md px-4 py-3 transition-colors";
@@ -32,9 +33,9 @@ export default function AuthPage({
   const [forgotMessage, setForgotMessage] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const isLogin = location.pathname === "/auth/login";
-  const isSignup = location.pathname === "/auth/signup";
-  const isForgotPassword =location.pathname === "/auth/forgot-password";
+  const isLogin = location.pathname === ROUTES.LOGIN;
+  const isSignup = location.pathname === ROUTES.SIGNUP;
+  const isForgotPassword = location.pathname === ROUTES.FORGOT_PASSWORD;
 
   function handleAvatarFileChange(event) {
     const file = event.target.files?.[0];
@@ -85,14 +86,14 @@ export default function AuthPage({
         <button
           className={`${authTabClasses} ${isLogin ? activeAuthTabClasses : inactiveAuthTabClasses}`}
           type="button"
-          onClick={() => navigate("/auth/login")}
+          onClick={() => navigate(ROUTES.LOGIN)}
         >
           Login
         </button>
         <button
           className={`${authTabClasses} ${isSignup ? activeAuthTabClasses : inactiveAuthTabClasses}`}
           type="button"
-          onClick={() => navigate("/auth/signup")}
+          onClick={() => navigate(ROUTES.SIGNUP)}
         >
           Sign Up
         </button>
@@ -157,7 +158,7 @@ export default function AuthPage({
               type="button"
               className="text-sm text-indigo-500 hover:text-indigo-600"
               onClick={() => {
-                navigate("/auth/forgot-password");
+                navigate(ROUTES.FORGOT_PASSWORD);
                 setForgotMessage("");
                 setForgotEmail("");
               }}
@@ -211,7 +212,7 @@ export default function AuthPage({
               type="button"
               className="text-sm text-indigo-500 hover:text-indigo-600"
               onClick={() => {
-                navigate("/auth/login");
+                navigate(ROUTES.LOGIN);
                 setForgotEmail("");
                 setForgotMessage("");
               }}

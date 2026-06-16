@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
-import { createExpense, createRecurringExpense, fetchExpenses, fetchRecurringExpense, getTodayDate, removeExpense, removeRecurringExpense, updateExpense, updateRecurringExpense } from "../lib/api";
-import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
+import { getTodayDate } from "../lib/api";
+import { getStoredUser, hasToken, logoutUser } from "../lib/auth";
+import { ROUTES } from "../lib/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
-import { applyDateFilter, validateCustomDateRange } from "../utils/dateFilters";
-import useDarkMode from "./useDarkMode";
-import useSessionTimeout from "./useSessionTimeout";
-import useStatusMessage from "./useStatusMessage";
-import useDateFilters from "./useDateFilters";
-import useCategoryFilters from "./useCategoryFilters";
+import { applyDateFilter } from "../utils/dateFilters";
 import useAuthController from "./useAuthController";
+import useCategoryFilters from "./useCategoryFilters";
+import useDarkMode from "./useDarkMode";
+import useDateFilters from "./useDateFilters";
 import useExpenseCrud from "./useExpenseCrud";
 import useRecurringExpenseActions from "./useRecurringExpenseActions";
-import { useNavigate } from "react-router-dom";
-
+import useSessionTimeout from "./useSessionTimeout";
+import useStatusMessage from "./useStatusMessage";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -180,7 +180,7 @@ const {
       endDate: "",
     });
     setEditingExpenseId(null);
-    navigate("/auth");
+    navigate(ROUTES.LOGIN);
     setDateFilterMode("month:current");
     setSelectedCategoryFilters([]);
     setCustomDateFrom("");

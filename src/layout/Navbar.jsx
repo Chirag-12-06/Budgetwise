@@ -1,6 +1,6 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/button";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { ROUTES } from "../lib/routes";
 
 export default function Navbar({ user, handleLogout, dark, setDark }) {
   const displayName = user?.name || user?.email || "Budgetwise user";
@@ -20,10 +20,10 @@ export default function Navbar({ user, handleLogout, dark, setDark }) {
             <div className="app-navbar-tabs flex items-center gap-1" role="tablist" aria-label="App view">
               <Button
                 variant="nav"
-                active={location.pathname === "/"}
-                onClick={() => navigate("/")}
+                active={location.pathname === ROUTES.HOME}
+                onClick={() => navigate(ROUTES.HOME)}
                 role="tab"
-                aria-selected={location.pathname === "/"}
+                aria-selected={location.pathname === ROUTES.HOME}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-plus-circle" aria-hidden="true" />
@@ -32,10 +32,10 @@ export default function Navbar({ user, handleLogout, dark, setDark }) {
               </Button>
               <Button
                 variant="nav"
-                active={location.pathname === "/expenses"}
-                onClick={() => navigate("/expenses")}
+                active={location.pathname === ROUTES.EXPENSES}
+                onClick={() => navigate(ROUTES.EXPENSES)}
                 role="tab"
-                aria-selected={location.pathname === "/expenses"}
+                aria-selected={location.pathname === ROUTES.EXPENSES}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-list" aria-hidden="true" />
@@ -44,10 +44,10 @@ export default function Navbar({ user, handleLogout, dark, setDark }) {
               </Button>
               <Button
                 variant="nav"
-                active={location.pathname === "/analytics"}
-                onClick={() => navigate("/analytics")}
+                active={location.pathname === ROUTES.ANALYTICS}
+                onClick={() => navigate(ROUTES.ANALYTICS)}
                 role="tab"
-                aria-selected={location.pathname === "/analytics"}
+                aria-selected={location.pathname === ROUTES.ANALYTICS}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-chart-line" aria-hidden="true" />
@@ -70,12 +70,12 @@ export default function Navbar({ user, handleLogout, dark, setDark }) {
                 aria-label="Open profile"
                 title="Open profile"
                 className={`inline-flex h-8 w-8 items-center justify-center rounded-full p-0 transition ${
-                  location.pathname === "/profile"
+                  location.pathname === ROUTES.PROFILE
                     ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
                     : "hover:ring-2 hover:ring-indigo-400/70"
                 }`}
                 type="button"
-                onClick={() => navigate("/profile")}
+                onClick={() => navigate(ROUTES.PROFILE)}
               >
                 {user?.avatarDataUrl ? (
                   <img

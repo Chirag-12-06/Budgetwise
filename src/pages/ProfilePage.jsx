@@ -1,7 +1,7 @@
 import Button from "../components/button";
 import PanelCard from "../components/panelCard";
-import { formatCurrency } from "../lib/api";
 import useProfile from "../hooks/useProfile";
+import { formatCurrency } from "../lib/api";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";

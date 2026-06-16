@@ -7,6 +7,7 @@ import {
 } from "../lib/api";
 
 import { formatDateKey } from "../utils/date.js";
+import {ROUTES} from "../lib/routes";
 
 export default function useRecurringExpenseActions({
   editingExpenseId,
@@ -69,7 +70,7 @@ async function handleStartEditRecurringExpense(recurringExpenseId) {
             : "",
         endDate: recurringExpense.endDate ? formatDateKey(recurringExpense.endDate) : "",
       });
-      navigate("/");
+      navigate(ROUTES.HOME);
     } catch (error) {
       handleApiError(error, "Unable to load recurring expense");
     } finally {

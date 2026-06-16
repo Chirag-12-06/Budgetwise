@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { getCategoryDisplay } from "../lib/categoryConfig";
-import useCategoryPrediction from "./useCategoryPrediction";
-import useDropdownClose from "./useDropdownClose";
 
 
 export default function useAddExpensePage({

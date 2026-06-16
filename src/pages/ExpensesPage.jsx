@@ -1,9 +1,9 @@
-import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/panelCard";
 import RecurringExpenseActionDialog from "../components/recurringExpenseActionDialog";
+import { formatCurrency } from "../lib/api";
+import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import { formatDateDMY } from "../utils/date";
 
 export default function ExpensesPage({

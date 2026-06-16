@@ -1,9 +1,10 @@
 import {
+  forgotPasswordUser,
   loginUser,
   signupUser,
   updateProfileUser,
-  forgotPasswordUser,
 } from "../lib/auth";
+import { ROUTES } from "../lib/routes";
 
 export default function useAuthController({
   loginForm,
@@ -25,7 +26,7 @@ async function handleLogin(event) {
     try {
       const data = await loginUser(loginForm);
       setUser(data.user);
-      navigate("/");
+      navigate(ROUTES.HOME);
       showStatus("Login successful", "success");
     } catch (error) {
       showStatus(error.message || "Login failed", "error");
@@ -45,7 +46,7 @@ async function handleLogin(event) {
     try {
       const data = await signupUser(signupForm);
       setUser(data.user);
-      navigate("/");
+      navigate(ROUTES.HOME);
       showStatus("Account created successfully.", "success");
     } catch (error) {
       showStatus(error.message || "Signup failed", "error");

@@ -1,8 +1,7 @@
-import { useParams } from "react-router-dom";
 import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { resetPasswordUser } from "../lib/auth";
-import { useNavigate } from "react-router-dom";
-
+import { ROUTES } from "../lib/routes";
 
 export default function ResetPasswordPage() {
   const { token } = useParams();
@@ -29,7 +28,7 @@ export default function ResetPasswordPage() {
 
       setMessage(data.message || "Password reset successful");
       setTimeout(() => {
-        navigate("/");
+        navigate(ROUTES.HOME);
       }, 2000);
 
       setPassword("");

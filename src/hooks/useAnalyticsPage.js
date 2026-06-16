@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { formatCurrency } from "../lib/api";
-import { calculateCategoryPanelsHeight, createSeededRandom, isWithinOutlierBounds, clampNumber, getTextSafeBubbleDiameter } from "../utils/analytics";
-import useTrendChart from "./useTrendChart";
 import useBubbleBoardSize from "./useBubbleBoardSize";
+import useBubbleLayout from "./useBubbleLayout";
 import useBubbleVisibility from "./useBubbleVisibility";
 import useOutlierFiltering from "./useOutlierFiltering";
-import useBubbleLayout from "./useBubbleLayout";
+import useTrendChart from "./useTrendChart";
 
 
 export default function useAnalyticsPage({

@@ -1,15 +1,15 @@
 import {
   createExpense,
   createRecurringExpense,
-  updateExpense,
-  updateRecurringExpense,
-  removeExpense,
   fetchExpenses,
   getTodayDate,
+  removeExpense,
+  updateExpense,
+  updateRecurringExpense,
 } from "../lib/api";
 
+import { ROUTES } from "../lib/routes";
 import { formatDateKey } from "../utils/date";
-
 
 export default function useExpenseCrud({
   user,
@@ -183,7 +183,7 @@ async function handleAddExpense(event) {
       endCount: "",
       endDate: "",
     });
-    navigate("/");
+    navigate(ROUTES.HOME);
     clearStatus();
   }
 

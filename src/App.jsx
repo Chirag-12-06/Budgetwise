@@ -1,16 +1,17 @@
-import AuthPage from "./pages/AuthPage";
-import AddExpensePage from "./pages/AddExpensePage";
-import ExpensesPage from "./pages/ExpensesPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import ProfilePage from "./pages/ProfilePage";
+import { Route, Routes } from "react-router-dom";
 import useAppController from "./hooks/useAppController";
 import useWindowResize from "./hooks/useWindowResize";
-import { Routes, Route } from "react-router-dom";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AppLayout from "./layout/AppLayout";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import StatusBanner from "./layout/StatusBanner";
 import AuthLayout from "./layout/AuthLayout";
+import StatusBanner from "./layout/StatusBanner";
+import { ROUTES } from "./lib/routes";
+import AddExpensePage from "./pages/AddExpensePage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AuthPage from "./pages/AuthPage";
+import ExpensesPage from "./pages/ExpensesPage";
+import ProfilePage from "./pages/ProfilePage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
   useWindowResize();
@@ -93,20 +94,20 @@ function App() {
     <>
       <Routes>
         <Route element={<AuthLayout dark={dark} />}>
-          <Route path="/auth/login" element={<AuthPage {...authPageProps} />} />
+          <Route path={ROUTES.LOGIN} element={<AuthPage {...authPageProps} />} />
 
           <Route
-            path="/auth/signup"
+            path={ROUTES.SIGNUP}
             element={<AuthPage {...authPageProps} />}
           />
 
           <Route
-            path="/auth/forgot-password"
+            path={ROUTES.FORGOT_PASSWORD}
             element={<AuthPage {...authPageProps} />}
           />
         </Route>
 
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute user={user} />}>
           <Route
@@ -120,7 +121,7 @@ function App() {
             }
           >
             <Route
-              path="/"
+              path={ROUTES.HOME}
               element={
                 <AddExpensePage
                   totalSpent={totalSpent}
@@ -155,7 +156,7 @@ function App() {
               }
             />
             <Route
-              path="/expenses"
+              path={ROUTES.EXPENSES}
               element={
                 <ExpensesPage
                   dateFilterMode={dateFilterMode}
@@ -190,7 +191,7 @@ function App() {
               }
             />
             <Route
-              path="/analytics"
+              path={ROUTES.ANALYTICS}
               element={
                 <AnalyticsPage
                   dateFilterMode={dateFilterMode}
@@ -219,7 +220,7 @@ function App() {
               }
             />
             <Route
-              path="/profile"
+              path={ROUTES.PROFILE}
               element={
                 <ProfilePage
                   user={user}

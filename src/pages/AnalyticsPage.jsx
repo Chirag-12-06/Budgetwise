@@ -1,9 +1,9 @@
-import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/panelCard";
 import useAnalyticsPage from "../hooks/useAnalyticsPage";
+import { formatCurrency } from "../lib/api";
+import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 
 function hexToRgba(hex, alpha = 1) {
   if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
