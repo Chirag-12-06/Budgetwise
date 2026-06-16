@@ -3,27 +3,19 @@ import AddExpensePage from "./pages/AddExpensePage";
 import ExpensesPage from "./pages/ExpensesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import ProfilePage from "./pages/ProfilePage";
-import Navbar from "./layout/Navbar";
-import StatusBanner from "./layout/StatusBanner";
 import useAppController from "./hooks/useAppController";
 import useWindowResize from "./hooks/useWindowResize";
 import { Routes, Route } from "react-router-dom";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-
-
-const ADD_EXPENSE = "addExpense";
-const EXPENSES = "expenses";
-const ANALYTICS = "analytics";
-const PROFILE = "profile";
+import AppLayout from "./layout/AppLayout";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import StatusBanner from "./layout/StatusBanner";
+import AuthLayout from "./layout/AuthLayout";
 
 function App() {
   useWindowResize();
 
   const {
-    mode,
-    setMode,
-    view,
-    setView,
     dark,
     setDark,
     status,
@@ -84,35 +76,52 @@ function App() {
     maxTrendValue,
   } = useAppController();
 
+  const authPageProps = {
+    handleLogin,
+    handleSignup,
+    handleForgotPassword,
+    loginForm,
+    setLoginForm,
+    signupForm,
+    setSignupForm,
+    submitting,
+    dark,
+    setDark,
+  };
+
   return (
-    <Routes>
-    <Route
-      path="/"
-      element={
-        <div
-          className={`min-h-screen transition-colors duration-200 ${
-            dark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
-          }`}
-        >
-          <div
-      className={`min-h-screen transition-colors duration-200 ${
-        dark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
-      }`}
-    >
-      <main className="min-h-screen px-4 pb-8">
-        <section className={`mx-auto w-full ${user ? "" : "max-w-xl"}`}>
-          {user ? (
-            <section className="grid gap-6">
-              <Navbar
+    <>
+      <Routes>
+        <Route element={<AuthLayout dark={dark} />}>
+          <Route path="/auth/login" element={<AuthPage {...authPageProps} />} />
+
+          <Route
+            path="/auth/signup"
+            element={<AuthPage {...authPageProps} />}
+          />
+
+          <Route
+            path="/auth/forgot-password"
+            element={<AuthPage {...authPageProps} />}
+          />
+        </Route>
+
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+        <Route element={<ProtectedRoute user={user} />}>
+          <Route
+            element={
+              <AppLayout
                 user={user}
-                view={view}
-                setView={setView}
                 handleLogout={handleLogout}
                 dark={dark}
                 setDark={setDark}
               />
-
-              {view === ADD_EXPENSE ? (
+            }
+          >
+            <Route
+              path="/"
+              element={
                 <AddExpensePage
                   totalSpent={totalSpent}
                   monthSpent={monthSpent}
@@ -143,7 +152,11 @@ function App() {
                     handleRecurringExpenseActionSelect
                   }
                 />
-              ) : view === EXPENSES ? (
+              }
+            />
+            <Route
+              path="/expenses"
+              element={
                 <ExpensesPage
                   dateFilterMode={dateFilterMode}
                   setDateFilterMode={handleDateFilterModeChange}
@@ -174,7 +187,11 @@ function App() {
                   onCategoryFilterToggle={handleCategoryFilterToggle}
                   onClearCategoryFilters={clearCategoryFilters}
                 />
-              ) : view === ANALYTICS ? (
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
                 <AnalyticsPage
                   dateFilterMode={dateFilterMode}
                   setDateFilterMode={handleDateFilterModeChange}
@@ -199,7 +216,11 @@ function App() {
                   onCategoryFilterToggle={handleCategoryFilterToggle}
                   onClearCategoryFilters={clearCategoryFilters}
                 />
-              ) : view === PROFILE ? (
+              }
+            />
+            <Route
+              path="/profile"
+              element={
                 <ProfilePage
                   user={user}
                   expenses={expenses}
@@ -208,43 +229,14 @@ function App() {
                   onUpdateProfile={handleUpdateProfile}
                   updatingProfile={updatingProfile}
                 />
-              ) : null}
-            </section>
-          ) : (
-            <AuthPage
-              mode={mode}
-              setMode={setMode}
-              handleLogin={handleLogin}
-              handleSignup={handleSignup}
-              handleForgotPassword={handleForgotPassword}
-              loginForm={loginForm}
-              setLoginForm={setLoginForm}
-              signupForm={signupForm}
-              setSignupForm={setSignupForm}
-              submitting={submitting}
-              dark={dark}
-              setDark={setDark}
+              }
             />
-          )}
-
-          {!user || view === ADD_EXPENSE ? (
-            <StatusBanner status={status} />
-          ) : null}
-        </section>
-      </main>
-    </div>
-        </div>
-      }
-    />
-
-    <Route
-      path="/reset-password/:token"
-      element={<ResetPasswordPage />}
-    />
-  </Routes>
+          </Route>
+        </Route>
+      </Routes>
+      <StatusBanner status={status} />
+    </>
   );
 }
 
 export default App;
-
-

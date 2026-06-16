@@ -1,7 +1,6 @@
-  import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
-  export default function useStatusMessage({ user, view, addExpenseView }) {
-  
+export default function useStatusMessage() {
   const [status, setStatus] = useState(null);
 
   function showStatus(message, type) {
@@ -13,23 +12,15 @@
   }
 
   useEffect(() => {
-    if (!status) {
-      return undefined;
-    }
+    if (!status) return;
 
-    if (user && view !== addExpenseView) {
-      setStatus(null);
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setStatus(null);
+    const timeoutId = setTimeout(() => {
+      clearStatus();
     }, 3200);
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [status, user, view, addExpenseView]);
+    return () => clearTimeout(timeoutId);
+  }, [status]);
+
 
   return {
     status,

@@ -1,8 +1,6 @@
 import { useState } from "react";
-
-const LOGIN = "login";
-const SIGNUP = "signup";
-const FORGOT_PASSWORD = "forgot-password";
+import { useLocation, useNavigate } from "react-router-dom";
+import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
 
 const authTabClasses =
   "rounded-md px-4 py-3 transition-colors";
@@ -14,11 +12,9 @@ const fieldInputClasses =
   "w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 const primaryButtonClasses =
   "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
-const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024;
+
 
 export default function AuthPage({
-  mode,
-  setMode,
   handleLogin,
   handleSignup,
   handleForgotPassword,
@@ -34,6 +30,11 @@ export default function AuthPage({
   const [showPassword, setShowPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isLogin = location.pathname === "/auth/login";
+  const isSignup = location.pathname === "/auth/signup";
+  const isForgotPassword =location.pathname === "/auth/forgot-password";
 
   function handleAvatarFileChange(event) {
     const file = event.target.files?.[0];
@@ -82,24 +83,24 @@ export default function AuthPage({
 
       <div className="my-6 grid grid-cols-2 gap-3" role="tablist" aria-label="Authentication mode">
         <button
-          className={`${authTabClasses} ${mode === LOGIN ? activeAuthTabClasses : inactiveAuthTabClasses}`}
+          className={`${authTabClasses} ${isLogin ? activeAuthTabClasses : inactiveAuthTabClasses}`}
           type="button"
-          onClick={() => setMode(LOGIN)}
+          onClick={() => navigate("/auth/login")}
         >
           Login
         </button>
         <button
-          className={`${authTabClasses} ${mode === SIGNUP ? activeAuthTabClasses : inactiveAuthTabClasses}`}
+          className={`${authTabClasses} ${isSignup ? activeAuthTabClasses : inactiveAuthTabClasses}`}
           type="button"
-          onClick={() => setMode(SIGNUP)}
+          onClick={() => navigate("/auth/signup")}
         >
           Sign Up
         </button>
       </div>
 
-      {mode === LOGIN ? (
+      {isLogin ? (
         <form className="grid gap-4" onSubmit={handleLogin}>
-          <label className={fieldLabelClasses}>
+            <label className={fieldLabelClasses}>
               <span className={fieldTextClasses}>Email</span>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -156,7 +157,7 @@ export default function AuthPage({
               type="button"
               className="text-sm text-indigo-500 hover:text-indigo-600"
               onClick={() => {
-                setMode(FORGOT_PASSWORD);
+                navigate("/auth/forgot-password");
                 setForgotMessage("");
                 setForgotEmail("");
               }}
@@ -169,7 +170,7 @@ export default function AuthPage({
             {submitting ? "Signing In..." : "Login"}
           </button>
         </form>
-      ) : mode === FORGOT_PASSWORD ? (
+      ) : isForgotPassword ? (
           <form
             className="grid gap-4"
             onSubmit={async (event) => {
@@ -210,7 +211,7 @@ export default function AuthPage({
               type="button"
               className="text-sm text-indigo-500 hover:text-indigo-600"
               onClick={() => {
-                setMode(LOGIN);
+                navigate("/auth/login");
                 setForgotEmail("");
                 setForgotMessage("");
               }}

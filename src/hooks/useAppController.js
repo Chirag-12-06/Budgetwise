@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createExpense, createRecurringExpense, fetchExpenses, fetchRecurringExpense, getTodayDate, removeExpense, removeRecurringExpense, updateExpense, updateRecurringExpense } from "../lib/api";
 import { getStoredUser, hasToken, loginUser, logoutUser, signupUser, updateProfileUser } from "../lib/auth";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
@@ -11,14 +11,12 @@ import useCategoryFilters from "./useCategoryFilters";
 import useAuthController from "./useAuthController";
 import useExpenseCrud from "./useExpenseCrud";
 import useRecurringExpenseActions from "./useRecurringExpenseActions";
+import { useNavigate } from "react-router-dom";
 
-const LOGIN = "login";
-const ADD_EXPENSE = "addExpense";
 
 export default function useAppController() {
+  const navigate = useNavigate();
   const { dark, setDark } = useDarkMode();
-  const [mode, setMode] = useState(LOGIN);
-  const [view, setView] = useState(LOGIN);
   const [submitting, setSubmitting] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
@@ -59,11 +57,7 @@ const {
   status,
   clearStatus,
   showStatus,
-} = useStatusMessage({
-  user,
-  view,
-  addExpenseView: ADD_EXPENSE,
-});
+} = useStatusMessage();
 const {
   selectedCategoryFilters,
   setSelectedCategoryFilters,
@@ -97,7 +91,7 @@ const {
   showStatus,
   clearStatus,
 
-  setView,
+  navigate,
 });
 const{
   recurringExpenseActionPrompt,
@@ -107,34 +101,23 @@ const{
   handleRecurringExpenseActionSelect,
 } = useRecurringExpenseActions({
   editingExpenseId,
-
   expenseForm,
   setExpenseForm,
-
   recurringForm,
   setRecurringForm,
-
   setExpenses,
   setSubmitting,
-
   showStatus,
   handleApiError,
-
   refreshExpenses,
-
   handleStartEditExpense,
   handleDeleteExpense,
   handleCancelEditExpense,
-
-  setView,
+  navigate,
   editingRecurringExpenseId,
-setEditingRecurringExpenseId,
-
-setEditingExpenseId,
-
-clearStatus,
-
-ADD_EXPENSE,
+  setEditingRecurringExpenseId,
+  setEditingExpenseId,
+  clearStatus,
 });
 
 
@@ -164,15 +147,17 @@ const {
   signupForm,
   user,
   setUser,
-  setView,
+  navigate,
   setSubmitting,
   setUpdatingProfile,
   showStatus,
   resetToLoggedOutState,
+  clearStatus,
 });
   
 
   function resetToLoggedOutState({ message = "Logged out", type = "success" } = {}) {
+    showStatus(message, type);
     clearInactivityTimeout();
     logoutUser();
     setUser(null);
@@ -195,14 +180,12 @@ const {
       endDate: "",
     });
     setEditingExpenseId(null);
-    setView(LOGIN);
+    navigate("/auth");
     setDateFilterMode("month:current");
     setSelectedCategoryFilters([]);
     setCustomDateFrom("");
     setCustomDateTo("");
     setDateRangeError("");
-    setMode(LOGIN);
-    showStatus(message, type);
   }
 
   function handleApiError(error, fallbackMessage) {
@@ -387,10 +370,7 @@ const {
   const maxTrendValue = trendData.reduce((max, item) => (item.value > max ? item.value : max), 0);
 
   return {
-    mode,
-    setMode,
-    view,
-    setView,
+    navigate,
     dark,
     setDark,
     status,

@@ -10,21 +10,22 @@ export default function useAuthController({
   signupForm,
   user,
   setUser,
-  setView,
+  navigate,
   setSubmitting,
   setUpdatingProfile,
   showStatus,
   resetToLoggedOutState,
+  clearStatus,
 }) {
 
 async function handleLogin(event) {
     event.preventDefault();
     setSubmitting(true);
-    // setStatus(null);
+    clearStatus();
     try {
       const data = await loginUser(loginForm);
       setUser(data.user);
-      setView(ADD_EXPENSE);
+      navigate("/");
       showStatus("Login successful", "success");
     } catch (error) {
       showStatus(error.message || "Login failed", "error");
@@ -35,7 +36,7 @@ async function handleLogin(event) {
 
   async function handleSignup(event) {
     event.preventDefault();
-    // setStatus(null);
+    clearStatus();
     if (signupForm.password !== signupForm.confirmPassword) {
       showStatus("Passwords do not match", "error");
       return;
@@ -44,7 +45,7 @@ async function handleLogin(event) {
     try {
       const data = await signupUser(signupForm);
       setUser(data.user);
-      setView(ADD_EXPENSE);
+      navigate("/");
       showStatus("Account created successfully.", "success");
     } catch (error) {
       showStatus(error.message || "Signup failed", "error");

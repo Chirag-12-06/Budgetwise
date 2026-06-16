@@ -1,13 +1,12 @@
 import Button from "../components/button";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
-const ADD_EXPENSE = "addExpense";
-const EXPENSES = "expenses";
-const ANALYTICS = "analytics";
-const PROFILE = "profile";
-
-export default function Navbar({ user, view, setView, handleLogout, dark, setDark }) {
+export default function Navbar({ user, handleLogout, dark, setDark }) {
   const displayName = user?.name || user?.email || "Budgetwise user";
   const displayInitial = String(displayName).trim().charAt(0).toUpperCase() || "U";
+  const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <nav className="app-navbar sticky top-0 z-50 -mx-4 w-[calc(100%+2rem)] bg-white shadow-md dark:bg-gray-800">
@@ -21,10 +20,10 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
             <div className="app-navbar-tabs flex items-center gap-1" role="tablist" aria-label="App view">
               <Button
                 variant="nav"
-                active={view === ADD_EXPENSE}
-                onClick={() => setView(ADD_EXPENSE)}
+                active={location.pathname === "/"}
+                onClick={() => navigate("/")}
                 role="tab"
-                aria-selected={view === ADD_EXPENSE}
+                aria-selected={location.pathname === "/"}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-plus-circle" aria-hidden="true" />
@@ -33,10 +32,10 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
               </Button>
               <Button
                 variant="nav"
-                active={view === EXPENSES}
-                onClick={() => setView(EXPENSES)}
+                active={location.pathname === "/expenses"}
+                onClick={() => navigate("/expenses")}
                 role="tab"
-                aria-selected={view === EXPENSES}
+                aria-selected={location.pathname === "/expenses"}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-list" aria-hidden="true" />
@@ -45,10 +44,10 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
               </Button>
               <Button
                 variant="nav"
-                active={view === ANALYTICS}
-                onClick={() => setView(ANALYTICS)}
+                active={location.pathname === "/analytics"}
+                onClick={() => navigate("/analytics")}
                 role="tab"
-                aria-selected={view === ANALYTICS}
+                aria-selected={location.pathname === "/analytics"}
                 className="h-9! w-9! gap-0! px-0! py-0! sm:h-9! sm:w-9! sm:gap-0! sm:px-0! sm:py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!"
               >
                 <i className="fas fa-chart-line" aria-hidden="true" />
@@ -71,12 +70,12 @@ export default function Navbar({ user, view, setView, handleLogout, dark, setDar
                 aria-label="Open profile"
                 title="Open profile"
                 className={`inline-flex h-8 w-8 items-center justify-center rounded-full p-0 transition ${
-                  view === PROFILE
+                  location.pathname === "/profile"
                     ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
                     : "hover:ring-2 hover:ring-indigo-400/70"
                 }`}
                 type="button"
-                onClick={() => setView(PROFILE)}
+                onClick={() => navigate("/profile")}
               >
                 {user?.avatarDataUrl ? (
                   <img

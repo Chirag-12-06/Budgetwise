@@ -10,34 +10,23 @@ import { formatDateKey } from "../utils/date.js";
 
 export default function useRecurringExpenseActions({
   editingExpenseId,
-
   expenseForm,
   setExpenseForm,
-
   recurringForm,
   setRecurringForm,
-
   setExpenses,
   setSubmitting,
-
   showStatus,
   handleApiError,
-
   refreshExpenses,
-
   handleStartEditExpense,
   handleDeleteExpense,
   handleCancelEditExpense,
-
-  setView,
+  navigate,
   editingRecurringExpenseId,
-setEditingRecurringExpenseId,
-
-setEditingExpenseId,
-
-clearStatus,
-
-ADD_EXPENSE,
+  setEditingRecurringExpenseId,
+  setEditingExpenseId,
+  clearStatus,
 }) {
 
   const [recurringExpenseActionPrompt, setRecurringExpenseActionPrompt] = useState(null);
@@ -80,7 +69,7 @@ async function handleStartEditRecurringExpense(recurringExpenseId) {
             : "",
         endDate: recurringExpense.endDate ? formatDateKey(recurringExpense.endDate) : "",
       });
-      setView(ADD_EXPENSE);
+      navigate("/");
     } catch (error) {
       handleApiError(error, "Unable to load recurring expense");
     } finally {

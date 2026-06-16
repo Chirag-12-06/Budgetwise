@@ -33,7 +33,7 @@ export default function useExpenseCrud({
   showStatus,
   clearStatus,
 
-  setView,
+  navigate,
 }) {
 
 async function refreshExpenses(options = {}) {
@@ -183,7 +183,7 @@ async function handleAddExpense(event) {
       endCount: "",
       endDate: "",
     });
-    setView(ADD_EXPENSE);
+    navigate("/");
     clearStatus();
   }
 
