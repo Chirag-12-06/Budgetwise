@@ -22,9 +22,9 @@ export default function useAppController() {
   const [submitting, setSubmitting] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
+  const [expenses, setExpenses] = useState([]);
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState("daily");
   const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
-  const [expenses, setExpenses] = useState([]);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [editingRecurringExpenseId, setEditingRecurringExpenseId] = useState(null);
@@ -57,7 +57,7 @@ export default function useAppController() {
   });
 const {
   status,
-  setStatus,
+  clearStatus,
   showStatus,
 } = useStatusMessage({
   user,
@@ -92,9 +92,10 @@ const {
 
   setExpenses,
   setSubmitting,
-
+  setLoadingExpenses,
   handleApiError,
   showStatus,
+  clearStatus,
 
   setView,
 });
@@ -131,7 +132,7 @@ setEditingRecurringExpenseId,
 
 setEditingExpenseId,
 
-setStatus,
+clearStatus,
 
 ADD_EXPENSE,
 });

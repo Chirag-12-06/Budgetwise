@@ -35,7 +35,7 @@ setEditingRecurringExpenseId,
 
 setEditingExpenseId,
 
-setStatus,
+clearStatus,
 
 ADD_EXPENSE,
 }) {
@@ -50,7 +50,7 @@ async function handleStartEditRecurringExpense(recurringExpenseId) {
     }
 
     setSubmitting(true);
-    setStatus(null);
+    clearStatus();
     try {
       const recurringExpense = await fetchRecurringExpense(numericId);
       const startDateValue = recurringExpense?.startDate ? formatDateKey(recurringExpense.startDate) : getTodayDate();
@@ -126,7 +126,7 @@ async function handleStartEditRecurringExpense(recurringExpenseId) {
   
       if (scope === "future" && prompt.actionType === "delete") {
         setSubmitting(true);
-        setStatus(null);
+        clearStatus();
   
         try {
           await removeExpense(prompt.expense.id);
@@ -162,7 +162,7 @@ async function handleStartEditRecurringExpense(recurringExpenseId) {
   
       if (scope === "series" && prompt.actionType === "delete") {
         setSubmitting(true);
-        setStatus(null);
+        clearStatus();
   
         void removeRecurringExpense(prompt.expense.recurringId || prompt.expense.id)
           .then(async () => {

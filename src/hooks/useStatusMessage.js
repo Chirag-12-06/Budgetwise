@@ -8,6 +8,10 @@
     setStatus({ message, type });
   }
 
+  function clearStatus() {
+    setStatus(null);
+  }
+
   useEffect(() => {
     if (!status) {
       return undefined;
@@ -29,7 +33,7 @@
 
   return {
     status,
-    setStatus,
+    clearStatus,
     showStatus,
   };
 }

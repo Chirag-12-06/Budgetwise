@@ -27,9 +27,11 @@ export default function useExpenseCrud({
 
   setExpenses,
   setSubmitting,
+  setLoadingExpenses,
 
   handleApiError,
   showStatus,
+  clearStatus,
 
   setView,
 }) {
@@ -38,7 +40,7 @@ async function refreshExpenses(options = {}) {
     if (!user) {
       return [];
     }
-
+    
     setLoadingExpenses(true);
     try {
       const expensesData = await fetchExpenses(options);
@@ -57,6 +59,7 @@ async function refreshExpenses(options = {}) {
 
       setExpenses(sorted);
       return sorted;
+
     } catch (error) {
       const expensesData = await fetchExpenses(options);
       const expenses = Array.isArray(expensesData)
@@ -87,7 +90,7 @@ async function handleAddExpense(event) {
     }
 
     setSubmitting(true);
-    setStatus(null);
+    clearStatus();
 
     const payload = {
       title: expenseForm.title.trim(),
@@ -181,7 +184,7 @@ async function handleAddExpense(event) {
       endDate: "",
     });
     setView(ADD_EXPENSE);
-    setStatus(null);
+    clearStatus();
   }
 
   function handleCancelEditExpense() {
