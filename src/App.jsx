@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import useAppController from "./hooks/useAppController";
-import useWindowResize from "./hooks/useWindowResize";
+import useWindowResize from "./hooks/ui/useWindowResize";
 import AppLayout from "./layout/AppLayout";
 import AuthLayout from "./layout/AuthLayout";
 import StatusBanner from "./layout/StatusBanner";
@@ -20,6 +20,7 @@ function App() {
     dark,
     setDark,
     status,
+    showStatus,
     submitting,
     updatingProfile,
     loadingExpenses,
@@ -229,6 +230,7 @@ function App() {
                   monthSpent={monthSpent}
                   onUpdateProfile={handleUpdateProfile}
                   updatingProfile={updatingProfile}
+                  showStatus={showStatus}
                 />
               }
             />

@@ -3,8 +3,9 @@ import {
   loginUser,
   signupUser,
   updateProfileUser,
-} from "../lib/auth";
-import { ROUTES } from "../lib/routes";
+  hasToken,
+} from "../../lib/auth";
+import { ROUTES } from "../../lib/routes";
 
 export default function useAuthController({
   loginForm,
@@ -29,7 +30,7 @@ async function handleLogin(event) {
       navigate(ROUTES.HOME);
       showStatus("Login successful", "success");
     } catch (error) {
-      showStatus(error.message || "Login failed", "error");
+      showStatus(error?.message || "Login failed", "error");
     } finally {
       setSubmitting(false);
     }
@@ -49,7 +50,7 @@ async function handleLogin(event) {
       navigate(ROUTES.HOME);
       showStatus("Account created successfully.", "success");
     } catch (error) {
-      showStatus(error.message || "Signup failed", "error");
+      showStatus(error?.message || "Signup failed", "error");
     } finally {
       setSubmitting(false);
     }
@@ -67,13 +68,13 @@ async function handleLogin(event) {
     return { ok: true };
   } catch (error) {
     showStatus(
-      error.message || "Unable to send reset instructions",
+      error?.message || "Unable to send reset instructions",
       "error"
     );
 
     return {
       ok: false,
-      message: error.message,
+      message: error?.message,
     };
   }
 }
@@ -94,7 +95,7 @@ async function handleLogin(event) {
 
       return {
         ok: false,
-        message: error.message || "Unable to update profile",
+        message: error?.message || "Unable to update profile",
       };
     } finally {
       setUpdatingProfile(false);

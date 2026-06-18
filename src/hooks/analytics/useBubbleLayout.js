@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import {
   buildBubbleLayout,
   calculateCategoryPanelsHeight,
-} from "../utils/analytics";
+} from "../../utils/analytics";
 
 export default function useBubbleLayout({
   visibleCategories,
@@ -11,13 +11,12 @@ export default function useBubbleLayout({
 }) {
 
   const bubblePanelHeight = useMemo(
-    () =>
-      calculateCategoryPanelsHeight(
-        bubbleBoardSize.width,
-        visibleCategories.length
-      ),
-    [bubbleBoardSize.width, visibleCategories.length]
-  );
+  () => calculateCategoryPanelsHeight(
+    bubbleBoardSize.width,
+    visibleCategories.length,
+  ),
+  [bubbleBoardSize.width, visibleCategories.length],
+);
 
   const bubbleLayout = useMemo(
     () =>

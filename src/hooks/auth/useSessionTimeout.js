@@ -33,16 +33,16 @@ export default function useSessionTimeout({
       return undefined;
     }
 
-    let isLoggingOut = false;
+    let hasLoggedOut = false;
 
     function resetInactivityTimer() {
       clearInactivityTimeout();
       inactivityTimeoutRef.current = window.setTimeout(() => {
-        if (isLoggingOut) {
+        if (hasLoggedOut) {
           return;
         }
 
-        isLoggingOut = true;
+        hasLoggedOut = true;
         resetToLoggedOutState({
           message: `Logged out after ${SESSION_IDLE_MINUTES} minutes of inactivity`,
           type: "error",
@@ -63,7 +63,7 @@ export default function useSessionTimeout({
 
       clearInactivityTimeout();
     };
-  }, [user]);
+  }, [user, resetToLoggedOutState]);
 
   return {
   clearInactivityTimeout,

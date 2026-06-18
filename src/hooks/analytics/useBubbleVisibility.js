@@ -1,30 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 
-export default function useBubbleVisibility(chartCategories) {
+export default function useBubbleVisibility(categoryEntries) {
   const [hiddenBubbleCategories, setHiddenBubbleCategories] = useState([]);
 
   useEffect(() => {
     setHiddenBubbleCategories((current) =>
       current.filter((categoryKey) =>
-        chartCategories.some(([key]) => key === categoryKey)
+        categoryEntries.some(([key]) => key === categoryKey)
       )
     );
-  }, [chartCategories]);
+  }, [categoryEntries]);
 
   function toggleBubbleCategory(categoryKey) {
     setHiddenBubbleCategories((current) =>
       current.includes(categoryKey)
-        ? current.filter((value) => value !== categoryKey)
+        ? current.filter((key) => key !== categoryKey)
         : [...current, categoryKey]
     );
   }
 
   const visibleCategories = useMemo(
     () =>
-      chartCategories.filter(
+      categoryEntries.filter(
         ([key]) => !hiddenBubbleCategories.includes(key)
       ),
-    [chartCategories, hiddenBubbleCategories]
+    [categoryEntries, hiddenBubbleCategories]
   );
 
   return {

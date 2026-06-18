@@ -6,10 +6,10 @@ import {
   removeExpense,
   updateExpense,
   updateRecurringExpense,
-} from "../lib/api";
+} from "../../lib/api";
 
-import { ROUTES } from "../lib/routes";
-import { formatDateKey } from "../utils/date";
+import { ROUTES } from "../../lib/routes";
+import { formatDateKey } from "../../utils/date";
 
 export default function useExpenseCrud({
   user,

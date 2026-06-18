@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
-import { formatCurrency } from "../lib/api";
-import {
-  detectOutliers,
-  isWithinOutlierBounds,
-} from "../utils/analytics";
+import { formatCurrency } from "../../lib/api";
+import { detectOutliers, isWithinOutlierBounds } from "../../utils/analytics";
 
 export default function useOutlierFiltering({
   trendPoints,
@@ -11,13 +8,11 @@ export default function useOutlierFiltering({
   rawCategoryEntries,
   analyticsTotal,
 }) {
-
   const [excludeOutliers, setExcludeOutliers] = useState(false);
 
-  // Trend outliers
   const trendOutlierInfo = useMemo(
     () => detectOutliers(trendPoints.map((point) => point.value)),
-    [trendPoints]
+    [trendPoints],
   );
 
   const visibleTrendPoints = useMemo(() => {
@@ -26,19 +21,16 @@ export default function useOutlierFiltering({
     }
 
     return trendPoints.filter((point) =>
-      isWithinOutlierBounds(point.value, trendOutlierInfo)
+      isWithinOutlierBounds(point.value, trendOutlierInfo),
     );
   }, [trendPoints, excludeOutliers, trendOutlierInfo]);
 
-  // Expense outliers
   const expenseAmountOutlierInfo = useMemo(
     () =>
       detectOutliers(
-        analyticsExpenses.map((expense) =>
-          Number(expense.amount || 0)
-        )
+        analyticsExpenses.map((expense) => Number(expense.amount || 0)),
       ),
-    [analyticsExpenses]
+    [analyticsExpenses],
   );
 
   const displayedAnalyticsExpenses = useMemo(() => {
@@ -49,47 +41,38 @@ export default function useOutlierFiltering({
     return analyticsExpenses.filter((expense) => {
       const amount = Number(expense.amount || 0);
 
-      return isWithinOutlierBounds(
-        amount,
-        expenseAmountOutlierInfo
-      );
+      return isWithinOutlierBounds(amount, expenseAmountOutlierInfo);
     });
-  }, [
-    analyticsExpenses,
-    excludeOutliers,
-    expenseAmountOutlierInfo,
-  ]);
+  }, [analyticsExpenses, excludeOutliers, expenseAmountOutlierInfo]);
 
-  // Category outliers
   const categoryOutlierInfo = useMemo(
     () => detectOutliers(rawCategoryEntries.map(([, value]) => value)),
-    [rawCategoryEntries]
+    [rawCategoryEntries],
   );
 
-  const chartCategories = useMemo(() => {
+  const categoryEntries = useMemo(() => {
     if (
       excludeOutliers &&
       rawCategoryEntries.length >= 3 &&
       categoryOutlierInfo.hasOutliers
     ) {
-
       const upperBound = Number(categoryOutlierInfo.upperBound);
 
       if (!Number.isFinite(upperBound)) {
         return rawCategoryEntries;
       }
 
-      const highestCategoryValue =
-        Number(rawCategoryEntries[0]?.[1] || 0);
+      const highestCategoryValue = Number(rawCategoryEntries[0]?.[1] || 0);
 
-      const secondHighestCategoryValue =
-        Number(rawCategoryEntries[1]?.[1] || 0);
+      const secondHighestCategoryValue = Number(
+        rawCategoryEntries[1]?.[1] || 0,
+      );
 
       const extremeHighCutoff = Math.max(
         upperBound * 2,
         secondHighestCategoryValue > 0
           ? secondHighestCategoryValue * 4
-          : upperBound * 2
+          : upperBound * 2,
       );
 
       if (highestCategoryValue <= extremeHighCutoff) {
@@ -97,41 +80,31 @@ export default function useOutlierFiltering({
       }
 
       return rawCategoryEntries.filter(
-        ([, value]) => Number(value) <= extremeHighCutoff
+        ([, value]) => Number(value) <= extremeHighCutoff,
       );
     }
 
     return rawCategoryEntries;
-  }, [
-    rawCategoryEntries,
-    excludeOutliers,
-    categoryOutlierInfo,
-  ]);
+  }, [rawCategoryEntries, excludeOutliers, categoryOutlierInfo]);
 
   const displayedAnalyticsTotal = useMemo(
     () =>
       displayedAnalyticsExpenses.reduce(
-        (sum, expense) =>
-          sum + Number(expense.amount || 0),
-        0
+        (sum, expense) => sum + Number(expense.amount || 0),
+        0,
       ),
-    [displayedAnalyticsExpenses]
+    [displayedAnalyticsExpenses],
   );
 
   const summaryTotalSpending = useMemo(
-    () =>
-      excludeOutliers
-        ? formatCurrency(displayedAnalyticsTotal)
-        : formatCurrency(analyticsTotal),
-    [
-      excludeOutliers,
-      displayedAnalyticsTotal,
-      analyticsTotal,
-    ]
-  );
+  () =>
+    excludeOutliers
+      ? displayedAnalyticsTotal
+      : analyticsTotal,
+  [excludeOutliers, displayedAnalyticsTotal, analyticsTotal],
+);
 
   const outlierWarningText = useMemo(() => {
-
     if (
       excludeOutliers ||
       !trendOutlierInfo.hasOutliers ||
@@ -140,28 +113,21 @@ export default function useOutlierFiltering({
       return "";
     }
 
-    const maxOutlier = Math.max(
-      ...trendOutlierInfo.outliers
-    );
+    const maxOutlier = Math.max(...trendOutlierInfo.outliers);
 
     const count = trendOutlierInfo.outliers.length;
 
     return `Found ${count} outlier value${
       count > 1 ? "s" : ""
     } out of ${trendPoints.length} data points. Highest outlier: ${formatCurrency(maxOutlier)}. This may affect chart readability.`;
-
-  }, [
-    excludeOutliers,
-    trendOutlierInfo,
-    trendPoints,
-  ]);
+  }, [excludeOutliers, trendOutlierInfo, trendPoints]);
 
   return {
     excludeOutliers,
     setExcludeOutliers,
     visibleTrendPoints,
     displayedAnalyticsExpenses,
-    chartCategories,
+    categoryEntries,
     summaryTotalSpending,
     outlierWarningText,
   };

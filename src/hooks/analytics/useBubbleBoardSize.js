@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function useBubbleBoardSize(
-    chartCategoriesLength,
-  visibleCategoriesLength
-){
+export default function useBubbleBoardSize() {
   const bubbleBoardRef = useRef(null);
-  
-  const [bubbleBoardSize, setBubbleBoardSize] = useState({ 
-        width: 0, 
-        height: 0 
-    });
+
+  const [bubbleBoardSize, setBubbleBoardSize] = useState({
+    width: 0,
+    height: 0,
+  });
 
   useEffect(() => {
     const board = bubbleBoardRef.current;
@@ -20,11 +17,11 @@ export default function useBubbleBoardSize(
     const updateSize = () => {
       const nextWidth = Math.round(board.clientWidth);
       const nextHeight = Math.round(board.clientHeight);
-      setBubbleBoardSize((current) => (
+      setBubbleBoardSize((current) =>
         current.width === nextWidth && current.height === nextHeight
           ? current
-          : { width: nextWidth, height: nextHeight }
-      ));
+          : { width: nextWidth, height: nextHeight },
+      );
     };
 
     updateSize();
@@ -44,7 +41,6 @@ export default function useBubbleBoardSize(
     return () => {
       resizeObserver.disconnect();
     };
-  }, [chartCategoriesLength, visibleCategoriesLength]);
-  return { bubbleBoardRef, bubbleBoardSize
-  };
+  });
+  return { bubbleBoardRef, bubbleBoardSize };
 }

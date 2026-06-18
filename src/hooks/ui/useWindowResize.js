@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-export default function useResizeSync() {
+export default function useWindowResize() {
+  // Forces app re-render when viewport size changes.
+  // Needed because several components directly read window.innerWidth.
   const [, setResizeTick] = useState(0);
 
   useEffect(() => {

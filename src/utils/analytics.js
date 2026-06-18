@@ -14,14 +14,18 @@ export function createSeededRandom(seedInput) {
   };
 }
 
-
 export function detectOutliers(data) {
   const values = data
     .map((value) => Number(value || 0))
     .filter((value) => Number.isFinite(value));
 
   if (values.length < 2) {
-    return { outliers: [], upperBound: null, lowerBound: null, hasOutliers: false };
+    return {
+      outliers: [],
+      upperBound: null,
+      lowerBound: null,
+      hasOutliers: false,
+    };
   }
 
   if (values.length <= 3) {
@@ -62,7 +66,9 @@ export function detectOutliers(data) {
   const iqr = q3 - q1;
   const lowerBound = q1 - 1.5 * iqr;
   const upperBound = q3 + 1.5 * iqr;
-  const outliers = values.filter((value) => value < lowerBound || value > upperBound);
+  const outliers = values.filter(
+    (value) => value < lowerBound || value > upperBound,
+  );
 
   return {
     outliers,
@@ -71,7 +77,6 @@ export function detectOutliers(data) {
     hasOutliers: outliers.length > 0,
   };
 }
-
 
 export function isWithinOutlierBounds(value, outlierInfo) {
   if (!outlierInfo?.hasOutliers) return true;
@@ -118,7 +123,13 @@ export function calculateCategoryPanelsHeight(width, categoryCount) {
   );
 }
 
-export function buildBubbleLayout(categories, width, height, totalAmount, useLogScale) {
+export function buildBubbleLayout(
+  categories,
+  width,
+  height,
+  totalAmount,
+  useLogScale,
+) {
   if (!categories.length || width <= 0 || height <= 0 || totalAmount <= 0) {
     return [];
   }
@@ -138,11 +149,22 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
   const plotWidth = Math.max(120, width - edgePadding * 2);
   const plotHeight = Math.max(120, height - titleSafeTop - edgePadding);
   const area = plotWidth * plotHeight;
-  const scaledMaxValue = Math.max(...categories.map(([, value]) => scaleValue(value)), 1);
+  const scaledMaxValue = Math.max(
+    ...categories.map(([, value]) => scaleValue(value)),
+    1,
+  );
   const textSafeBubbleDiameter = getTextSafeBubbleDiameter(width);
   const targetPerBubble = area / Math.max(categories.length, 1);
   const widthDensityScale =
-    width <= 360 ? 0.58 : width <= 420 ? 0.68 : width <= 520 ? 0.78 : width <= 700 ? 0.88 : 1;
+    width <= 360
+      ? 0.58
+      : width <= 420
+        ? 0.68
+        : width <= 520
+          ? 0.78
+          : width <= 700
+            ? 0.88
+            : 1;
   const countDensityScale =
     categories.length >= 10
       ? 0.84
@@ -153,7 +175,10 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
           : 1;
   let maxBubbleDiameter = Math.max(
     30,
-    Math.min(178, Math.sqrt(targetPerBubble) * 1.45 * widthDensityScale * countDensityScale),
+    Math.min(
+      178,
+      Math.sqrt(targetPerBubble) * 1.45 * widthDensityScale * countDensityScale,
+    ),
   );
   let minBubbleDiameter = useLogScale
     ? Math.max(12, Math.min(46, maxBubbleDiameter * 0.28))
@@ -163,10 +188,14 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
   const estimatedBubbleCoverage = categories.reduce((sum, [, value]) => {
     const numericValue = Number(value || 0);
     const scaledValue = scaleValue(numericValue);
-    const relative = scaledMaxValue > 0 ? Math.sqrt(scaledValue / scaledMaxValue) : 0;
+    const relative =
+      scaledMaxValue > 0 ? Math.sqrt(scaledValue / scaledMaxValue) : 0;
     const estimatedDiameter = Math.max(
       minBubbleDiameter,
-      Math.min(maxBubbleDiameter, minBubbleDiameter + relative * (maxBubbleDiameter - minBubbleDiameter)),
+      Math.min(
+        maxBubbleDiameter,
+        minBubbleDiameter + relative * (maxBubbleDiameter - minBubbleDiameter),
+      ),
     );
     const estimatedRadius = estimatedDiameter / 2;
     return sum + Math.PI * estimatedRadius * estimatedRadius;
@@ -174,10 +203,19 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
   const maxCoverageRatio =
     width <= 420 ? 0.42 : width <= 520 ? 0.46 : width <= 700 ? 0.52 : 0.56;
   const maxBubbleCoverage = area * maxCoverageRatio;
-  if (estimatedBubbleCoverage > maxBubbleCoverage && estimatedBubbleCoverage > 0) {
+  if (
+    estimatedBubbleCoverage > maxBubbleCoverage &&
+    estimatedBubbleCoverage > 0
+  ) {
     const shrinkScale = Math.sqrt(maxBubbleCoverage / estimatedBubbleCoverage);
-    maxBubbleDiameter = Math.max(textSafeBubbleDiameter, maxBubbleDiameter * shrinkScale);
-    minBubbleDiameter = Math.max(textSafeBubbleDiameter, minBubbleDiameter * shrinkScale);
+    maxBubbleDiameter = Math.max(
+      textSafeBubbleDiameter,
+      maxBubbleDiameter * shrinkScale,
+    );
+    minBubbleDiameter = Math.max(
+      textSafeBubbleDiameter,
+      minBubbleDiameter * shrinkScale,
+    );
   }
 
   if (maxBubbleDiameter < minBubbleDiameter) {
@@ -192,10 +230,10 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
   const simulationBubbleGap = width <= 420 ? 0.8 : width <= 640 ? 1.2 : 2;
 
   const withinBounds = (x, y, radius) =>
-    x >= edgePadding + radius
-    && x <= width - edgePadding - radius
-    && y >= titleSafeTop + radius
-    && y <= height - edgePadding - radius;
+    x >= edgePadding + radius &&
+    x <= width - edgePadding - radius &&
+    y >= titleSafeTop + radius &&
+    y <= height - edgePadding - radius;
 
   const overlapsPlaced = (x, y, radius, gap = initialBubbleGap) =>
     placed.some((point) => {
@@ -233,8 +271,16 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
       }
 
       for (const bubble of items) {
-        bubble.x = clamp(bubble.x, edgePadding + bubble.r, width - edgePadding - bubble.r);
-        bubble.y = clamp(bubble.y, titleSafeTop + bubble.r, height - edgePadding - bubble.r);
+        bubble.x = clamp(
+          bubble.x,
+          edgePadding + bubble.r,
+          width - edgePadding - bubble.r,
+        );
+        bubble.y = clamp(
+          bubble.y,
+          titleSafeTop + bubble.r,
+          height - edgePadding - bubble.r,
+        );
       }
 
       if (!moved) {
@@ -246,7 +292,10 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
   const hasOverlap = (items, gap) =>
     items.some((bubbleA, i) =>
       items.slice(i + 1).some((bubbleB) => {
-        const distance = Math.hypot(bubbleB.x - bubbleA.x, bubbleB.y - bubbleA.y);
+        const distance = Math.hypot(
+          bubbleB.x - bubbleA.x,
+          bubbleB.y - bubbleA.y,
+        );
         return distance < bubbleA.r + bubbleB.r + gap;
       }),
     );
@@ -254,10 +303,14 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
   const bubbles = categories.map(([categoryKey, value], index) => {
     const numericValue = Number(value || 0);
     const scaledValue = scaleValue(numericValue);
-    const relative = scaledMaxValue > 0 ? Math.sqrt(scaledValue / scaledMaxValue) : 0;
+    const relative =
+      scaledMaxValue > 0 ? Math.sqrt(scaledValue / scaledMaxValue) : 0;
     const baseDiameter = Math.max(
       minBubbleDiameter,
-      Math.min(maxBubbleDiameter, minBubbleDiameter + relative * (maxBubbleDiameter - minBubbleDiameter)),
+      Math.min(
+        maxBubbleDiameter,
+        minBubbleDiameter + relative * (maxBubbleDiameter - minBubbleDiameter),
+      ),
     );
 
     let radius = baseDiameter / 2;
@@ -268,7 +321,11 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
     let foundSpot = false;
 
     while (!foundSpot && radius >= minimumRadius) {
-      if (index === 0 && withinBounds(centerX, centerY, radius) && !overlapsPlaced(centerX, centerY, radius)) {
+      if (
+        index === 0 &&
+        withinBounds(centerX, centerY, radius) &&
+        !overlapsPlaced(centerX, centerY, radius)
+      ) {
         x = centerX;
         y = centerY;
         foundSpot = true;
@@ -294,9 +351,14 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
       if (!foundSpot) {
         for (let attempt = 0; attempt < 120; attempt += 1) {
           const candidateX =
-            edgePadding + radius + random() * Math.max(1, width - edgePadding * 2 - radius * 2);
+            edgePadding +
+            radius +
+            random() * Math.max(1, width - edgePadding * 2 - radius * 2);
           const candidateY =
-            titleSafeTop + radius + random() * Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
+            titleSafeTop +
+            radius +
+            random() *
+              Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
           if (!withinBounds(candidateX, candidateY, radius)) continue;
           if (overlapsPlaced(candidateX, candidateY, radius)) continue;
           x = candidateX;
@@ -317,9 +379,14 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
       let lowestOverlapScore = Number.POSITIVE_INFINITY;
       for (let attempt = 0; attempt < 160; attempt += 1) {
         const candidateX =
-          edgePadding + radius + random() * Math.max(1, width - edgePadding * 2 - radius * 2);
+          edgePadding +
+          radius +
+          random() * Math.max(1, width - edgePadding * 2 - radius * 2);
         const candidateY =
-          titleSafeTop + radius + random() * Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
+          titleSafeTop +
+          radius +
+          random() *
+            Math.max(1, height - titleSafeTop - edgePadding - radius * 2);
 
         if (!withinBounds(candidateX, candidateY, radius)) {
           continue;
@@ -327,7 +394,10 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
 
         let overlapScore = 0;
         for (const point of placed) {
-          const distance = Math.hypot(candidateX - point.x, candidateY - point.y);
+          const distance = Math.hypot(
+            candidateX - point.x,
+            candidateY - point.y,
+          );
           const minDistance = radius + point.r + initialBubbleGap;
           if (distance < minDistance) {
             overlapScore += minDistance - distance;
@@ -370,8 +440,16 @@ export function buildBubbleLayout(categories, width, height, totalAmount, useLog
     for (const bubble of bubbles) {
       bubble.r = Math.max(minimumTextRadius, bubble.r * shrinkFactor);
       bubble.diameter = bubble.r * 2;
-      bubble.x = clamp(bubble.x, edgePadding + bubble.r, width - edgePadding - bubble.r);
-      bubble.y = clamp(bubble.y, titleSafeTop + bubble.r, height - edgePadding - bubble.r);
+      bubble.x = clamp(
+        bubble.x,
+        edgePadding + bubble.r,
+        width - edgePadding - bubble.r,
+      );
+      bubble.y = clamp(
+        bubble.y,
+        titleSafeTop + bubble.r,
+        height - edgePadding - bubble.r,
+      );
     }
 
     separateBubbles(bubbles, simulationBubbleGap, 60);

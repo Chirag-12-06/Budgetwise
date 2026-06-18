@@ -5,14 +5,14 @@ import { getStoredUser, hasToken, logoutUser } from "../lib/auth";
 import { ROUTES } from "../lib/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import { applyDateFilter } from "../utils/dateFilters";
-import useAuthController from "./useAuthController";
-import useCategoryFilters from "./useCategoryFilters";
-import useDarkMode from "./useDarkMode";
-import useDateFilters from "./useDateFilters";
-import useExpenseCrud from "./useExpenseCrud";
-import useRecurringExpenseActions from "./useRecurringExpenseActions";
-import useSessionTimeout from "./useSessionTimeout";
-import useStatusMessage from "./useStatusMessage";
+import useAuthController from "./auth/useAuthController";
+import useCategoryFilters from "./expenses/useCategoryFilters";
+import useDarkMode from "./ui/useDarkMode";
+import useDateFilter from "./filters/useDateFilters";
+import useExpenseCrud from "./expenses/useExpenseCrud";
+import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
+import useSessionTimeout from "./auth/useSessionTimeout";
+import useStatusMessage from "./auth/useStatusMessage";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -131,7 +131,7 @@ const {
   handleCustomDateToChange,
   applyCustomDateRange,
   handleDateFilterModeChange,
-} = useDateFilters({
+} = useDateFilter({
   refreshExpenses,
   handleApiError,
   setSelectedCategoryFilters,
@@ -374,6 +374,7 @@ const {
     dark,
     setDark,
     status,
+    showStatus,
     submitting,
     updatingProfile,
     loadingExpenses,

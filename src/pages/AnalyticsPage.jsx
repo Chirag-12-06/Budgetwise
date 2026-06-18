@@ -1,7 +1,7 @@
 import Button from "../components/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/panelCard";
-import useAnalyticsPage from "../hooks/useAnalyticsPage";
+import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
 import { formatCurrency } from "../lib/api";
 import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
 
@@ -72,7 +72,7 @@ export default function AnalyticsPage({
     outlierWarningText,
     displayedAnalyticsExpenses,
     summaryTotalSpending,
-    chartCategories,
+    categoryEntries,
     totalCategoryAmount,
     visibleCategories,
     bubblePanelHeight,
@@ -111,8 +111,8 @@ export default function AnalyticsPage({
           onCategoryFilterToggle={onCategoryFilterToggle}
           onClearCategoryFilters={onClearCategoryFilters}
           summaryExpenses={displayedAnalyticsExpenses}
-          summaryTotalSpending={summaryTotalSpending}
-          summaryTrackedCategories={chartCategories.length}
+          summaryTotalSpending={formatCurrency(summaryTotalSpending)}
+          summaryTrackedCategories={categoryEntries.length}
           summaryVisibleEntries={displayedAnalyticsExpenses.length}
         />
       </PanelCard>
@@ -169,7 +169,7 @@ export default function AnalyticsPage({
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <PanelCard>
-          {chartCategories.length ? (
+          {categoryEntries.length ? (
             <div className="pt-3">
               <div
                 className="relative w-full overflow-hidden rounded-2xl"
@@ -258,7 +258,7 @@ export default function AnalyticsPage({
             </div>
           </div>
 
-          {chartCategories.length ? (
+          {categoryEntries.length ? (
             <div
               className="overflow-y-auto overscroll-y-contain pr-1 hide-scrollbar"
               style={{
@@ -267,7 +267,7 @@ export default function AnalyticsPage({
               }}
             >
               <div className="grid gap-3">
-                {chartCategories.map(([categoryKey, total]) => {
+                {categoryEntries.map(([categoryKey, total]) => {
                   const category = getCategoryDisplay(categoryKey);
                   const color =
                     CATEGORY_COLORS[categoryKey] ||

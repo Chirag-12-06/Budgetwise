@@ -3,7 +3,7 @@ import Button from "../components/button";
 import Calendar from "../components/calendar";
 import PanelCard from "../components/panelCard";
 import UnderDevelopmentDialog from "../components/underDevelopmentDialog";
-import useAddExpensePage from "../hooks/useExpenseCategory";
+import useAddExpensePage from "../hooks/expenses/useExpenseCategory";
 import {
   CATEGORY_COLORS,
   CATEGORY_GROUPS,

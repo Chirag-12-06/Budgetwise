@@ -183,8 +183,8 @@ export function validateCustomDateRange(customDateFrom, customDateTo) {
   const toDate = customDateTo ? parseDateBoundary(customDateTo, "start") : null;
 
   if (fromDate && toDate && fromDate > toDate) {
-    return "From date cannot be later than To date";
+    console.warn("Invalid custom date range encountered");
   }
 
-  return null;
+  return "Invalid date range";
 }

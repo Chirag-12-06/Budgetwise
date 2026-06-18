@@ -4,7 +4,7 @@ import useBubbleLayout from "./useBubbleLayout";
 import useBubbleVisibility from "./useBubbleVisibility";
 import useOutlierFiltering from "./useOutlierFiltering";
 import useTrendChart from "./useTrendChart";
-
+import useDarkMode from "../ui/useDarkMode";
 
 export default function useAnalyticsPage({
   trendData,
@@ -16,9 +16,8 @@ export default function useAnalyticsPage({
   applyCustomDateRange,
   onTrendPointSelect,
 }) {
-  
   const [useLogScale, setUseLogScale] = useState(false);
-  const isDarkMode = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const { dark: isDarkMode } = useDarkMode();
   const trendPoints = useMemo(
     () =>
       (trendData || [])
@@ -46,7 +45,7 @@ export default function useAnalyticsPage({
     setExcludeOutliers,
     visibleTrendPoints,
     displayedAnalyticsExpenses,
-    chartCategories,
+    categoryEntries,
     summaryTotalSpending,
     outlierWarningText,
   } = useOutlierFiltering({
@@ -56,43 +55,24 @@ export default function useAnalyticsPage({
     analyticsTotal,
   });
   const totalCategoryAmount = useMemo(
-    () => chartCategories.reduce((sum, [, value]) => sum + value, 0),
-    [chartCategories],
+    () => categoryEntries.reduce((sum, [, value]) => sum + value, 0),
+    [categoryEntries],
   );
-  const {
-    hiddenBubbleCategories,
-    visibleCategories,
-    toggleBubbleCategory,
-  } = useBubbleVisibility(chartCategories);
-  const { bubbleBoardSize, bubbleBoardRef } =
-  useBubbleBoardSize(
-    chartCategories.length,
-  visibleCategories.length);
-  const {
-    bubblePanelHeight,
-    bubbleLayout,
-  } = useBubbleLayout({
+  const { hiddenBubbleCategories, visibleCategories, toggleBubbleCategory } =
+    useBubbleVisibility(categoryEntries);
+  const { bubbleBoardSize, bubbleBoardRef } = useBubbleBoardSize();
+  const { bubblePanelHeight, bubbleLayout } = useBubbleLayout({
     visibleCategories,
     totalCategoryAmount,
     bubbleBoardSize,
   });
-const { lineCanvasRef } = useTrendChart({
-  visibleTrendPoints,
-  analyticsGroupBy,
-  isDarkMode,
-  useLogScale,
-  onTrendPointSelect,
-});
-
-
-  
-
-  
-  
- 
-
-  
-
+  const { lineCanvasRef } = useTrendChart({
+    visibleTrendPoints,
+    analyticsGroupBy,
+    isDarkMode,
+    useLogScale,
+    onTrendPointSelect,
+  });
 
   function resetChartOptions() {
     setExcludeOutliers(false);
@@ -121,7 +101,7 @@ const { lineCanvasRef } = useTrendChart({
     outlierWarningText,
     displayedAnalyticsExpenses,
     summaryTotalSpending,
-    chartCategories,
+    categoryEntries,
     totalCategoryAmount,
     visibleCategories,
     bubblePanelHeight,

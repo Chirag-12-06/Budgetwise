@@ -4,10 +4,10 @@ import {
   removeExpense,
   removeRecurringExpense,
   getTodayDate,
-} from "../lib/api";
+} from "../../lib/api.js";
 
-import { formatDateKey } from "../utils/date.js";
-import {ROUTES} from "../lib/routes";
+import { formatDateKey } from "../../utils/date.js";
+import {ROUTES} from "../../lib/routes.js";
 
 export default function useRecurringExpenseActions({
   editingExpenseId,

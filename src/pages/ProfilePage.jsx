@@ -1,6 +1,6 @@
 import Button from "../components/button";
 import PanelCard from "../components/panelCard";
-import useProfile from "../hooks/useProfile";
+import useProfile from "../hooks/profile/useProfile";
 import { formatCurrency } from "../lib/api";
 
 const fieldLabelClasses = "grid gap-2";
@@ -15,6 +15,7 @@ export default function ProfilePage({
   monthSpent = 0,
   onUpdateProfile,
   updatingProfile = false,
+  showStatus,
 }) {
   const trackedCategories = new Set(expenses.map((expense) => expense?.category || "uncategorized")).size;
   const averageExpense = expenses.length ? totalSpent / expenses.length : 0;
@@ -22,7 +23,6 @@ export default function ProfilePage({
     displayEmail,
     joinedOn,
     isEditing,
-    feedback,
     form,
     previewName,
     previewInitial,
@@ -32,7 +32,7 @@ export default function ProfilePage({
     handleRemoveAvatar,
     handleAvatarFileChange,
     handleSubmit,
-  } = useProfile({ user, onUpdateProfile });
+  } = useProfile({ user, onUpdateProfile, showStatus });
 
   return (
     <section className="grid gap-4">
@@ -119,12 +119,6 @@ export default function ProfilePage({
               </div>
             ) : null}
 
-            {feedback ? (
-              <p className={`text-sm font-semibold ${feedback.type === "error" ? "text-red-600 dark:text-red-300" : "text-emerald-600 dark:text-emerald-300"}`}>
-                {feedback.message}
-              </p>
-            ) : null}
-
             <div className="flex flex-wrap justify-end gap-3">
               <Button
                 variant="outline"
@@ -144,10 +138,6 @@ export default function ProfilePage({
               </Button>
             </div>
           </form>
-        ) : feedback ? (
-          <p className={`sm:col-span-2 text-sm font-semibold ${feedback.type === "error" ? "text-red-600 dark:text-red-300" : "text-emerald-600 dark:text-emerald-300"}`}>
-            {feedback.message}
-          </p>
         ) : null}
       </PanelCard>
 
