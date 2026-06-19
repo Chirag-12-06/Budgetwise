@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getTodayDate } from "../lib/api";
 import { getStoredUser, hasToken, logoutUser } from "../lib/auth";
 import { ROUTES } from "../lib/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
-import { applyDateFilter } from "../utils/dateFilters";
+import {
+  createDefaultExpenseForm,
+  createDefaultRecurringForm,
+} from "../utils/defaultForms";
 import useAuthController from "./auth/useAuthController";
-import useCategoryFilters from "./expenses/useCategoryFilters";
-import useDarkMode from "./ui/useDarkMode";
-import useDateFilter from "./filters/useDateFilters";
-import useExpenseCrud from "./expenses/useExpenseCrud";
-import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
 import useSessionTimeout from "./auth/useSessionTimeout";
 import useStatusMessage from "./auth/useStatusMessage";
+import useCategoryFilters from "./expenses/useCategoryFilters";
+import useExpenseCrud from "./expenses/useExpenseCrud";
+import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
+import useDateFilter from "./filters/useDateFilters";
+import useDarkMode from "./ui/useDarkMode";
+import { resolveDateRange } from "../utils/dateFilters";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -26,20 +29,11 @@ export default function useAppController() {
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [editingRecurringExpenseId, setEditingRecurringExpenseId] = useState(null);
-  const [expenseForm, setExpenseForm] = useState({
-    title: "",
-    amount: "",
-    category: "",
-    date: getTodayDate(),
-    editScope: null,
-  });
-  const [recurringForm, setRecurringForm] = useState({
-    enabled: false,
-    frequency: "MONTHLY",
-    intervalValue: "1",
-    endType: "FOREVER",
-    endCount: "",
-    endDate: "",
+  const [expenseForm, setExpenseForm] = useState(createDefaultExpenseForm());
+  const [recurringForm, setRecurringForm] = useState(createDefaultRecurringForm(),);
+  const [activeDateRange, setActiveDateRange] = useState({
+    from: "",
+    to: "",
   });
   const [signupForm, setSignupForm] = useState({
     name: "",
@@ -48,140 +42,133 @@ export default function useAppController() {
     confirmPassword: "",
     avatarDataUrl: "",
   });
-  const { clearInactivityTimeout } =
-  useSessionTimeout({
+  const { clearInactivityTimeout } = useSessionTimeout({
     user,
     resetToLoggedOutState,
   });
-const {
-  status,
-  clearStatus,
-  showStatus,
-} = useStatusMessage();
-const {
-  selectedCategoryFilters,
-  setSelectedCategoryFilters,
-  handleCategoryFilterToggle,
-  clearCategoryFilters,
-} = useCategoryFilters();
-const {
-  refreshExpenses,
-  handleAddExpense,
-  handleStartEditExpense,
-  handleCancelEditExpense,
-  handleDeleteExpense,
-} = useExpenseCrud({
-   user,
-  expenseForm,
-  recurringForm,
+  const { status, clearStatus, showStatus } = useStatusMessage();
+  const {
+    selectedCategoryFilters,
+    setSelectedCategoryFilters,
+    handleCategoryFilterToggle,
+    clearCategoryFilters,
+  } = useCategoryFilters();
+  const {
+    refreshExpenses,
+    handleAddExpense,
+    handleStartEditExpense,
+    handleCancelEditExpense,
+    handleDeleteExpense,
+  } = useExpenseCrud({
+    user,
+    expenseForm,
+    recurringForm,
+    editingExpenseId,
+    editingRecurringExpenseId,
+    setEditingExpenseId,
+    setEditingRecurringExpenseId,
+    setExpenseForm,
+    setRecurringForm,
+    setExpenses,
+    setSubmitting,
+    setLoadingExpenses,
+    handleApiError,
+    showStatus,
+    clearStatus,
+    navigate,
+    activeDateRange,
+  });
+  const handleCancelEditRecurringExpense = handleCancelEditExpense;
+  const {
+    dateFilterMode,
+    setDateFilterMode,
+    customDateFrom,
+    customDateTo,
+    dateRangeError,
+    handleCustomDateFromChange,
+    handleCustomDateToChange,
+    applyCustomDateRange,
+    handleDateFilterModeChange,
+    activateCustomDateRange,
+      setCustomDateFrom,
+      setCustomDateTo,
+      setDateRangeError,
+  } = useDateFilter({
+    refreshExpenses,
+    handleApiError,
+    setSelectedCategoryFilters,
+    setActiveDateRange,
+  });
+  const {
+    recurringExpenseActionPrompt,
+    handleStartEditRecurringExpense,
+    handleRecurringExpenseActionRequest,
+    handleCloseRecurringExpenseActionPrompt,
+    handleRecurringExpenseActionSelect,
+  } = useRecurringExpenseActions({
+    editingExpenseId,
+    expenseForm,
+    setExpenseForm,
+    recurringForm,
+    setRecurringForm,
+    setExpenses,
+    setSubmitting,
+    showStatus,
+    handleApiError,
+    refreshExpenses,
+    handleStartEditExpense,
+    handleDeleteExpense,
+    handleCancelEditExpense,
+    navigate,
+    editingRecurringExpenseId,
+    setEditingRecurringExpenseId,
+    setEditingExpenseId,
+    clearStatus,
+    activeDateRange,
+  });
 
-  editingExpenseId,
-  editingRecurringExpenseId,
-
-  setEditingExpenseId,
-  setEditingRecurringExpenseId,
-
-  setExpenseForm,
-  setRecurringForm,
-
-  setExpenses,
-  setSubmitting,
-  setLoadingExpenses,
-  handleApiError,
-  showStatus,
-  clearStatus,
-
-  navigate,
-});
-const{
-  recurringExpenseActionPrompt,
-  handleStartEditRecurringExpense,
-  handleRecurringExpenseActionRequest,
-  handleCloseRecurringExpenseActionPrompt,
-  handleRecurringExpenseActionSelect,
-} = useRecurringExpenseActions({
-  editingExpenseId,
-  expenseForm,
-  setExpenseForm,
-  recurringForm,
-  setRecurringForm,
-  setExpenses,
-  setSubmitting,
-  showStatus,
-  handleApiError,
-  refreshExpenses,
-  handleStartEditExpense,
-  handleDeleteExpense,
-  handleCancelEditExpense,
-  navigate,
-  editingRecurringExpenseId,
-  setEditingRecurringExpenseId,
-  setEditingExpenseId,
-  clearStatus,
-});
-
-
-const {
-  dateFilterMode,
-  setDateFilterMode,
-  customDateFrom,
-  customDateTo,
-  dateRangeError,
-  handleCustomDateFromChange,
-  handleCustomDateToChange,
-  applyCustomDateRange,
-  handleDateFilterModeChange,
-} = useDateFilter({
-  refreshExpenses,
-  handleApiError,
-  setSelectedCategoryFilters,
-});
-const {
-  handleLogin,
-  handleSignup,
-  handleUpdateProfile,
-  handleForgotPassword,
-  handleLogout,
-} = useAuthController({
-  loginForm,
-  signupForm,
-  user,
-  setUser,
-  navigate,
-  setSubmitting,
-  setUpdatingProfile,
-  showStatus,
-  resetToLoggedOutState,
-  clearStatus,
-});
   
+  const {
+    handleLogin,
+    handleSignup,
+    handleUpdateProfile,
+    handleForgotPassword,
+    handleLogout,
+  } = useAuthController({
+    loginForm,
+    signupForm,
+    user,
+    setUser,
+    navigate,
+    setSubmitting,
+    setUpdatingProfile,
+    showStatus,
+    resetToLoggedOutState,
+    clearStatus,
+  });
 
-  function resetToLoggedOutState({ message = "Logged out", type = "success" } = {}) {
+  function resetToLoggedOutState({
+    message = "Logged out",
+    type = "success",
+  } = {}) {
     showStatus(message, type);
     clearInactivityTimeout();
     logoutUser();
     setUser(null);
     setExpenses([]);
     setLoginForm({ email: "", password: "" });
-    setSignupForm({ name: "", email: "", password: "", confirmPassword: "", avatarDataUrl: "" });
-    setExpenseForm({
-      title: "",
-      amount: "",
-      category: "",
-      date: getTodayDate(),
-      editScope: null,
+    setSignupForm({
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      avatarDataUrl: "",
     });
-    setRecurringForm({
-      enabled: false,
-      frequency: "MONTHLY",
-      intervalValue: "1",
-      endType: "FOREVER",
-      endCount: "",
-      endDate: "",
-    });
+    setExpenseForm(createDefaultExpenseForm());
+    setRecurringForm(createDefaultRecurringForm());
     setEditingExpenseId(null);
     navigate(ROUTES.LOGIN);
-    setDateFilterMode("month:current");
+    setDateFilterMode("current:month");
     setSelectedCategoryFilters([]);
     setCustomDateFrom("");
     setCustomDateTo("");
@@ -210,19 +197,16 @@ const {
     let ignore = false;
 
     async function loadExpenses() {
-      setLoadingExpenses(true);
+      const today = formatDateKey(new Date());
+
+  const now = new Date();
+  const monthStart =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       try {
-        const data = await refreshExpenses();
-        if (!ignore) {
-          setExpenses(Array.isArray(data) ? data : []);
-        }
+        await refreshExpenses(activeDateRange);
       } catch (error) {
         if (!ignore) {
           handleApiError(error, "Unable to load expenses");
-        }
-      } finally {
-        if (!ignore) {
-          setLoadingExpenses(false);
         }
       }
     }
@@ -233,7 +217,6 @@ const {
     };
   }, [user]);
 
-  
   useEffect(() => {
     if (!user || hasToken()) {
       return;
@@ -244,67 +227,103 @@ const {
       type: "error",
     });
   }, [user]);
-  
 
-  function handleCancelEditRecurringExpense() {
-    handleCancelEditExpense();
+  function activateCustomDateFilter(from, to) {
+    activateCustomDateRange(from, to);
+    setSelectedCategoryFilters([]);
   }
 
-
-  function handleTrendPointDateSelect(point) {
-    if (!point) {
-      return;
-    }
-
-    if (point.dateKey) {
-      setCustomDateFrom(point.dateKey);
-      setCustomDateTo(point.dateKey);
-      setDateFilterMode("custom");
-      setDateRangeError("");
-      setSelectedCategoryFilters([]);
-      void refreshExpenses().catch((error) => {
-        handleApiError(error, "Unable to load expenses for selected date");
-      });
-      return;
-    }
-
-    if (point.rangeFrom && point.rangeTo) {
-      setCustomDateFrom(point.rangeFrom);
-      setCustomDateTo(point.rangeTo);
-      setDateFilterMode("custom");
-      setDateRangeError("");
-      setSelectedCategoryFilters([]);
-      void refreshExpenses().catch((error) => {
-        handleApiError(error, "Unable to load expenses for selected range");
-      });
-    }
+ function handleTrendPointDateSelect(point) {
+  if (!point) {
+    return;
   }
 
-  
+  if (point.dateKey) {
+    activateCustomDateFilter(point.dateKey, point.dateKey);
 
-  const totalSpent = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    const range = {
+      from: point.dateKey,
+      to: point.dateKey,
+    };
+
+    setActiveDateRange(range);
+
+    void refreshExpenses(range).catch((error) => {
+      handleApiError(error, "Unable to load expenses for selected date");
+    });
+
+    return;
+  }
+
+  if (point.rangeFrom && point.rangeTo) {
+    activateCustomDateFilter(point.rangeFrom, point.rangeTo);
+
+    const range = {
+      from: point.rangeFrom,
+      to: point.rangeTo,
+    };
+
+    setActiveDateRange(range);
+
+    void refreshExpenses(range).catch((error) => {
+      handleApiError(error, "Unable to load expenses for selected range");
+    });
+  }
+}
+
+  const totalSpent = expenses.reduce(
+    (sum, expense) => sum + Number(expense.amount || 0),
+    0,
+  );
   const monthSpent = expenses
     .filter((expense) => {
       const created = new Date(expense.createdAt);
       const now = new Date();
-      return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+      return (
+        created.getMonth() === now.getMonth() &&
+        created.getFullYear() === now.getFullYear()
+      );
     })
     .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const latestExpenses = [...expenses]
     .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
     .slice(0, 5);
-  const dateFilteredExpenses = applyDateFilter(
-    [...expenses].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)),
-    { dateFilterMode, customDateFrom, customDateTo },
+  const { startDate, endDate } = resolveDateRange({
+  dateFilterMode,
+  customDateFrom,
+  customDateTo,
+});
+
+const dateFilteredExpenses = expenses
+  .filter((expense) => {
+    const expenseDate = new Date(expense.createdAt);
+
+    if (startDate && expenseDate < startDate) {
+      return false;
+    }
+
+    if (endDate && expenseDate > endDate) {
+      return false;
+    }
+
+    return true;
+  })
+  .sort(
+    (left, right) =>
+      new Date(right.createdAt) - new Date(left.createdAt),
   );
   const filteredExpenses = selectedCategoryFilters.length
     ? dateFilteredExpenses.filter((expense) =>
-      selectedCategoryFilters.includes(expense.category || "uncategorized"),
-    )
+        selectedCategoryFilters.includes(expense.category || "uncategorized"),
+      )
     : dateFilteredExpenses;
-  const emptyFilteredState = filteredExpenses.length === 0 && expenses.length > 0;
+  const emptyFilteredState =
+    filteredExpenses.length === 0 && expenses.length > 0;
   const analyticsExpenses = filteredExpenses;
-  const analyticsTotal = analyticsExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const analyticsTotal = analyticsExpenses.reduce(
+    (sum, expense) => sum + Number(expense.amount || 0),
+    0,
+  );
   const categoryTotals = analyticsExpenses.reduce((accumulator, expense) => {
     const key = expense.category || "uncategorized";
     accumulator[key] = (accumulator[key] || 0) + Number(expense.amount || 0);
@@ -367,7 +386,10 @@ const {
         rangeTo: yearEnd,
       };
     });
-  const maxTrendValue = trendData.reduce((max, item) => (item.value > max ? item.value : max), 0);
+  const maxTrendValue = trendData.reduce(
+    (max, item) => (item.value > max ? item.value : max),
+    0,
+  );
 
   return {
     navigate,

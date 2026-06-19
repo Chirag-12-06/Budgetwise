@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { getCategoryDisplay } from "../../lib/categoryConfig";
 
-
 export default function useAddExpensePage({
   expenses,
   expenseForm,
-  setExpenseForm,  
+  setExpenseForm,
   isEditingExpense,
 }) {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
-  const [categoryManuallySelected, setCategoryManuallySelected] = useState(false);
+  const [categoryManuallySelected, setCategoryManuallySelected] =
+    useState(false);
   const categoryDropdownRef = useRef(null);
   const selectedCategory = expenseForm.category
-    ? getCategoryDisplay(expenseForm.category)
-    : null;
-
+  ? getCategoryDisplay(expenseForm.category)
+  : null;
 
   useEffect(() => {
     if (isEditingExpense) {
@@ -25,7 +24,12 @@ export default function useAddExpensePage({
     if (!expenseForm.title && !expenseForm.amount && !expenseForm.category) {
       setCategoryManuallySelected(false);
     }
-  }, [expenseForm.title, expenseForm.amount, expenseForm.category, isEditingExpense]);
+  }, [
+    expenseForm.title,
+    expenseForm.amount,
+    expenseForm.category,
+    isEditingExpense,
+  ]);
 
   useEffect(() => {
     if (isEditingExpense || categoryManuallySelected) {
@@ -46,9 +50,13 @@ export default function useAddExpensePage({
         category: "",
       };
     });
-  }, [expenseForm.title, expenseForm.category, categoryManuallySelected, isEditingExpense, setExpenseForm]);
-
-
+  }, [
+    expenseForm.title,
+    expenseForm.category,
+    categoryManuallySelected,
+    isEditingExpense,
+    setExpenseForm,
+  ]);
 
   function handleCategorySelection(categoryValue) {
     setCategoryManuallySelected(true);

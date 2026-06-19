@@ -137,22 +137,13 @@ export default function ExpenseFilterPanel({
 
   // Resolve current period and relative from the incoming mode and manage dropdown state
   const normalizedMode = String(dateFilterMode || "");
-  let currentPeriod = "month";
+  let currentPeriod = "day";
   let currentRelative = "current";
 
   if (normalizedMode.includes(":")) {
-    const [p, r] = normalizedMode.split(":");
+    const [r, p] = normalizedMode.split(":");
     if (p) currentPeriod = p;
     if (r) currentRelative = r;
-  } else if (normalizedMode === "thisMonth") {
-    currentPeriod = "month";
-    currentRelative = "current";
-  } else if (normalizedMode === "lastMonth") {
-    currentPeriod = "month";
-    currentRelative = "previous";
-  } else if (normalizedMode === "thisYear") {
-    currentPeriod = "year";
-    currentRelative = "current";
   }
 
   const [periodOpen, setPeriodOpen] = useState(false);
@@ -232,7 +223,7 @@ export default function ExpenseFilterPanel({
                           onClick={() => {
                             setRelativeOpen(false);
                             onDateFilterModeChange(
-                              `${currentPeriod}:${mode.value}`,
+                              `${mode.value}:${currentPeriod}`,
                             );
                           }}
                         >
@@ -271,7 +262,7 @@ export default function ExpenseFilterPanel({
                           onClick={() => {
                             setPeriodOpen(false);
                             onDateFilterModeChange(
-                              `${mode.value}:${currentRelative}`,
+                              `${currentRelative}:${mode.value}`,
                             );
                           }}
                         >

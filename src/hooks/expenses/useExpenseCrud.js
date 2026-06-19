@@ -7,43 +7,43 @@ import {
   updateExpense,
   updateRecurringExpense,
 } from "../../lib/api";
-
 import { ROUTES } from "../../lib/routes";
 import { formatDateKey } from "../../utils/date";
+import {
+  createDefaultExpenseForm,
+  createDefaultRecurringForm,
+} from "../../utils/defaultForms";
 
 export default function useExpenseCrud({
   user,
   expenseForm,
   recurringForm,
-
   editingExpenseId,
   editingRecurringExpenseId,
-
   setEditingExpenseId,
   setEditingRecurringExpenseId,
-
   setExpenseForm,
   setRecurringForm,
-
   setExpenses,
   setSubmitting,
   setLoadingExpenses,
-
   handleApiError,
   showStatus,
   clearStatus,
-
   navigate,
+  activeDateRange,
 }) {
 
-async function refreshExpenses(options = {}) {
+  async function refreshExpenses(options = activeDateRange) {
     if (!user) {
       return [];
     }
-    
+
     setLoadingExpenses(true);
+
     try {
       const expensesData = await fetchExpenses(options);
+
       const expenses = Array.isArray(expensesData)
         ? expensesData.map((item) => ({
             ...item,
@@ -54,28 +54,18 @@ async function refreshExpenses(options = {}) {
       const sorted = [...expenses].sort((a, b) => {
         const dateA = new Date(a.createdAt || a.date || a.startDate || 0);
         const dateB = new Date(b.createdAt || b.date || b.startDate || 0);
+
         return dateB - dateA;
       });
 
       setExpenses(sorted);
       return sorted;
-
-    } catch (error) {
-      const expensesData = await fetchExpenses(options);
-      const expenses = Array.isArray(expensesData)
-        ? expensesData.map((item) => ({
-            ...item,
-            isRecurring: Boolean(item.recurringId),
-          }))
-        : [];
-      setExpenses(expenses);
-      return expenses;
     } finally {
       setLoadingExpenses(false);
     }
   }
 
-async function handleAddExpense(event) {
+  async function handleAddExpense(event) {
     event.preventDefault();
 
     if (
@@ -113,57 +103,53 @@ async function handleAddExpense(event) {
 
     try {
       if (editingRecurringExpenseId !== null) {
-        await updateRecurringExpense(editingRecurringExpenseId, recurringPayload);
-        const syncedExpenses = await refreshExpenses();
-        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+        await updateRecurringExpense(
+          editingRecurringExpenseId,
+          recurringPayload,
+        );
+        await refreshExpenses(activeDateRange);
         showStatus("Recurring expense updated successfully", "success");
       } else if (editingExpenseId !== null) {
-        const updatePayload = expenseForm.editScope === "future"
-          ? { ...payload, scope: "future", recurring: recurringForm }
-          : payload;
+        const updatePayload =
+          expenseForm.editScope === "future"
+            ? { ...payload, scope: "future", recurring: recurringForm }
+            : payload;
         await updateExpense(editingExpenseId, updatePayload);
-        const syncedExpenses = await refreshExpenses();
-        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+        await refreshExpenses(activeDateRange);
         showStatus("Expense updated successfully", "success");
       } else if (recurringForm.enabled) {
         await createRecurringExpense(recurringPayload);
-        const syncedExpenses = await refreshExpenses();
-        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+        await refreshExpenses(activeDateRange);
         showStatus("Recurring expense saved successfully", "success");
       } else {
         await createExpense(payload);
-        const syncedExpenses = await refreshExpenses();
-        setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+        await refreshExpenses(activeDateRange);
         showStatus("Expense added successfully", "success");
       }
 
-      setExpenseForm((current) => ({
-        ...current,
-        title: "",
-        amount: "",
-        category: "",
-        date: getTodayDate(),
-        editScope: null,
-      }));
-      setRecurringForm({
-        enabled: false,
-        frequency: "MONTHLY",
-        intervalValue: "1",
-        endType: "FOREVER",
-        endCount: "",
-        endDate: "",
-      });
+      setExpenseForm((current) => createDefaultExpenseForm());
+      setRecurringForm(createDefaultRecurringForm());
       setEditingExpenseId(null);
       setEditingRecurringExpenseId(null);
     } catch (error) {
-      handleApiError(error, editingRecurringExpenseId !== null ? "Unable to update recurring expense" : editingExpenseId !== null ? "Unable to update expense" : "Unable to add expense");
+      let errorMessage = "Unable to add expense";
+
+      if (editingRecurringExpenseId !== null) {
+        errorMessage = "Unable to update recurring expense";
+      } else if (editingExpenseId !== null) {
+        errorMessage = "Unable to update expense";
+      }
+
+      handleApiError(error, errorMessage);
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleStartEditExpense(expense) {
-    const dateValue = expense?.createdAt ? formatDateKey(expense.createdAt) : getTodayDate();
+    const dateValue = expense?.createdAt
+      ? formatDateKey(expense.createdAt)
+      : getTodayDate();
     setEditingExpenseId(expense.id);
     setExpenseForm({
       title: expense.title || "",
@@ -175,45 +161,33 @@ async function handleAddExpense(event) {
       date: dateValue,
       editScope: null,
     });
-    setRecurringForm({
-      enabled: false,
-      frequency: "MONTHLY",
-      intervalValue: "1",
-      endType: "FOREVER",
-      endCount: "",
-      endDate: "",
-    });
+    setRecurringForm(createDefaultRecurringForm());
     navigate(ROUTES.HOME);
     clearStatus();
   }
 
   function handleCancelEditExpense() {
-      setEditingExpenseId(null);
-      setEditingRecurringExpenseId(null);
-      setExpenseForm({
-        title: "",
-        amount: "",
-        category: "",
-        date: getTodayDate(),
-        editScope: null,
-      });
-      setRecurringForm({
-        enabled: false,
-        frequency: "MONTHLY",
-        intervalValue: "1",
-        endType: "FOREVER",
-        endCount: "",
-        endDate: "",
-      });
-    }
+    setEditingExpenseId(null);
+    setEditingRecurringExpenseId(null);
+    setExpenseForm(createDefaultExpenseForm());
+    setRecurringForm(createDefaultRecurringForm());
+  }
 
-    async function handleDeleteExpense(id) {
-    const confirmed = window.confirm("Are you sure you want to delete this expense?");
+  async function handleDeleteExpense(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this expense?",
+    );
+    if (!confirmed) return;
+  }
+
+  async function handleDeleteExpense(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this expense?",
+    );
     if (!confirmed) return;
     try {
       await removeExpense(id);
-      const syncedExpenses = await refreshExpenses();
-      setExpenses(Array.isArray(syncedExpenses) ? syncedExpenses : []);
+      await refreshExpenses(activeDateRange);
       if (id === editingExpenseId) {
         handleCancelEditExpense();
       }
@@ -223,10 +197,10 @@ async function handleAddExpense(event) {
     }
   }
   return {
-  refreshExpenses,
-  handleAddExpense,
-  handleStartEditExpense,
-  handleCancelEditExpense,
-  handleDeleteExpense,
-};
+    refreshExpenses,
+    handleAddExpense,
+    handleStartEditExpense,
+    handleCancelEditExpense,
+    handleDeleteExpense,
+  };
 }

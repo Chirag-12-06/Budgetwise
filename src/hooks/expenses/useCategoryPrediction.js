@@ -8,7 +8,6 @@ export default function useCategoryPrediction({
   isEditingExpense,
   categoryManuallySelected,
 }) {
-
   const predictionDebounceRef = useRef(null);
 
   useEffect(() => {
@@ -19,7 +18,9 @@ export default function useCategoryPrediction({
 
       try {
         await trainExpenseModel();
-      } catch (_error) {}
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     initializeModel();
@@ -52,10 +53,7 @@ export default function useCategoryPrediction({
         }
 
         setExpenseForm((current) => {
-          if (
-            current.title.trim() !== title ||
-            categoryManuallySelected
-          ) {
+          if (current.title.trim() !== title) {
             return current;
           }
 
@@ -64,7 +62,9 @@ export default function useCategoryPrediction({
             category: result.category,
           };
         });
-      } catch (_error) {}
+      } catch (error) {
+        console.error(error);
+      }
     }, 500);
 
     return () => {
