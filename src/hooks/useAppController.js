@@ -6,7 +6,7 @@ import { formatDateKey, formatTrendLabel } from "../utils/date";
 import {
   createDefaultExpenseForm,
   createDefaultRecurringForm,
-} from "../utils/defaultForms";
+} from "../utils/defaultforms";
 import useAuthController from "./auth/useAuthController";
 import useSessionTimeout from "./auth/useSessionTimeout";
 import useStatusMessage from "./auth/useStatusMessage";

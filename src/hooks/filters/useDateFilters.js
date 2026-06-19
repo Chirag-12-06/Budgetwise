@@ -12,18 +12,22 @@ export default function useDateFilter({
   setActiveDateRange,
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [dateFilterMode, setDateFilterMode] = useState("current:month");
-  const [customDateFrom, setCustomDateFrom] = useState("");
-  const [customDateTo, setCustomDateTo] = useState("");
+  const initialMode = searchParams.get("mode") ?? "current:month";
+  const initialFrom = searchParams.get("from") || "";
+  const initialTo = searchParams.get("to") || "";
+  const [dateFilterMode, setDateFilterMode] = useState(initialMode);
+  const [customDateFrom, setCustomDateFrom] = useState(initialFrom);
+  const [customDateTo, setCustomDateTo] = useState(initialTo);
   const [dateRangeError, setDateRangeError] = useState("");
 
+  console.log("useDateFilter initial mode:", initialMode);
   useEffect(() => {
-  const mode = searchParams.get("mode");
-
-  if (mode && mode !== dateFilterMode) {
-    setDateFilterMode(mode);
+  if (!searchParams.get("mode")) {
+    setSearchParams({
+      mode: "current:month",
+    });
   }
-}, [searchParams]);
+}, []);
 
   function activateCustomDateRange(from, to) {
     setCustomDateFrom(from);
@@ -37,6 +41,12 @@ export default function useDateFilter({
     setDateFilterMode("custom");
     setSelectedCategoryFilters([]);
     const options = { from, to };
+
+    setSearchParams({
+      mode: "custom",
+      from,
+      to,
+    });
 
     setActiveDateRange(options);
     try {
@@ -98,9 +108,11 @@ export default function useDateFilter({
 
   async function handleDateFilterModeChange(modeValue) {
     setDateFilterMode(modeValue);
-    setSearchParams({
-      mode: modeValue,
-    });
+    if (modeValue !== "custom") {
+      setSearchParams({
+        mode: modeValue,
+      });
+    }
 
     setSelectedCategoryFilters([]);
 
