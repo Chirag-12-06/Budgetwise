@@ -156,6 +156,23 @@ export default function AnalyticsPage({
           </div>
         ) : null}
 
+        <div className="mb-4 flex flex-wrap gap-2">
+          {[
+            { value: "daily", label: "Daily" },
+            { value: "weekly", label: "Weekly" },
+            { value: "monthly", label: "Monthly" },
+            { value: "yearly", label: "Yearly" },
+          ].map((option) => (
+            <Button
+              key={option.value}
+              variant="plain"
+              active={analyticsGroupBy === option.value}
+              onClick={() => setAnalyticsGroupBy(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
         {visibleTrendPoints.length ? (
           <div className="h-96 pt-4">
             <canvas ref={lineCanvasRef} />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   validateCustomDateRange,
   resolveDateRange,
@@ -19,15 +19,6 @@ export default function useDateFilter({
   const [customDateFrom, setCustomDateFrom] = useState(initialFrom);
   const [customDateTo, setCustomDateTo] = useState(initialTo);
   const [dateRangeError, setDateRangeError] = useState("");
-
-  console.log("useDateFilter initial mode:", initialMode);
-  useEffect(() => {
-  if (!searchParams.get("mode")) {
-    setSearchParams({
-      mode: "current:month",
-    });
-  }
-}, []);
 
   function activateCustomDateRange(from, to) {
     setCustomDateFrom(from);

@@ -25,6 +25,7 @@ export default function useOutlierFiltering({
     );
   }, [trendPoints, excludeOutliers, trendOutlierInfo]);
 
+  
   const expenseAmountOutlierInfo = useMemo(
     () =>
       detectOutliers(

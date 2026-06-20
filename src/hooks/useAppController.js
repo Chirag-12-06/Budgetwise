@@ -336,13 +336,23 @@ const dateFilteredExpenses = expenses
     const expenseDateKey = formatDateKey(expense.createdAt);
     const [yearPart = "", monthPart = ""] = String(expenseDateKey).split("-");
     let key;
-    if (analyticsGroupBy === "monthly") {
-      key = `${yearPart}-${monthPart}`;
-    } else if (analyticsGroupBy === "yearly") {
-      key = `${yearPart}`;
-    } else {
-      key = expenseDateKey;
-    }
+    if (analyticsGroupBy === "yearly") {
+  key = yearPart;
+} else if (analyticsGroupBy === "monthly") {
+  key = `${yearPart}-${monthPart}`;
+} else if (analyticsGroupBy === "weekly") {
+  const date = new Date(expense.createdAt);
+
+  // Monday start
+  const day = date.getDay();
+  const offset = day === 0 ? 6 : day - 1;
+
+  date.setDate(date.getDate() - offset);
+
+  key = formatDateKey(date);
+} else {
+  key = expenseDateKey;
+}
     accumulator[key] = (accumulator[key] || 0) + Number(expense.amount || 0);
     return accumulator;
   }, {});
@@ -363,6 +373,19 @@ const dateFilteredExpenses = expenses
           rangeTo: bucketKey,
         };
       }
+
+      if (analyticsGroupBy === "weekly") {
+  const start = new Date(bucketKey);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+
+  return {
+    ...point,
+    dateKey: "",
+    rangeFrom: formatDateKey(start),
+    rangeTo: formatDateKey(end),
+  };
+}
 
       if (analyticsGroupBy === "monthly") {
         const [year, month] = bucketKey.split("-");

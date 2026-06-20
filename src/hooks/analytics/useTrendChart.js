@@ -35,8 +35,32 @@ export default function useTrendChart({
       ? rawValues.map((value) => (value <= 0 ? 0.01 : value))
       : rawValues;
 
+    const yearBands = [];
+    
+    for (let i = 0; i < labels.length; i++) {
+      const label = visibleTrendPoints[i].rangeFrom;
+      if (!label) continue;
+    
+      const year = new Date(label).getFullYear();
+    
+      if (
+        yearBands.length === 0 ||
+        yearBands[yearBands.length - 1].year !== year
+      ) {
+        yearBands.push({
+          year,
+          start: i,
+          end: i,
+        });
+      } else {
+        yearBands[yearBands.length - 1].end = i;
+      }
+    }
+    
+
     const chartTitles = {
       daily: "Daily Expense Trend",
+      weekly: "Weekly Expense Trend",
       monthly: "Monthly Expense Trend",
       yearly: "Yearly Expense Trend",
     };
@@ -121,8 +145,54 @@ export default function useTrendChart({
     const groupLabel =
       analyticsGroupBy.charAt(0).toUpperCase() + analyticsGroupBy.slice(1);
 
+    const yearBandPlugin = {
+  id: "yearBands",
+
+  beforeDraw(chart) {
+    if (analyticsGroupBy === "yearly") return;
+
+    const {
+      ctx,
+      chartArea,
+      scales: { x },
+    } = chart;
+
+    ctx.save();
+
+    yearBands.forEach((band, index) => {
+      const left = x.getPixelForValue(band.start);
+      const right = x.getPixelForValue(band.end);
+
+      ctx.fillStyle =
+        index % 2 === 0
+          ? "rgba(255,255,255,0.03)"
+          : "rgba(255,255,255,0.06)";
+
+      ctx.fillRect(
+        left,
+        chartArea.top,
+        right - left,
+        chartArea.bottom - chartArea.top
+      );
+      const center = (left + right) / 2;
+
+ctx.fillStyle = theme.textColor;
+ctx.font = "bold 12px sans-serif";
+ctx.textAlign = "center";
+
+ctx.fillText(
+  String(band.year),
+  center,
+  chartArea.top + 18
+);
+    });
+
+    ctx.restore();
+  },
+};
     lineChartRef.current = new Chart(canvas, {
       type: "line",
+      plugins: [yearBandPlugin],
       data: {
         labels,
         datasets: [
