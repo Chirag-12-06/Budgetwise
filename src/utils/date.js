@@ -1,5 +1,7 @@
 function parseDateOnly(value) {
-  const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const match = String(value || "")
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) {
     return null;
   }
@@ -7,7 +9,11 @@ function parseDateOnly(value) {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
     return null;
   }
 
@@ -64,44 +70,43 @@ export function formatDateDMY(value) {
 
 export function formatTrendLabel(label, groupBy) {
   if (groupBy === "daily" && typeof label === "string") {
-  return new Date(label).toLocaleDateString("default", {
-    day: "2-digit",
-    month: "short",
-  });
-}
-  if (groupBy === "monthly" && typeof label === "string") {
-  const parts = label.split("-");
-
-  if (parts.length === 2 && parts[0].length === 4) {
-    const [year, month] = parts;
-
-    return new Date(
-      Number(year),
-      Number(month) - 1,
-      1,
-    ).toLocaleString("default", {
+    return new Date(label).toLocaleDateString("default", {
+      day: "2-digit",
       month: "short",
     });
   }
-}
+  if (groupBy === "monthly" && typeof label === "string") {
+    const parts = label.split("-");
+
+    if (parts.length === 2 && parts[0].length === 4) {
+      const [year, month] = parts;
+
+      return new Date(Number(year), Number(month) - 1, 1).toLocaleString(
+        "default",
+        {
+          month: "short",
+        },
+      );
+    }
+  }
 
   if (groupBy === "weekly" && typeof label === "string") {
-  const start = new Date(label);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
+    const start = new Date(label);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
 
-  const startLabel = start.toLocaleDateString("default", {
-    day: "2-digit",
-    month: "short",
-  });
+    const startLabel = start.toLocaleDateString("default", {
+      day: "2-digit",
+      month: "short",
+    });
 
-  const endLabel = end.toLocaleDateString("default", {
-    day: "2-digit",
-    month: "short",
-  });
+    const endLabel = end.toLocaleDateString("default", {
+      day: "2-digit",
+      month: "short",
+    });
 
-  return `${startLabel} - ${endLabel}`;
-}
+    return `${startLabel} - ${endLabel}`;
+  }
 
   return label;
 }

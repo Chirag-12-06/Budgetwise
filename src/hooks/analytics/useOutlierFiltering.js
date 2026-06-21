@@ -25,7 +25,6 @@ export default function useOutlierFiltering({
     );
   }, [trendPoints, excludeOutliers, trendOutlierInfo]);
 
-  
   const expenseAmountOutlierInfo = useMemo(
     () =>
       detectOutliers(
@@ -98,12 +97,9 @@ export default function useOutlierFiltering({
   );
 
   const summaryTotalSpending = useMemo(
-  () =>
-    excludeOutliers
-      ? displayedAnalyticsTotal
-      : analyticsTotal,
-  [excludeOutliers, displayedAnalyticsTotal, analyticsTotal],
-);
+    () => (excludeOutliers ? displayedAnalyticsTotal : analyticsTotal),
+    [excludeOutliers, displayedAnalyticsTotal, analyticsTotal],
+  );
 
   const outlierWarningText = useMemo(() => {
     if (

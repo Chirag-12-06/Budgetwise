@@ -1,10 +1,7 @@
 import { useState } from "react";
 
-
 export default function useCategoryFilters() {
-
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
-
 
   function handleCategoryFilterToggle(categoryValue) {
     const normalizedValue = categoryValue || "uncategorized";

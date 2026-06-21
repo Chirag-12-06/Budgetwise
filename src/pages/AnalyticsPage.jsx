@@ -81,6 +81,7 @@ export default function AnalyticsPage({
     toggleBubbleCategory,
     handleQuickDateMode,
     handleApplyDateRange,
+    chartTitle,
   } = useAnalyticsPage({
     trendData,
     analyticsExpenses,
@@ -173,6 +174,9 @@ export default function AnalyticsPage({
             </Button>
           ))}
         </div>
+        <h3 className="text-xl font-bold text-center mb-4">
+  {chartTitle}
+</h3>
         {visibleTrendPoints.length ? (
           <div className="h-96 pt-4">
             <canvas ref={lineCanvasRef} />

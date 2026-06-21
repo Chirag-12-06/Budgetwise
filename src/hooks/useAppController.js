@@ -14,12 +14,12 @@ import useCategoryFilters from "./expenses/useCategoryFilters";
 import useExpenseCrud from "./expenses/useExpenseCrud";
 import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
 import useDateFilter from "./filters/useDateFilters";
-import useDarkMode from "./ui/useDarkMode";
+import { useTheme } from "../context/ThemeContext";
 import { resolveDateRange } from "../utils/dateFilters";
 
 export default function useAppController() {
   const navigate = useNavigate();
-  const { dark, setDark } = useDarkMode();
+  const { dark, setDark } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);

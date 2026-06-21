@@ -11,6 +11,13 @@ export default function useTrendChart({
 }) {
   const lineCanvasRef = useRef(null);
   const lineChartRef = useRef(null);
+  const chartTitles = {
+    daily: "Daily Expense Trend",
+    weekly: "Weekly Expense Trend",
+    monthly: "Monthly Expense Trend",
+    yearly: "Yearly Expense Trend",
+  };
+  const chartTitle = chartTitles[analyticsGroupBy] || "Expense Trend";
 
   useEffect(() => {
     const canvas = lineCanvasRef.current;
@@ -36,13 +43,13 @@ export default function useTrendChart({
       : rawValues;
 
     const yearBands = [];
-    
+
     for (let i = 0; i < labels.length; i++) {
       const label = visibleTrendPoints[i].rangeFrom;
       if (!label) continue;
-    
+
       const year = new Date(label).getFullYear();
-    
+
       if (
         yearBands.length === 0 ||
         yearBands[yearBands.length - 1].year !== year
@@ -56,15 +63,6 @@ export default function useTrendChart({
         yearBands[yearBands.length - 1].end = i;
       }
     }
-    
-
-    const chartTitles = {
-      daily: "Daily Expense Trend",
-      weekly: "Weekly Expense Trend",
-      monthly: "Monthly Expense Trend",
-      yearly: "Yearly Expense Trend",
-    };
-    const chartTitle = chartTitles[analyticsGroupBy] || "Expense Trend";
 
     const theme = isDarkMode
       ? {
@@ -146,50 +144,47 @@ export default function useTrendChart({
       analyticsGroupBy.charAt(0).toUpperCase() + analyticsGroupBy.slice(1);
 
     const yearBandPlugin = {
-  id: "yearBands",
+      beforeDraw(chart) {
+        if (analyticsGroupBy === "yearly") return;
 
-  beforeDraw(chart) {
-    if (analyticsGroupBy === "yearly") return;
+        const {
+          ctx,
+          chartArea,
+          scales: { x },
+        } = chart;
 
-    const {
-      ctx,
-      chartArea,
-      scales: { x },
-    } = chart;
+        ctx.save();
 
-    ctx.save();
+        yearBands.forEach((band, index) => {
+          const left = x.getPixelForValue(band.start);
+          const right = x.getPixelForValue(band.end);
 
-    yearBands.forEach((band, index) => {
-      const left = x.getPixelForValue(band.start);
-      const right = x.getPixelForValue(band.end);
+          ctx.fillStyle = isDarkMode
+  ? index % 2 === 0
+    ? "rgba(255,255,255,0.03)"
+    : "rgba(255,255,255,0.06)"
+  : index % 2 === 0
+    ? "rgba(0,0,0,0.025)"
+    : "rgba(0,0,0,0.05)";
 
-      ctx.fillStyle =
-        index % 2 === 0
-          ? "rgba(255,255,255,0.03)"
-          : "rgba(255,255,255,0.06)";
+          ctx.fillRect(
+            left,
+            chartArea.top,
+            right - left,
+            chartArea.bottom - chartArea.top,
+          );
+          const center = (left + right) / 2;
 
-      ctx.fillRect(
-        left,
-        chartArea.top,
-        right - left,
-        chartArea.bottom - chartArea.top
-      );
-      const center = (left + right) / 2;
+          ctx.fillStyle = theme.textColor;
+          ctx.font = "bold 12px sans-serif";
+          ctx.textAlign = "center";
 
-ctx.fillStyle = theme.textColor;
-ctx.font = "bold 12px sans-serif";
-ctx.textAlign = "center";
+          ctx.fillText(String(band.year), center, chartArea.top - 6);
+        });
 
-ctx.fillText(
-  String(band.year),
-  center,
-  chartArea.top + 18
-);
-    });
-
-    ctx.restore();
-  },
-};
+        ctx.restore();
+      },
+    };
     lineChartRef.current = new Chart(canvas, {
       type: "line",
       plugins: [yearBandPlugin],
@@ -212,15 +207,14 @@ ctx.fillText(
         ],
       },
       options: {
+        layout: {
+          padding: {
+            top: 15,
+          },
+        },
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          title: {
-            display: true,
-            text: chartTitle,
-            color: theme.textColor,
-            font: { size: 16, weight: "bold" },
-          },
           legend: {
             display: false,
           },
@@ -308,5 +302,6 @@ ctx.fillText(
 
   return {
     lineCanvasRef,
+    chartTitle,
   };
 }

@@ -33,7 +33,6 @@ export default function useExpenseCrud({
   navigate,
   activeDateRange,
 }) {
-
   async function refreshExpenses(options = activeDateRange) {
     if (!user) {
       return [];

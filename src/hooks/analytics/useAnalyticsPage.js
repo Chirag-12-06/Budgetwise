@@ -4,7 +4,7 @@ import useBubbleLayout from "./useBubbleLayout";
 import useBubbleVisibility from "./useBubbleVisibility";
 import useOutlierFiltering from "./useOutlierFiltering";
 import useTrendChart from "./useTrendChart";
-import useDarkMode from "../ui/useDarkMode";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function useAnalyticsPage({
   trendData,
@@ -17,7 +17,7 @@ export default function useAnalyticsPage({
   onTrendPointSelect,
 }) {
   const [useLogScale, setUseLogScale] = useState(false);
-  const { dark: isDarkMode } = useDarkMode();
+  const { dark: isDarkMode } = useTheme();
   const trendPoints = useMemo(
     () =>
       (trendData || [])
@@ -66,7 +66,7 @@ export default function useAnalyticsPage({
     totalCategoryAmount,
     bubbleBoardSize,
   });
-  const { lineCanvasRef } = useTrendChart({
+  const { lineCanvasRef, chartTitle } = useTrendChart({
     visibleTrendPoints,
     analyticsGroupBy,
     isDarkMode,
@@ -110,5 +110,6 @@ export default function useAnalyticsPage({
     toggleBubbleCategory,
     handleQuickDateMode,
     handleApplyDateRange,
+    chartTitle,
   };
 }
