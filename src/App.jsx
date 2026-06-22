@@ -27,7 +27,7 @@ function App() {
     dateFilterMode,
     selectedCategoryFilters,
     analyticsGroupBy,
-    setAnalyticsGroupBy,
+    handleAnalyticsGroupByChange,
     customDateFrom,
     customDateTo,
     dateRangeError,
@@ -208,7 +208,7 @@ function App() {
                   categoryTotals={categoryTotals}
                   analyticsExpenses={analyticsExpenses}
                   analyticsGroupBy={analyticsGroupBy}
-                  setAnalyticsGroupBy={setAnalyticsGroupBy}
+                  handleAnalyticsGroupByChange={handleAnalyticsGroupByChange}
                   trendData={trendData}
                   maxTrendValue={maxTrendValue}
                   topCategories={topCategories}

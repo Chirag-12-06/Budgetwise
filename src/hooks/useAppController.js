@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getStoredUser, hasToken, logoutUser } from "../lib/auth";
 import { ROUTES } from "../lib/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
@@ -20,17 +20,24 @@ import { resolveDateRange } from "../utils/dateFilters";
 export default function useAppController() {
   const navigate = useNavigate();
   const { dark, setDark } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [expenses, setExpenses] = useState([]);
-  const [analyticsGroupBy, setAnalyticsGroupBy] = useState("daily");
+
+  const initialGroupBy = searchParams.get("groupBy") || "daily";
+
+  const [analyticsGroupBy, setAnalyticsGroupBy] = useState(initialGroupBy);
   const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [editingRecurringExpenseId, setEditingRecurringExpenseId] = useState(null);
+  const [editingRecurringExpenseId, setEditingRecurringExpenseId] =
+    useState(null);
   const [expenseForm, setExpenseForm] = useState(createDefaultExpenseForm());
-  const [recurringForm, setRecurringForm] = useState(createDefaultRecurringForm(),);
+  const [recurringForm, setRecurringForm] = useState(
+    createDefaultRecurringForm(),
+  );
   const [activeDateRange, setActiveDateRange] = useState({
     from: "",
     to: "",
@@ -90,9 +97,9 @@ export default function useAppController() {
     applyCustomDateRange,
     handleDateFilterModeChange,
     activateCustomDateRange,
-      setCustomDateFrom,
-      setCustomDateTo,
-      setDateRangeError,
+    setCustomDateFrom,
+    setCustomDateTo,
+    setDateRangeError,
   } = useDateFilter({
     refreshExpenses,
     handleApiError,
@@ -127,7 +134,6 @@ export default function useAppController() {
     activeDateRange,
   });
 
-  
   const {
     handleLogin,
     handleSignup,
@@ -188,6 +194,18 @@ export default function useAppController() {
     showStatus(message, "error");
   }
 
+  function handleAnalyticsGroupByChange(value) {
+  setAnalyticsGroupBy(value);
+
+  setSearchParams((prev) => {
+    const next = new URLSearchParams(prev);
+
+    next.set("groupBy", value);
+
+    return next;
+  });
+}
+
   useEffect(() => {
     if (!user) {
       setExpenses([]);
@@ -199,9 +217,8 @@ export default function useAppController() {
     async function loadExpenses() {
       const today = formatDateKey(new Date());
 
-  const now = new Date();
-  const monthStart =
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       try {
         await refreshExpenses(activeDateRange);
       } catch (error) {
@@ -233,43 +250,43 @@ export default function useAppController() {
     setSelectedCategoryFilters([]);
   }
 
- function handleTrendPointDateSelect(point) {
-  if (!point) {
-    return;
+  function handleTrendPointDateSelect(point) {
+    if (!point) {
+      return;
+    }
+
+    if (point.dateKey) {
+      activateCustomDateFilter(point.dateKey, point.dateKey);
+
+      const range = {
+        from: point.dateKey,
+        to: point.dateKey,
+      };
+
+      setActiveDateRange(range);
+
+      void refreshExpenses(range).catch((error) => {
+        handleApiError(error, "Unable to load expenses for selected date");
+      });
+
+      return;
+    }
+
+    if (point.rangeFrom && point.rangeTo) {
+      activateCustomDateFilter(point.rangeFrom, point.rangeTo);
+
+      const range = {
+        from: point.rangeFrom,
+        to: point.rangeTo,
+      };
+
+      setActiveDateRange(range);
+
+      void refreshExpenses(range).catch((error) => {
+        handleApiError(error, "Unable to load expenses for selected range");
+      });
+    }
   }
-
-  if (point.dateKey) {
-    activateCustomDateFilter(point.dateKey, point.dateKey);
-
-    const range = {
-      from: point.dateKey,
-      to: point.dateKey,
-    };
-
-    setActiveDateRange(range);
-
-    void refreshExpenses(range).catch((error) => {
-      handleApiError(error, "Unable to load expenses for selected date");
-    });
-
-    return;
-  }
-
-  if (point.rangeFrom && point.rangeTo) {
-    activateCustomDateFilter(point.rangeFrom, point.rangeTo);
-
-    const range = {
-      from: point.rangeFrom,
-      to: point.rangeTo,
-    };
-
-    setActiveDateRange(range);
-
-    void refreshExpenses(range).catch((error) => {
-      handleApiError(error, "Unable to load expenses for selected range");
-    });
-  }
-}
 
   const totalSpent = expenses.reduce(
     (sum, expense) => sum + Number(expense.amount || 0),
@@ -289,29 +306,28 @@ export default function useAppController() {
     .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
     .slice(0, 5);
   const { startDate, endDate } = resolveDateRange({
-  dateFilterMode,
-  customDateFrom,
-  customDateTo,
-});
+    dateFilterMode,
+    customDateFrom,
+    customDateTo,
+  });
 
-const dateFilteredExpenses = expenses
-  .filter((expense) => {
-    const expenseDate = new Date(expense.createdAt);
+  const dateFilteredExpenses = expenses
+    .filter((expense) => {
+      const expenseDate = new Date(expense.createdAt);
 
-    if (startDate && expenseDate < startDate) {
-      return false;
-    }
+      if (startDate && expenseDate < startDate) {
+        return false;
+      }
 
-    if (endDate && expenseDate > endDate) {
-      return false;
-    }
+      if (endDate && expenseDate > endDate) {
+        return false;
+      }
 
-    return true;
-  })
-  .sort(
-    (left, right) =>
-      new Date(right.createdAt) - new Date(left.createdAt),
-  );
+      return true;
+    })
+    .sort(
+      (left, right) => new Date(right.createdAt) - new Date(left.createdAt),
+    );
   const filteredExpenses = selectedCategoryFilters.length
     ? dateFilteredExpenses.filter((expense) =>
         selectedCategoryFilters.includes(expense.category || "uncategorized"),
@@ -337,22 +353,22 @@ const dateFilteredExpenses = expenses
     const [yearPart = "", monthPart = ""] = String(expenseDateKey).split("-");
     let key;
     if (analyticsGroupBy === "yearly") {
-  key = yearPart;
-} else if (analyticsGroupBy === "monthly") {
-  key = `${yearPart}-${monthPart}`;
-} else if (analyticsGroupBy === "weekly") {
-  const date = new Date(expense.createdAt);
+      key = yearPart;
+    } else if (analyticsGroupBy === "monthly") {
+      key = `${yearPart}-${monthPart}`;
+    } else if (analyticsGroupBy === "weekly") {
+      const date = new Date(expense.createdAt);
 
-  // Monday start
-  const day = date.getDay();
-  const offset = day === 0 ? 6 : day - 1;
+      // Monday start
+      const day = date.getDay();
+      const offset = day === 0 ? 6 : day - 1;
 
-  date.setDate(date.getDate() - offset);
+      date.setDate(date.getDate() - offset);
 
-  key = formatDateKey(date);
-} else {
-  key = expenseDateKey;
-}
+      key = formatDateKey(date);
+    } else {
+      key = expenseDateKey;
+    }
     accumulator[key] = (accumulator[key] || 0) + Number(expense.amount || 0);
     return accumulator;
   }, {});
@@ -375,17 +391,17 @@ const dateFilteredExpenses = expenses
       }
 
       if (analyticsGroupBy === "weekly") {
-  const start = new Date(bucketKey);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
+        const start = new Date(bucketKey);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
 
-  return {
-    ...point,
-    dateKey: "",
-    rangeFrom: formatDateKey(start),
-    rangeTo: formatDateKey(end),
-  };
-}
+        return {
+          ...point,
+          dateKey: "",
+          rangeFrom: formatDateKey(start),
+          rangeTo: formatDateKey(end),
+        };
+      }
 
       if (analyticsGroupBy === "monthly") {
         const [year, month] = bucketKey.split("-");
@@ -426,7 +442,6 @@ const dateFilteredExpenses = expenses
     dateFilterMode,
     selectedCategoryFilters,
     analyticsGroupBy,
-    setAnalyticsGroupBy,
     customDateFrom,
     customDateTo,
     dateRangeError,
@@ -476,5 +491,6 @@ const dateFilteredExpenses = expenses
     topCategories,
     trendData,
     maxTrendValue,
+    handleAnalyticsGroupByChange,
   };
 }

@@ -19,8 +19,8 @@ const periodModes = [
 ];
 
 const relativeModes = [
-  { value: "current", label: "Current" },
   { value: "previous", label: "Previous" },
+  { value: "current", label: "Current" },
 ];
 
 const summaryGridTemplateColumns =
@@ -109,8 +109,8 @@ export default function ExpenseFilterPanel({
   );
   const availableCategoryGroups = CATEGORY_GROUPS.map((group) => {
     const values = group.options
-  .map(({ value }) => value)
-  .filter((value) => availableCategorySet.has(value));
+      .map(({ value }) => value)
+      .filter((value) => availableCategorySet.has(value));
 
     if (!values.length) {
       return null;
@@ -190,31 +190,28 @@ export default function ExpenseFilterPanel({
             {/* Period selector (month/week/day/year) with dropdowns */}
             <div className="flex items-center gap-3 w-full basis-full">
               <div className="grid w-full grid-cols-2 gap-3">
-                  <div className="inline-flex items-center rounded-xl border border-gray-700 bg-gray-900/40 p-1.5">
-                    {relativeModes.map((mode, index) => (
-                      <button
-                        key={mode.value}
-                        onClick={() =>
-                          onDateFilterModeChange(
-                            `${mode.value}:${currentPeriod}`,
-                          )
-                        }
-                        className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                          currentRelative === mode.value
-                            ? "rounded-lg bg-slate-700 text-white shadow-sm"
-                            : "text-gray-300 hover:text-white"
-                        }`}
-                      >
-                        {mode.label}
+                <div className="inline-flex items-center rounded-xl border dark:border-gray-700 dark:bg-gray-900/40 p-1.5">
+                  {relativeModes.map((mode, index) => (
+                    <button
+                      key={mode.value}
+                      onClick={() =>
+                        onDateFilterModeChange(`${mode.value}:${currentPeriod}`)
+                      }
+                      className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                        currentRelative === mode.value
+                          ? "rounded-lg bg-indigo-600 text-white shadow-sm"
+                          : "dark:text-gray-300 dark:hover:text-white"
+                      }`}
+                    >
+                      {mode.label}
 
-                        {index !== relativeModes.length - 1 &&
-                          currentRelative !== mode.value &&
-                          currentRelative !==
-                            relativeModes[index + 1].value && (
-                            <span className="absolute right-0 top-1/2 h-4 -translate-y-1/2 border-r border-gray-600" />
-                          )}
-                      </button>
-                    ))}
+                      {index !== relativeModes.length - 1 &&
+                        currentRelative !== mode.value &&
+                        currentRelative !== relativeModes[index + 1].value && (
+                          <span className="absolute right-0 top-1/2 h-4 -translate-y-1/2 border-r border-gray-600" />
+                        )}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="relative" ref={periodRef}>

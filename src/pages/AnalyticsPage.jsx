@@ -53,7 +53,7 @@ export default function AnalyticsPage({
   categoryTotals,
   analyticsExpenses,
   analyticsGroupBy,
-  setAnalyticsGroupBy,
+  handleAnalyticsGroupByChange,
   trendData,
   categoryFilterExpenses,
   selectedCategoryFilters,
@@ -120,19 +120,19 @@ export default function AnalyticsPage({
       </PanelCard>
 
       <PanelCard>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-0 lg:flex-row lg:items-start lg:justify-between">
           <h3 className="text-xl font-bold whitespace-nowrap">{chartTitle}</h3>
           <div className="flex w-full flex-col items-end gap-1.5">
             <div className="inline-flex items-center rounded-xl border dark:border-gray-700 dark:bg-gray-900/40 p-1.5">
               {options.map((option, index) => (
                 <button
                   key={option}
-                  onClick={() => setAnalyticsGroupBy(option.toLowerCase())}
+                  onClick={() => handleAnalyticsGroupByChange(option.toLowerCase())}
                   className={`
                   relative px-4 py-2 text-sm font-medium transition-all duration-200
                   ${
                     analyticsGroupBy === option.toLowerCase()
-                      ? "rounded-lg bg-indigo-600 dark:bg-slate-700 text-white shadow-sm"
+                      ? "rounded-lg bg-indigo-600 text-white shadow-sm"
                       : "dark:text-gray-300 dark:hover:text-white"
                   }
                 `}
