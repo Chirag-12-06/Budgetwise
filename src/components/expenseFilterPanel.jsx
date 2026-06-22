@@ -109,8 +109,8 @@ export default function ExpenseFilterPanel({
   );
   const availableCategoryGroups = CATEGORY_GROUPS.map((group) => {
     const values = group.options
-      .map((option) => option.value)
-      .filter((value) => availableCategorySet.has(value));
+  .map(({ value }) => value)
+  .filter((value) => availableCategorySet.has(value));
 
     if (!values.length) {
       return null;
@@ -147,17 +147,12 @@ export default function ExpenseFilterPanel({
   }
 
   const [periodOpen, setPeriodOpen] = useState(false);
-  const [relativeOpen, setRelativeOpen] = useState(false);
   const periodRef = useRef(null);
-  const relativeRef = useRef(null);
 
   useEffect(() => {
     function handler(e) {
       if (periodRef.current && !periodRef.current.contains(e.target)) {
         setPeriodOpen(false);
-      }
-      if (relativeRef.current && !relativeRef.current.contains(e.target)) {
-        setRelativeOpen(false);
       }
     }
 
@@ -195,43 +190,31 @@ export default function ExpenseFilterPanel({
             {/* Period selector (month/week/day/year) with dropdowns */}
             <div className="flex items-center gap-3 w-full basis-full">
               <div className="grid w-full grid-cols-2 gap-3">
-                <div className="relative" ref={relativeRef}>
-                  <Button
-                    variant="plain"
-                    className="bw-quick-date-button h-12 w-full px-3 py-2 text-sm flex items-center justify-between rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
-                    onClick={() => setRelativeOpen((s) => !s)}
-                    active={false}
-                  >
-                    <span className="truncate">
-                      {
-                        relativeModes.find((r) => r.value === currentRelative)
-                          ?.label
-                      }
-                    </span>
-                    <i
-                      className="fas fa-chevron-down text-xs"
-                      aria-hidden="true"
-                    />
-                  </Button>
+                  <div className="inline-flex items-center rounded-xl border border-gray-700 bg-gray-900/40 p-1.5">
+                    {relativeModes.map((mode, index) => (
+                      <button
+                        key={mode.value}
+                        onClick={() =>
+                          onDateFilterModeChange(
+                            `${mode.value}:${currentPeriod}`,
+                          )
+                        }
+                        className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                          currentRelative === mode.value
+                            ? "rounded-lg bg-slate-700 text-white shadow-sm"
+                            : "text-gray-300 hover:text-white"
+                        }`}
+                      >
+                        {mode.label}
 
-                  {relativeOpen ? (
-                    <div className="absolute right-0 left-auto top-full mt-2 w-max min-w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 py-1 overflow-visible">
-                      {relativeModes.map((mode) => (
-                        <button
-                          key={mode.value}
-                          className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 ${currentRelative === mode.value ? "font-semibold" : ""}`}
-                          onClick={() => {
-                            setRelativeOpen(false);
-                            onDateFilterModeChange(
-                              `${mode.value}:${currentPeriod}`,
-                            );
-                          }}
-                        >
-                          {mode.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                        {index !== relativeModes.length - 1 &&
+                          currentRelative !== mode.value &&
+                          currentRelative !==
+                            relativeModes[index + 1].value && (
+                            <span className="absolute right-0 top-1/2 h-4 -translate-y-1/2 border-r border-gray-600" />
+                          )}
+                      </button>
+                    ))}
                 </div>
 
                 <div className="relative" ref={periodRef}>

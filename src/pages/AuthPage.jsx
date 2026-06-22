@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
 import {ROUTES} from "../lib/routes";
+import { Mail, Lock, Eye, EyeOff, EyeClosed } from "lucide-react";
 
 const authTabClasses =
   "rounded-md px-4 py-3 transition-colors";
@@ -10,7 +11,7 @@ const inactiveAuthTabClasses = "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
 const fieldInputClasses =
-  "w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
+  "w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-black dark:border-gray-600 dark:bg-gray-700 dark:text-white";
 const primaryButtonClasses =
   "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
 
@@ -105,7 +106,7 @@ export default function AuthPage({
               <span className={fieldTextClasses}>Email</span>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  📧
+                  <Mail size={18} />
                 </span>
                 <input
                   className={`${fieldInputClasses} pl-10`}
@@ -127,7 +128,7 @@ export default function AuthPage({
             <span className={fieldTextClasses}>Password</span>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                🔒
+                <Lock size={18} />
               </span>
 
               <input
@@ -148,7 +149,7 @@ export default function AuthPage({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 onClick={() => setShowPassword((v) => !v)}
               >
-                {showPassword ? "🙈" : "👁"}
+                {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </label>
@@ -184,7 +185,7 @@ export default function AuthPage({
 
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  📧
+                  <Mail size={18} />
                 </span>
 
                 <input

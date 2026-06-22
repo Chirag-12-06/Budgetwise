@@ -1,6 +1,8 @@
 import { Outlet } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 
-export default function AuthLayout(dark) {
+export default function AuthLayout() {
+  const { dark } = useTheme();
   return (
     <div
       className={`min-h-screen transition-colors duration-200 ${

@@ -94,7 +94,7 @@ function App() {
   return (
     <>
       <Routes>
-        <Route element={<AuthLayout dark={dark} />}>
+        <Route element={<AuthLayout/>}>
           <Route path={ROUTES.LOGIN} element={<AuthPage {...authPageProps} />} />
 
           <Route
