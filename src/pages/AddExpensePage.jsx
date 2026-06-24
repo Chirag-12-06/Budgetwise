@@ -3,7 +3,8 @@ import Button from "../components/button";
 import Calendar from "../components/calendar";
 import PanelCard from "../components/panelCard";
 import UnderDevelopmentDialog from "../components/underDevelopmentDialog";
-import useAddExpensePage from "../hooks/expenses/useExpenseCategory";
+import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
+import useCategoryPrediction from "../hooks/expenses/useCategoryPrediction";
 import {
   CATEGORY_COLORS,
   CATEGORY_GROUPS,
@@ -110,18 +111,27 @@ export default function AddExpensePage({
   const isFormLocked =
     isEditingExpense || isEditingRecurringSeries || isEditingFuture;
   const {
-    isCategoryMenuOpen,
-    setIsCategoryMenuOpen,
-    setCategoryManuallySelected,
-    categoryDropdownRef,
-    selectedCategory,
-    handleCategorySelection,
-  } = useAddExpensePage({
-    expenses,
-    expenseForm,
-    setExpenseForm,
-    isEditingExpense: isFormLocked,
-  });
+  isCategoryMenuOpen,
+  setIsCategoryMenuOpen,
+  categoryManuallySelected,
+  setCategoryManuallySelected,
+  categoryDropdownRef,
+  selectedCategory,
+  handleCategorySelection,
+} = useExpenseCategory({
+  expenses,
+  expenseForm,
+  setExpenseForm,
+  isEditingExpense: isFormLocked,
+});
+
+useCategoryPrediction({
+  expenses,
+  expenseForm,
+  setExpenseForm,
+  isEditingExpense: isFormLocked,
+  categoryManuallySelected,
+});
 
   const [scanError, setScanError] = useState("");
   const [scanErrorOpen, setScanErrorOpen] = useState(false);

@@ -125,11 +125,7 @@ function App() {
               path={ROUTES.HOME}
               element={
                 <AddExpensePage
-                  totalSpent={totalSpent}
-                  monthSpent={monthSpent}
                   expenses={expenses}
-                  latestExpenses={latestExpenses}
-                  loadingExpenses={loadingExpenses}
                   expenseForm={expenseForm}
                   setExpenseForm={setExpenseForm}
                   recurringForm={recurringForm}
@@ -140,19 +136,7 @@ function App() {
                   isEditingFuture={expenseForm.editScope === "future"}
                   isEditingRecurringSeries={editingRecurringExpenseId !== null}
                   handleCancelEditExpense={handleCancelEditExpense}
-                  handleCancelEditRecurringExpense={
-                    handleCancelEditRecurringExpense
-                  }
-                  recurringExpenseActionPrompt={recurringExpenseActionPrompt}
-                  onRecurringExpenseActionRequest={
-                    handleRecurringExpenseActionRequest
-                  }
-                  onRecurringExpenseActionClose={
-                    handleCloseRecurringExpenseActionPrompt
-                  }
-                  onRecurringExpenseActionSelect={
-                    handleRecurringExpenseActionSelect
-                  }
+                  handleCancelEditRecurringExpense={handleCancelEditRecurringExpense}
                 />
               }
             />

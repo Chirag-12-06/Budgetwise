@@ -11,7 +11,7 @@ const variantClasses = {
   outline:
     "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600",
   navIdle:
-    "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700",
+    "border text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700",
   navActive: "bg-indigo-600 text-white shadow-sm",
   expenseEdit:
     "h-9 w-9 gap-0 rounded-md border border-transparent bg-emerald-600 px-0 py-0 text-white hover:bg-emerald-500",

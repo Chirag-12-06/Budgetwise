@@ -9,7 +9,7 @@ import {
 } from "../lib/categoryConfig";
 
 const summaryCardClasses =
-  "rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:p-4";
+  "rounded-lg border bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800 sm:p-4";
 
 const periodModes = [
   { value: "day", label: "Day" },

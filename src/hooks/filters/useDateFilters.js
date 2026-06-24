@@ -100,9 +100,13 @@ export default function useDateFilter({
   async function handleDateFilterModeChange(modeValue) {
     setDateFilterMode(modeValue);
     if (modeValue !== "custom") {
-      setSearchParams({
-        mode: modeValue,
-      });
+      setSearchParams((prev) => {
+  const next = new URLSearchParams(prev);
+
+  next.set("mode", modeValue);
+
+  return next;
+});
     }
 
     setSelectedCategoryFilters([]);

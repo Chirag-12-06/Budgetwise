@@ -26,7 +26,12 @@ export default function useCategoryPrediction({
     initializeModel();
   }, [expenses.length, isEditingExpense]);
 
+
   useEffect(() => {
+    console.log({
+    title: expenseForm.title,
+    manual: categoryManuallySelected,
+  });
     if (isEditingExpense || categoryManuallySelected) {
       return;
     }

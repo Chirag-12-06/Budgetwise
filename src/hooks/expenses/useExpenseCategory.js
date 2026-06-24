@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getCategoryDisplay } from "../../lib/categoryConfig";
 
-export default function useAddExpensePage({
+export default function useExpenseCategory({
   expenses,
   expenseForm,
   setExpenseForm,
