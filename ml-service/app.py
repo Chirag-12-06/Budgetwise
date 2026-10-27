@@ -4,10 +4,6 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 from category_predictor import CategoryPredictor
-import base64
-import cv2
-import numpy as np
-from OCR.main import main
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -131,38 +127,6 @@ def health():
 def root_health():
     """Root endpoint for platforms that probe '/' by default."""
     return health()
-
-
-@app.route('/api/process-receipt', methods=['POST'])
-def process_receipt():
-    try:
-        data = request.json or {}
-        image_b64 = data.get('image_b64')
-
-        if not image_b64:
-            return jsonify({'error': 'image_b64 is required'}), 400
-
-        # Remove data URI prefix if present
-        if image_b64.startswith('data:'):
-            image_b64 = image_b64.split(',', 1)[1]
-
-        try:
-            binary = base64.b64decode(image_b64)
-        except Exception as e:
-            return jsonify({'error': 'invalid base64 image', 'detail': str(e)}), 400
-
-        image = cv2.imdecode(
-            np.frombuffer(binary, np.uint8),
-            cv2.IMREAD_COLOR
-        )
-        result=main(image)
-
-        return jsonify({
-            'ok': True,
-            'data': result,
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':

@@ -10,6 +10,7 @@ import {
   CATEGORY_GROUPS,
   CATEGORY_OPTIONS,
 } from "../lib/categoryConfig";
+import { processReceipt } from "../lib/api";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
@@ -111,31 +112,32 @@ export default function AddExpensePage({
   const isFormLocked =
     isEditingExpense || isEditingRecurringSeries || isEditingFuture;
   const {
-  isCategoryMenuOpen,
-  setIsCategoryMenuOpen,
-  categoryManuallySelected,
-  setCategoryManuallySelected,
-  categoryDropdownRef,
-  selectedCategory,
-  handleCategorySelection,
-} = useExpenseCategory({
-  expenses,
-  expenseForm,
-  setExpenseForm,
-  isEditingExpense: isFormLocked,
-});
+    isCategoryMenuOpen,
+    setIsCategoryMenuOpen,
+    categoryManuallySelected,
+    setCategoryManuallySelected,
+    categoryDropdownRef,
+    selectedCategory,
+    handleCategorySelection,
+  } = useExpenseCategory({
+    expenses,
+    expenseForm,
+    setExpenseForm,
+    isEditingExpense: isFormLocked,
+  });
 
-useCategoryPrediction({
-  expenses,
-  expenseForm,
-  setExpenseForm,
-  isEditingExpense: isFormLocked,
-  categoryManuallySelected,
-});
+  useCategoryPrediction({
+    expenses,
+    expenseForm,
+    setExpenseForm,
+    isEditingExpense: isFormLocked,
+    categoryManuallySelected,
+  });
 
   const [scanError, setScanError] = useState("");
   const [scanErrorOpen, setScanErrorOpen] = useState(false);
-  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] = useState(false);
+  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
+    useState(false);
   const fileInputRef = useRef(null);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [receiptBill, setReceiptBill] = useState(null);
@@ -143,7 +145,7 @@ useCategoryPrediction({
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
 
-showScanUnderDevelopmentPopup
+  showScanUnderDevelopmentPopup;
 
   const recurringUntilDateMin = getNextDateKey(expenseForm.date);
   const recurringUntilDateIsInvalid =
@@ -184,52 +186,53 @@ showScanUnderDevelopmentPopup
           accept="image/*"
           style={{ display: "none" }}
           onChange={async (e) => {
-            const file = e.target.files && e.target.files[0];
+            const file = e.target.files?.[0];
             if (!file) return;
+
             const reader = new FileReader();
+
             reader.onload = async () => {
               try {
                 const dataUrl = reader.result;
-                const resp = await fetch("/api/process-receipt", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    image_b64: dataUrl,
-                    filename: file.name,
-                  }),
-                });
-                const json = await resp.json();
-                if (!resp.ok || json?.error) {
-                  const message = json?.error || "Receipt processing failed.";
-                  setScanError(String(message));
-                  setScanErrorOpen(true);
-                  return;
+
+                const json = await processReceipt(dataUrl, file.name);
+
+                if (json?.error) {
+                  throw new Error(json.error);
                 }
 
-                const bill =
-                  json?.data?.bills && json.data.bills[0]
-                    ? json.data.bills[0]
-                    : null;
+                const bill = json?.data?.bills?.[0] ?? null;
+
                 const items = Array.isArray(bill?.items) ? bill.items : [];
+
                 const paidMap = {};
+
                 items.forEach((_, index) => {
                   paidMap[String(index)] = true;
                 });
-                
+
                 setReceiptBill(bill);
                 setReceiptPaidMap(paidMap);
                 setReceiptDialogOpen(true);
               } catch (err) {
-                console.error("Upload failed", err);
-                setScanError("Upload failed. Please try again.");
+                console.error("Receipt upload failed:", err);
+
+                setScanError(
+                  err.message || "Receipt processing failed. Please try again.",
+                );
                 setScanErrorOpen(true);
               }
             };
+
+            reader.onerror = () => {
+              setScanError("Failed to read the selected image.");
+              setScanErrorOpen(true);
+            };
+
             reader.readAsDataURL(file);
             e.target.value = "";
           }}
         />
-
         <Button
           variant="plain"
           className={scanButtonClasses}
@@ -378,7 +381,7 @@ showScanUnderDevelopmentPopup
         message={scanError || "Please try again."}
         onClose={() => setScanErrorOpen(false)}
         labelledBy="receipt-scan-error-dialog"
-      /> 
+      />
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
         <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">

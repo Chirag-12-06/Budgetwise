@@ -1,4 +1,4 @@
-import { apiRequest } from "./api";
+import api from "./apiClient";
 
 const USER_KEY = "bw-user";
 const USER_ID_KEY = "bw-user-id";
@@ -7,13 +7,16 @@ const AVATAR_MAP_KEY = "bw-avatar-map";
 
 function readAvatarMap() {
   const raw = localStorage.getItem(AVATAR_MAP_KEY);
+
   if (!raw) {
     return {};
   }
 
   try {
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     return {};
   }
@@ -29,7 +32,11 @@ function saveAvatarForEmail(email, avatarDataUrl) {
   }
 
   const current = readAvatarMap();
-  writeAvatarMap({ ...current, [String(email).toLowerCase()]: avatarDataUrl });
+
+  writeAvatarMap({
+    ...current,
+    [String(email).toLowerCase()]: avatarDataUrl,
+  });
 }
 
 function removeAvatarForEmail(email) {
@@ -39,12 +46,14 @@ function removeAvatarForEmail(email) {
 
   const key = String(email).toLowerCase();
   const current = readAvatarMap();
+
   if (!(key in current)) {
     return;
   }
 
   const next = { ...current };
   delete next[key];
+
   writeAvatarMap(next);
 }
 
@@ -58,10 +67,15 @@ function getAvatarForEmail(email) {
 }
 
 function storeSession(user, token) {
-  const avatarDataUrl = user?.avatarDataUrl || getAvatarForEmail(user?.email);
-  const userWithAvatar = avatarDataUrl ? { ...user, avatarDataUrl } : user;
+  const avatarDataUrl =
+    user?.avatarDataUrl || getAvatarForEmail(user?.email);
+
+  const userWithAvatar = avatarDataUrl
+    ? { ...user, avatarDataUrl }
+    : user;
+
   localStorage.setItem(USER_KEY, JSON.stringify(userWithAvatar));
-  localStorage.setItem(USER_ID_KEY, user.id);
+  localStorage.setItem(USER_ID_KEY, String(user.id));
   localStorage.setItem(TOKEN_KEY, token);
 }
 
@@ -71,13 +85,16 @@ export function hasToken() {
 
 export function getStoredUser() {
   const raw = localStorage.getItem(USER_KEY);
+
   if (!raw) {
     return null;
   }
 
   try {
     const parsed = JSON.parse(raw);
-    const avatarDataUrl = parsed?.avatarDataUrl || getAvatarForEmail(parsed?.email);
+    const avatarDataUrl =
+      parsed?.avatarDataUrl || getAvatarForEmail(parsed?.email);
+
     return avatarDataUrl ? { ...parsed, avatarDataUrl } : parsed;
   } catch {
     return null;
@@ -85,23 +102,33 @@ export function getStoredUser() {
 }
 
 export async function loginUser({ email, password }) {
-  const data = await apiRequest("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
+  const data = await api.post("/auth/login", {
+    email,
+    password,
   });
 
   const userWithAvatar = {
     ...data.user,
-    avatarDataUrl: data.user?.avatarDataUrl || getAvatarForEmail(data.user?.email),
+    avatarDataUrl:
+      data.user?.avatarDataUrl || getAvatarForEmail(data.user?.email),
   };
+
   storeSession(userWithAvatar, data.token);
+
   return { ...data, user: userWithAvatar };
 }
 
-export async function signupUser({ name, email, password, avatarDataUrl }) {
-  const data = await apiRequest("/auth/signup", {
-    method: "POST",
-    body: JSON.stringify({ name, email, password, avatarDataUrl: avatarDataUrl || null }),
+export async function signupUser({
+  name,
+  email,
+  password,
+  avatarDataUrl,
+}) {
+  const data = await api.post("/auth/signup", {
+    name,
+    email,
+    password,
+    avatarDataUrl: avatarDataUrl || null,
   });
 
   if (data.user?.avatarDataUrl) {
@@ -112,70 +139,50 @@ export async function signupUser({ name, email, password, avatarDataUrl }) {
 
   const userWithAvatar = {
     ...data.user,
-    avatarDataUrl: data.user?.avatarDataUrl || avatarDataUrl || getAvatarForEmail(email),
+    avatarDataUrl:
+      data.user?.avatarDataUrl ||
+      avatarDataUrl ||
+      getAvatarForEmail(email),
   };
 
   storeSession(userWithAvatar, data.token);
+
   return { ...data, user: userWithAvatar };
 }
 
 export async function forgotPasswordUser(email) {
-  const response = await fetch("/api/auth/forgot-password", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Unable to send reset link");
-  }
-
-  return data;
+  return api.post("/auth/forgot-password", { email });
 }
 
 export async function resetPasswordUser(token, password) {
-  const response = await fetch(
-    `/api/auth/reset-password/${token}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        password,
-      }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Unable to reset password");
-  }
-
-  return data;
+  return api.post(`/auth/reset-password/${encodeURIComponent(token)}`, {
+    password,
+  });
 }
 
-export async function updateProfileUser({ name, email, avatarDataUrl }) {
+export async function updateProfileUser({
+  name,
+  email,
+  avatarDataUrl,
+}) {
   const previousUser = getStoredUser();
   const previousEmail = previousUser?.email || "";
 
-  const data = await apiRequest("/auth/profile", {
-    method: "PATCH",
-    body: JSON.stringify({
-      name,
-      email,
-      avatarDataUrl: avatarDataUrl !== undefined ? avatarDataUrl : undefined,
-    }),
-  });
+  const payload = { name, email };
+
+  if (avatarDataUrl !== undefined) {
+    payload.avatarDataUrl = avatarDataUrl;
+  }
+
+  const data = await api.patch("/auth/profile", payload);
 
   const nextEmail = data?.user?.email || email;
 
-  if (previousEmail && previousEmail !== nextEmail && previousUser?.avatarDataUrl) {
+  if (
+    previousEmail &&
+    previousEmail !== nextEmail &&
+    previousUser?.avatarDataUrl
+  ) {
     saveAvatarForEmail(nextEmail, previousUser.avatarDataUrl);
   }
 

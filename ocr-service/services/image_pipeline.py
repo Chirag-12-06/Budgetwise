@@ -3,7 +3,7 @@ from .ocr import ocr
 from .extractor import extract
 
 
-def main(image):
+def image_pipeline(image):
 
     cleaned_image=image_cleaning(image)
 

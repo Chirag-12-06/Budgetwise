@@ -1,9 +1,14 @@
 import json
 import os
-import re
 import time
 import requests
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from dotenv import load_dotenv
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-4o-mini"

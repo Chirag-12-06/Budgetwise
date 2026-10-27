@@ -1,70 +1,11 @@
-const DEFAULT_API_BASE = "/api";
-const AUTH_STORAGE_KEYS = ["bw-user", "bw-user-id", "bw-token"];
-
-function isVercelHost() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return String(window.location.hostname || "").toLowerCase().endsWith(".vercel.app");
-}
-
-function clearStoredAuthSession() {
-  for (const key of AUTH_STORAGE_KEYS) {
-    localStorage.removeItem(key);
-  }
-}
-
-export function getApiBase() {
-  const configured = String(import.meta.env.VITE_API_BASE || "").trim();
-
-  // On Vercel, use same-origin /api so vercel.json rewrites proxy requests to backend.
-  if (isVercelHost() && configured.startsWith("http")) {
-    return DEFAULT_API_BASE;
-  }
-
-  return (configured || DEFAULT_API_BASE).replace(/\/$/, "");
-}
-
-export async function apiRequest(path, options = {}) {
-  const token = localStorage.getItem("bw-token");
-  const method = (options.method || "GET").toUpperCase();
-  const fetchOptions = {
-    // default to no-store for GET requests so clients always receive fresh data
-    ...(method === "GET" ? { cache: "no-store" } : {}),
-    headers: {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  };
-
-  const response = await fetch(`${getApiBase()}${path}`, fetchOptions);
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      clearStoredAuthSession();
-    }
-
-    throw new Error(data?.details || data?.error || data?.message || "Request failed");
-  }
-
-  return data;
-}
+import api from "./apiClient";
 
 export function getTodayDate() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
@@ -77,86 +18,58 @@ export function formatCurrency(value) {
 }
 
 export async function fetchExpenses(options = {}) {
-  const params = new URLSearchParams();
+  const params = {};
 
-  if (options.from) {
-    params.set("from", String(options.from));
-  }
+  if (options.from) params.from = String(options.from);
+  if (options.to) params.to = String(options.to);
+  if (options.groupBy) params.groupBy = String(options.groupBy);
 
-  if (options.to) {
-    params.set("to", String(options.to));
-  }
-
-  if (options.groupBy) {
-    params.set("groupBy", String(options.groupBy));
-  }
-
-  const query = params.toString();
-  return apiRequest(`/expenses${query ? `?${query}` : ""}`);
+  return api.get("/expenses", { params });
 }
 
 export async function createExpense(payload) {
-  return apiRequest("/expenses", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function createRecurringExpense(payload) {
-  return apiRequest("/recurring-expenses", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function fetchRecurringExpenses() {
-  return apiRequest("/recurring-expenses", {
-    method: "GET",
-  });
-}
-
-export async function fetchRecurringExpense(id) {
-  return apiRequest(`/recurring-expenses/${id}`, {
-    method: "GET",
-  });
-}
-
-export async function updateRecurringExpense(id, payload) {
-  return apiRequest(`/recurring-expenses/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function removeRecurringExpense(id) {
-  return apiRequest(`/recurring-expenses/${id}`, {
-    method: "DELETE",
-  });
-}
-
-export async function trainExpenseModel() {
-  return apiRequest("/train-model", {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
-}
-
-export async function predictExpenseCategory({ title, amount }) {
-  return apiRequest("/predict-category", {
-    method: "POST",
-    body: JSON.stringify({ title, amount }),
-  });
+  return api.post("/expenses", payload);
 }
 
 export async function updateExpense(id, payload) {
-  return apiRequest(`/expenses/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
+  return api.put(`/expenses/${id}`, payload);
 }
 
 export async function removeExpense(id) {
-  return apiRequest(`/expenses/${id}`, {
-    method: "DELETE",
+  return api.delete(`/expenses/${id}`);
+}
+
+export async function createRecurringExpense(payload) {
+  return api.post("/recurring-expenses", payload);
+}
+
+export async function fetchRecurringExpenses() {
+  return api.get("/recurring-expenses");
+}
+
+export async function fetchRecurringExpense(id) {
+  return api.get(`/recurring-expenses/${id}`);
+}
+
+export async function updateRecurringExpense(id, payload) {
+  return api.put(`/recurring-expenses/${id}`, payload);
+}
+
+export async function removeRecurringExpense(id) {
+  return api.delete(`/recurring-expenses/${id}`);
+}
+
+export async function trainExpenseModel() {
+  return api.post("/train-model", {});
+}
+
+export async function predictExpenseCategory({ title, amount }) {
+  return api.post("/predict-category", { title, amount });
+}
+
+export async function processReceipt(imageB64, filename) {
+  return api.post("/process-receipt", {
+    image_b64: imageB64,
+    filename,
   });
 }

@@ -26,29 +26,43 @@ if (dotenvResult.error) {
 
 dotenv.config({
   path: path.join(__dirname, ".env"),
-  override: true
+  override: true,
 });
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
-const ML_PORT = Number(process.env.ML_PORT) > 0 ? Number(process.env.ML_PORT) : 5001;
+const ML_PORT =
+  Number(process.env.ML_PORT) > 0 ? Number(process.env.ML_PORT) : 5001;
+const OCR_SERVICE_URL = (
+  process.env.OCR_SERVICE_URL || "http://127.0.0.1:5002"
+).replace(/\/+$/, "");
+
+const OCR_REQUEST_TIMEOUT_MS =
+  Number(process.env.OCR_REQUEST_TIMEOUT_MS) > 0
+    ? Number(process.env.OCR_REQUEST_TIMEOUT_MS)
+    : 120000;
 const INTERNAL_ML_URL = `http://127.0.0.1:${ML_PORT}`;
 const PYTHON_EXECUTABLE = String(
-  process.env.PYTHON_EXECUTABLE || path.join(__dirname, "../ml-service/.venv/bin/python"),
+  process.env.PYTHON_EXECUTABLE ||
+    path.join(__dirname, "../ml-service/.venv/bin/python"),
 ).trim();
-const ML_REQUEST_TIMEOUT_MS = Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
-  ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
-  : 20000;
-const ML_MAX_RETRIES = Number(process.env.ML_MAX_RETRIES) >= 0
-  ? Number(process.env.ML_MAX_RETRIES)
-  : 2;
-const ML_RETRY_BASE_DELAY_MS = Number(process.env.ML_RETRY_BASE_DELAY_MS) > 0
-  ? Number(process.env.ML_RETRY_BASE_DELAY_MS)
-  : 800;
-const INTERNAL_ML_RESTART_DELAY_MS = Number(process.env.INTERNAL_ML_RESTART_DELAY_MS) > 0
-  ? Number(process.env.INTERNAL_ML_RESTART_DELAY_MS)
-  : 3000;
+const ML_REQUEST_TIMEOUT_MS =
+  Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
+    ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
+    : 20000;
+const ML_MAX_RETRIES =
+  Number(process.env.ML_MAX_RETRIES) >= 0
+    ? Number(process.env.ML_MAX_RETRIES)
+    : 2;
+const ML_RETRY_BASE_DELAY_MS =
+  Number(process.env.ML_RETRY_BASE_DELAY_MS) > 0
+    ? Number(process.env.ML_RETRY_BASE_DELAY_MS)
+    : 800;
+const INTERNAL_ML_RESTART_DELAY_MS =
+  Number(process.env.INTERNAL_ML_RESTART_DELAY_MS) > 0
+    ? Number(process.env.INTERNAL_ML_RESTART_DELAY_MS)
+    : 3000;
 const ML_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 const ML_PYTHON_IMPORT_PROBE = "import flask, sklearn, joblib";
 let fetchPromise;
@@ -63,11 +77,16 @@ if (!String(process.env.OPENAI_API_KEY || "").trim()) {
 }
 
 const DEFAULT_CORS_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:4173",
   "http://127.0.0.1:5500",
+  "http://127.0.0.1:8000",
   "http://127.0.0.1:5501",
   "http://127.0.0.1:4173",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
+  "http://127.0.0.1:5002",
 ];
 
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "")
@@ -75,7 +94,9 @@ const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const allowedOrigins = CORS_ORIGINS.length ? CORS_ORIGINS : DEFAULT_CORS_ORIGINS;
+const allowedOrigins = CORS_ORIGINS.length
+  ? CORS_ORIGINS
+  : DEFAULT_CORS_ORIGINS;
 
 // ✅ Enable CORS for your frontend (Live Server or direct file)
 app.use(
@@ -84,14 +105,18 @@ app.use(
     origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 const frontendDistPath = path.join(__dirname, "../dist");
 const frontendIndexPath = path.join(frontendDistPath, "index.html");
 
 function sendFrontendIndex(res) {
   if (!existsSync(frontendIndexPath)) {
-    res.status(404).send("Frontend build not found. Run `npm run build` in repository root.");
+    res
+      .status(404)
+      .send(
+        "Frontend build not found. Run `npm run build` in repository root.",
+      );
     return;
   }
 
@@ -99,31 +124,39 @@ function sendFrontendIndex(res) {
 }
 
 function getPythonExecutableCandidates() {
-  const localMlVenvPython = path.join(__dirname, "../ml-service/.venv/bin/python");
-  const renderMlVenvPython = "/opt/render/project/src/ml-service/.venv/bin/python";
+  const localMlVenvPython = path.join(
+    __dirname,
+    "../ml-service/.venv/bin/python",
+  );
+  const renderMlVenvPython =
+    "/opt/render/project/src/ml-service/.venv/bin/python";
 
-  return Array.from(new Set([
-    PYTHON_EXECUTABLE,
-    localMlVenvPython,
-    renderMlVenvPython,
-    "python3",
-    "python",
-  ].filter(Boolean)));
+  return Array.from(
+    new Set(
+      [
+        PYTHON_EXECUTABLE,
+        localMlVenvPython,
+        renderMlVenvPython,
+        "python3",
+        "python",
+      ].filter(Boolean),
+    ),
+  );
 }
 
 function probePythonCandidateForMl(candidate, workingDir) {
-  const probe = spawnSync(
-    candidate,
-    ["-c", ML_PYTHON_IMPORT_PROBE],
-    {
-      cwd: workingDir,
-      env: process.env,
-      encoding: "utf8",
-    },
-  );
+  const probe = spawnSync(candidate, ["-c", ML_PYTHON_IMPORT_PROBE], {
+    cwd: workingDir,
+    env: process.env,
+    encoding: "utf8",
+  });
 
   if (probe.error?.code === "ENOENT") {
-    return { ok: false, reason: "executable not found", missingExecutable: true };
+    return {
+      ok: false,
+      reason: "executable not found",
+      missingExecutable: true,
+    };
   }
 
   if (probe.status === 0) {
@@ -134,7 +167,10 @@ function probePythonCandidateForMl(candidate, workingDir) {
   const missingModuleMatch = output.match(/No module named ['"]([^'"]+)['"]/);
 
   if (missingModuleMatch) {
-    return { ok: false, reason: `missing Python package '${missingModuleMatch[1]}'` };
+    return {
+      ok: false,
+      reason: `missing Python package '${missingModuleMatch[1]}'`,
+    };
   }
 
   return {
@@ -144,7 +180,11 @@ function probePythonCandidateForMl(candidate, workingDir) {
 }
 
 function isInternalMlProcessRunning() {
-  return Boolean(internalMlProcess && internalMlProcess.exitCode === null && !internalMlProcess.killed);
+  return Boolean(
+    internalMlProcess &&
+    internalMlProcess.exitCode === null &&
+    !internalMlProcess.killed,
+  );
 }
 
 function ensureInternalMlService(trigger = "runtime") {
@@ -156,7 +196,9 @@ function ensureInternalMlService(trigger = "runtime") {
     return;
   }
 
-  logWarn(`⚠ Internal ML process not running during ${trigger}. Attempting restart.`);
+  logWarn(
+    `⚠ Internal ML process not running during ${trigger}. Attempting restart.`,
+  );
   startInternalMlService();
 }
 
@@ -176,10 +218,13 @@ function startInternalMlService() {
     return;
   }
 
-  if ((PYTHON_EXECUTABLE.includes("/") || PYTHON_EXECUTABLE.includes("\\")) && !existsSync(PYTHON_EXECUTABLE)) {
+  if (
+    (PYTHON_EXECUTABLE.includes("/") || PYTHON_EXECUTABLE.includes("\\")) &&
+    !existsSync(PYTHON_EXECUTABLE)
+  ) {
     logWarn(
-      `⚠ Configured PYTHON_EXECUTABLE not found: ${PYTHON_EXECUTABLE}. `
-      + "Will try fallback executables.",
+      `⚠ Configured PYTHON_EXECUTABLE not found: ${PYTHON_EXECUTABLE}. ` +
+        "Will try fallback executables.",
     );
   }
 
@@ -198,8 +243,12 @@ function startInternalMlService() {
     if (index >= pythonCandidates.length) {
       internalMlStarting = false;
       internalMlProcess = null;
-      logError("❌ Unable to start internal ML service: no usable Python executable found.");
-      logError("ℹ Ensure Render build command installs ML dependencies before start.");
+      logError(
+        "❌ Unable to start internal ML service: no usable Python executable found.",
+      );
+      logError(
+        "ℹ Ensure Render build command installs ML dependencies before start.",
+      );
       return;
     }
 
@@ -218,14 +267,18 @@ function startInternalMlService() {
 
       internalMlStarting = false;
       internalMlProcess = null;
-      logError(`❌ Unable to start internal ML service with ${candidate}: ${probeResult.reason}.`);
+      logError(
+        `❌ Unable to start internal ML service with ${candidate}: ${probeResult.reason}.`,
+      );
       logError(
         "ℹ Install Python dependencies for the runtime interpreter (for example `python3 -m pip install -r ml-service/requirements.txt`).",
       );
       return;
     }
 
-    logInfo(`🤖 Starting internal ML service using ${candidate} on port ${ML_PORT}`);
+    logInfo(
+      `🤖 Starting internal ML service using ${candidate} on port ${ML_PORT}`,
+    );
     const child = spawn(candidate, [mlScriptPath], spawnOptions);
     let fallbackTriggered = false;
 
@@ -239,7 +292,9 @@ function startInternalMlService() {
       if (error?.code === "ENOENT" && index < pythonCandidates.length - 1) {
         fallbackTriggered = true;
         const nextCandidate = pythonCandidates[index + 1];
-        logWarn(`⚠ Python executable not found: ${candidate}. Retrying with ${nextCandidate}.`);
+        logWarn(
+          `⚠ Python executable not found: ${candidate}. Retrying with ${nextCandidate}.`,
+        );
         launchWithCandidate(index + 1);
         return;
       }
@@ -247,7 +302,9 @@ function startInternalMlService() {
       internalMlStarting = false;
       internalMlProcess = null;
       logError("❌ Failed to launch internal ML service:", error);
-      logError("ℹ Ensure Render build command installs ML dependencies before start.");
+      logError(
+        "ℹ Ensure Render build command installs ML dependencies before start.",
+      );
     });
 
     child.on("exit", (code, signal) => {
@@ -263,7 +320,10 @@ function startInternalMlService() {
       logError(`❌ Internal ML service stopped (${reason})`);
 
       if (!shuttingDown) {
-        setTimeout(() => ensureInternalMlService("ml process exit"), INTERNAL_ML_RESTART_DELAY_MS);
+        setTimeout(
+          () => ensureInternalMlService("ml process exit"),
+          INTERNAL_ML_RESTART_DELAY_MS,
+        );
       }
     });
   }
@@ -358,21 +418,25 @@ async function callMlService(pathname, { method = "GET", body } = {}) {
       }
 
       const message =
-        payload.json?.error
-        || payload.json?.message
-        || payload.text
-        || `HTTP ${response.status}`;
+        payload.json?.error ||
+        payload.json?.message ||
+        payload.text ||
+        `HTTP ${response.status}`;
 
       const retryable = ML_RETRYABLE_STATUSES.has(response.status);
       if (!retryable || attempt >= ML_MAX_RETRIES) {
-        const error = new Error(`ML service error (${response.status}): ${message}`);
+        const error = new Error(
+          `ML service error (${response.status}): ${message}`,
+        );
         error.status = response.status;
         throw error;
       }
     } catch (error) {
       const isNetworkOrTimeout =
-        error?.name === "AbortError"
-        || /ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(String(error?.message || ""));
+        error?.name === "AbortError" ||
+        /ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(
+          String(error?.message || ""),
+        );
 
       if (isNetworkOrTimeout) {
         ensureInternalMlService(`failed call to ${pathname}`);
@@ -383,7 +447,7 @@ async function callMlService(pathname, { method = "GET", body } = {}) {
       }
     }
 
-    const backoff = Math.min(5000, ML_RETRY_BASE_DELAY_MS * (2 ** attempt));
+    const backoff = Math.min(5000, ML_RETRY_BASE_DELAY_MS * 2 ** attempt);
     await delay(backoff);
   }
 
@@ -397,10 +461,12 @@ if (existsSync(frontendDistPath)) {
 app.use("/data", express.static(path.join(__dirname, "../src/data")));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.get(["/", "/index.html", "/auth.html", "/expenses.html", "/analytics.html"], (_req, res) => {
-  sendFrontendIndex(res);
-});
-
+app.get(
+  ["/", "/index.html", "/auth.html", "/expenses.html", "/analytics.html"],
+  (_req, res) => {
+    sendFrontendIndex(res);
+  },
+);
 
 // ✅ API routes
 app.use("/api/expenses", expenseRoutes);
@@ -420,7 +486,7 @@ logInfo(
 app.post("/api/train-model", requireAuth, async (req, res) => {
   try {
     const userId = String(req.user.id);
-    
+
     // Fetch authenticated user's expenses from database directly
     const expenses = await prisma.expense.findMany({
       where: { userId: req.user.id },
@@ -428,9 +494,9 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
     });
 
     if (expenses.length < 10) {
-      return res.status(400).json({ 
-        error: 'Need at least 10 expenses to train the model',
-        current: expenses.length 
+      return res.status(400).json({
+        error: "Need at least 10 expenses to train the model",
+        current: expenses.length,
       });
     }
 
@@ -443,10 +509,11 @@ app.post("/api/train-model", requireAuth, async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    logError('❌ Training error:', error);
+    logError("❌ Training error:", error);
     const status = Number(error?.status || 503);
     res.status(status >= 400 && status < 600 ? status : 503).json({
-      error: "ML training is temporarily unavailable. Please retry in a minute.",
+      error:
+        "ML training is temporarily unavailable. Please retry in a minute.",
       detail: error.message,
     });
   }
@@ -498,25 +565,34 @@ app.get("/api/ml-health", async (_req, res) => {
   } catch (error) {
     logError("❌ ML health check error:", error);
     const status = Number(error?.status || 503);
-    res.status(status >= 400 && status < 600 ? status : 503).json({ error: error.message });
+    res
+      .status(status >= 400 && status < 600 ? status : 503)
+      .json({ error: error.message });
   }
 });
 
-// ✅ Proxy endpoint to ML service for receipt processing
+// Proxy endpoint to the OCR microservice for receipt processing
 app.post("/api/process-receipt", async (req, res) => {
   try {
-    const body = req.body || {};
-    const result = await callMlService("/api/process-receipt", {
-      method: "POST",
-      body,
-    });
-    res.json(result);
+    const response = await fetch(
+      `${OCR_SERVICE_URL}/api/process-receipt`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(req.body || {}),
+      }
+    );
+
+    const result = await response.json();
+
+    return res.status(response.status).json(result);
   } catch (error) {
-    logError("❌ Receipt processing error:", error);
-    const status = Number(error?.status || 503);
-    res.status(status >= 400 && status < 600 ? status : 503).json({
-      error: "ML receipt processing is temporarily unavailable.",
-      detail: String(error?.message || error),
+    logError("OCR receipt processing error:", error);
+
+    return res.status(503).json({
+      error: "OCR service is temporarily unavailable.",
     });
   }
 });
@@ -533,9 +609,10 @@ app.use((req, res) => {
 startInternalMlService();
 
 let recurringMaterializerRunning = false;
-const RECURRING_MATERIALIZER_INTERVAL_MS = Number(process.env.RECURRING_MATERIALIZER_INTERVAL_MS) > 0
-  ? Number(process.env.RECURRING_MATERIALIZER_INTERVAL_MS)
-  : 10_000;
+const RECURRING_MATERIALIZER_INTERVAL_MS =
+  Number(process.env.RECURRING_MATERIALIZER_INTERVAL_MS) > 0
+    ? Number(process.env.RECURRING_MATERIALIZER_INTERVAL_MS)
+    : 10_000;
 
 async function runRecurringMaterializer(trigger) {
   if (recurringMaterializerRunning || shuttingDown) {
@@ -555,5 +632,8 @@ async function runRecurringMaterializer(trigger) {
 app.listen(PORT, () => {
   logInfo(`✅ Server running at http://127.0.0.1:${PORT}`);
   runRecurringMaterializer("startup");
-  setInterval(() => runRecurringMaterializer("interval"), RECURRING_MATERIALIZER_INTERVAL_MS);
+  setInterval(
+    () => runRecurringMaterializer("interval"),
+    RECURRING_MATERIALIZER_INTERVAL_MS,
+  );
 });
