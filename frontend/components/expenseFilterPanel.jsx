@@ -1,12 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
-import Button from "./button";
-import Calendar from "./calendar";
-import { formatCurrency } from "../lib/api";
+import { useEffect, useRef, useState } from "react";
 import {
-  CATEGORY_COLORS,
   CATEGORY_GROUPS,
+  CATEGORY_OPTIONS,
   getCategoryDisplay,
 } from "../lib/categoryConfig";
+import { formatCurrency } from "../utils/currency";
+import Button from "./ui/button";
+import Calendar from "./ui/calendar";
 
 const summaryCardClasses =
   "rounded-lg border bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800 sm:p-4";
@@ -120,7 +120,9 @@ export default function ExpenseFilterPanel({
       selectedCategoryFilters.includes(value),
     ).length;
     const accentColor =
-      CATEGORY_COLORS[values[0]] || CATEGORY_COLORS.uncategorized;
+      CATEGORY_OPTIONS.find((option) => option.value === values[0])?.color ??
+      CATEGORY_OPTIONS.find((option) => option.value === "uncategorized")
+        ?.color;
 
     return {
       label: group.label,
@@ -435,9 +437,7 @@ export default function ExpenseFilterPanel({
                           <span
                             className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white"
                             style={{
-                              backgroundColor:
-                                CATEGORY_COLORS[option.value] ||
-                                CATEGORY_COLORS.uncategorized,
+                              backgroundColor: option.color,
                             }}
                           >
                             <i className={option.icon} aria-hidden="true" />

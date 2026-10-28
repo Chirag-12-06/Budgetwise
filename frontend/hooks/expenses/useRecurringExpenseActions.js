@@ -1,14 +1,13 @@
 import { useState } from "react";
+import { getTodayDate } from "../../utils/date.js";
+import { removeExpense } from "../../api/expense.api.js";
 import {
   fetchRecurringExpense,
-  removeExpense,
   removeRecurringExpense,
-  getTodayDate,
-} from "../../lib/api.js";
+} from "../../api/recurringExpense.api.js";
 
 import { formatDateKey } from "../../utils/date.js";
 import { ROUTES } from "../../lib/routes.js";
-
 
 export default function useRecurringExpenseActions({
   editingExpenseId,

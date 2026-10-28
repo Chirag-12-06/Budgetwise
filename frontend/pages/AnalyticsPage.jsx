@@ -1,9 +1,9 @@
-import Button from "../components/button";
+import Button from "../components/ui/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
-import PanelCard from "../components/panelCard";
+import PanelCard from "../components/ui/panelCard";
 import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
-import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
+import { formatCurrency } from "../utils/currency";
+import { CATEGORY_OPTIONS, getCategoryDisplay } from "../lib/categoryConfig";
 
 function hexToRgba(hex, alpha = 1) {
   if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
@@ -120,14 +120,16 @@ export default function AnalyticsPage({
       </PanelCard>
 
       <PanelCard>
-          <div className="flex flex-col gap-0 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-0 lg:flex-row lg:items-start lg:justify-between">
           <h3 className="text-xl font-bold whitespace-nowrap">{chartTitle}</h3>
           <div className="flex w-full flex-col items-end gap-1.5">
             <div className="inline-flex items-center rounded-xl border dark:border-gray-700 dark:bg-gray-900/40 p-1.5">
               {options.map((option, index) => (
                 <button
                   key={option}
-                  onClick={() => handleAnalyticsGroupByChange(option.toLowerCase())}
+                  onClick={() =>
+                    handleAnalyticsGroupByChange(option.toLowerCase())
+                  }
                   className={`
                   relative px-4 py-2 text-sm font-medium transition-all duration-200
                   ${
@@ -218,8 +220,12 @@ export default function AnalyticsPage({
                       bubble.categoryKey,
                     );
                     const bubbleColor =
-                      CATEGORY_COLORS[bubble.categoryKey] ||
-                      CATEGORY_COLORS.uncategorized;
+                      CATEGORY_OPTIONS.find(
+                        (option) => option.value === bubble.categoryKey,
+                      )?.color ??
+                      CATEGORY_OPTIONS.find(
+                        (option) => option.value === "uncategorized",
+                      )?.color;
                     const textColor = getContrastTextColor(bubbleColor);
                     const badgeLabel = `${bubble.percent.toFixed(1)}%`;
                     const estimatedCharWidthRatio = 0.56;
@@ -299,8 +305,12 @@ export default function AnalyticsPage({
                 {categoryEntries.map(([categoryKey, total]) => {
                   const category = getCategoryDisplay(categoryKey);
                   const color =
-                    CATEGORY_COLORS[categoryKey] ||
-                    CATEGORY_COLORS.uncategorized;
+                    CATEGORY_OPTIONS.find(
+                      (option) => option.value === categoryKey,
+                    )?.color ??
+                    CATEGORY_OPTIONS.find(
+                      (option) => option.value === "uncategorized",
+                    )?.color;
                   const percent = totalCategoryAmount
                     ? (total / totalCategoryAmount) * 100
                     : 0;

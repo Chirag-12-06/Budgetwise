@@ -1,10 +1,10 @@
 import {
   forgotPasswordUser,
-  loginUser,
-  signupUser,
   updateProfileUser,
   hasToken,
-} from "../../lib/auth";
+  loginUser,
+  signupUser,
+} from "../../api/auth.api";
 import { ROUTES } from "../../lib/routes";
 
 export default function useAuthController({

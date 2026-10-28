@@ -1,6 +1,6 @@
 import Chart from "chart.js/auto";
 import { useEffect, useRef } from "react";
-import { formatCurrency } from "../../lib/api";
+import { formatCurrency } from "../../utils/currency";
 
 export default function useTrendChart({
   visibleTrendPoints,

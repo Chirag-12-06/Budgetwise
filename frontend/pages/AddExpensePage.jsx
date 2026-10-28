@@ -1,38 +1,17 @@
 import { useRef, useState } from "react";
-import Button from "../components/button";
-import Calendar from "../components/calendar";
-import PanelCard from "../components/panelCard";
-import UnderDevelopmentDialog from "../components/underDevelopmentDialog";
+import Button from "../components/ui/button";
+import Calendar from "../components/ui/calendar";
+import PanelCard from "../components/ui/panelCard";
+import UnderDevelopmentDialog from "../components/ui/underDevelopmentDialog";
 import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
 import useCategoryPrediction from "../hooks/expenses/useCategoryPrediction";
-import {
-  CATEGORY_COLORS,
-  CATEGORY_GROUPS,
-  CATEGORY_OPTIONS,
-} from "../lib/categoryConfig";
-import { processReceipt } from "../lib/api";
+import { CATEGORY_GROUPS, CATEGORY_OPTIONS } from "../lib/categoryConfig";
+import { processReceipt } from "../api/receipt.api";
+import resolveReceiptItemAmount from "../utils/receiptItemAmount";
+import { getNextDateKey } from "../utils/date";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
-
-function getNextDateKey(dateKey) {
-  const [year, month, day] = String(dateKey || "")
-    .split("-")
-    .map((value) => Number(value));
-  if (
-    !Number.isFinite(year) ||
-    !Number.isFinite(month) ||
-    !Number.isFinite(day)
-  ) {
-    return "";
-  }
-
-  const nextDate = new Date(year, month - 1, day + 1);
-  const nextYear = nextDate.getFullYear();
-  const nextMonth = String(nextDate.getMonth() + 1).padStart(2, "0");
-  const nextDay = String(nextDate.getDate()).padStart(2, "0");
-  return `${nextYear}-${nextMonth}-${nextDay}`;
-}
 
 function frequencyLabel(frequency, count) {
   const n = Number(count);
@@ -59,41 +38,6 @@ const cancelButtonClasses =
   "w-full rounded-xl bg-red-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-70";
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
-
-function normalizeReceiptMoney(value) {
-  if (value === null || value === undefined || value === "") {
-    return 0;
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  const asNumber = Number(String(value).replace(/[^0-9.-]/g, ""));
-  if (Number.isFinite(asNumber)) {
-    return asNumber;
-  }
-  return 0;
-}
-
-function resolveReceiptItemAmount(item) {
-  if (!item || typeof item !== "object") {
-    return 0;
-  }
-
-  const finalAmount = normalizeReceiptMoney(item.final_item_amount);
-  if (finalAmount) {
-    return finalAmount;
-  }
-
-  const unitPrice = normalizeReceiptMoney(item.base_amount);
-  const quantity = normalizeReceiptMoney(item.quantity || 1);
-  if (unitPrice) {
-    return unitPrice * (quantity || 1);
-  }
-
-  return 0;
-}
 
 export default function AddExpensePage({
   expenses,
@@ -400,9 +344,7 @@ export default function AddExpensePage({
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
                       style={{
-                        backgroundColor:
-                          CATEGORY_COLORS[selectedCategory.value] ||
-                          CATEGORY_COLORS.uncategorized,
+                        backgroundColor: selectedCategory.color,
                       }}
                     >
                       <i className={selectedCategory.icon} aria-hidden="true" />
@@ -459,9 +401,7 @@ export default function AddExpensePage({
                       </p>
                       <div className="grid gap-1">
                         {group.options.map((option) => {
-                          const optionColor =
-                            CATEGORY_COLORS[option.value] ||
-                            CATEGORY_COLORS.uncategorized;
+                          const optionColor = option.color;
                           const isSelected =
                             expenseForm.category === option.value;
 

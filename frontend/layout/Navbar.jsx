@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import Button from "../components/button";
+import Button from "../components/ui/button";
 import { ROUTES } from "../lib/routes";
 
 export default function Navbar({ user, handleLogout, dark, setDark }) {

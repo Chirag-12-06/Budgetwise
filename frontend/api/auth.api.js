@@ -1,4 +1,4 @@
-import api from "./apiClient";
+import api from "./api";
 
 const USER_KEY = "bw-user";
 const USER_ID_KEY = "bw-user-id";
@@ -67,12 +67,9 @@ function getAvatarForEmail(email) {
 }
 
 function storeSession(user, token) {
-  const avatarDataUrl =
-    user?.avatarDataUrl || getAvatarForEmail(user?.email);
+  const avatarDataUrl = user?.avatarDataUrl || getAvatarForEmail(user?.email);
 
-  const userWithAvatar = avatarDataUrl
-    ? { ...user, avatarDataUrl }
-    : user;
+  const userWithAvatar = avatarDataUrl ? { ...user, avatarDataUrl } : user;
 
   localStorage.setItem(USER_KEY, JSON.stringify(userWithAvatar));
   localStorage.setItem(USER_ID_KEY, String(user.id));
@@ -118,12 +115,7 @@ export async function loginUser({ email, password }) {
   return { ...data, user: userWithAvatar };
 }
 
-export async function signupUser({
-  name,
-  email,
-  password,
-  avatarDataUrl,
-}) {
+export async function signupUser({ name, email, password, avatarDataUrl }) {
   const data = await api.post("/auth/signup", {
     name,
     email,
@@ -140,9 +132,7 @@ export async function signupUser({
   const userWithAvatar = {
     ...data.user,
     avatarDataUrl:
-      data.user?.avatarDataUrl ||
-      avatarDataUrl ||
-      getAvatarForEmail(email),
+      data.user?.avatarDataUrl || avatarDataUrl || getAvatarForEmail(email),
   };
 
   storeSession(userWithAvatar, data.token);
@@ -160,11 +150,7 @@ export async function resetPasswordUser(token, password) {
   });
 }
 
-export async function updateProfileUser({
-  name,
-  email,
-  avatarDataUrl,
-}) {
+export async function updateProfileUser({ name, email, avatarDataUrl }) {
   const previousUser = getStoredUser();
   const previousEmail = previousUser?.email || "";
 

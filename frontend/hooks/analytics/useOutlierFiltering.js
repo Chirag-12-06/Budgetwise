@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { formatCurrency } from "../../lib/api";
+import { formatCurrency } from "../../utils/currency";
 import { detectOutliers, isWithinOutlierBounds } from "../../utils/analytics";
 
 export default function useOutlierFiltering({

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { predictExpenseCategory, trainExpenseModel } from "../../lib/api";
+import { predictExpenseCategory, trainExpenseModel } from "../../api/prediction.api";
 
 export default function useCategoryPrediction({
   expenses,

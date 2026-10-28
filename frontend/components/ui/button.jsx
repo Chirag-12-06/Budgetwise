@@ -44,7 +44,8 @@ export default function Button({
     stateClasses = variantClasses.filterActive;
   }
 
-  const resolvedBaseClasses = variant === "plain" ? plainBaseButtonClasses : baseButtonClasses;
+  const resolvedBaseClasses =
+    variant === "plain" ? plainBaseButtonClasses : baseButtonClasses;
 
   return (
     <button

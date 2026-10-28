@@ -1,9 +1,9 @@
-import Button from "../components/button";
+import Button from "../components/ui/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
-import PanelCard from "../components/panelCard";
+import PanelCard from "../components/ui/panelCard";
 import RecurringExpenseActionDialog from "../components/recurringExpenseActionDialog";
-import { formatCurrency } from "../lib/api";
-import { CATEGORY_COLORS, getCategoryDisplay } from "../lib/categoryConfig";
+import { formatCurrency } from "../utils/currency";
+import { getCategoryDisplay, CATEGORY_OPTIONS } from "../lib/categoryConfig";
 import { formatDateDMY } from "../utils/date";
 
 export default function ExpensesPage({
@@ -58,8 +58,12 @@ export default function ExpensesPage({
             {filteredExpenses.map((expense) => {
               const category = getCategoryDisplay(expense.category);
               const color =
-                CATEGORY_COLORS[expense.category] ||
-                CATEGORY_COLORS.uncategorized;
+                CATEGORY_OPTIONS.find(
+                  (option) => option.value === expense.category,
+                )?.color ??
+                CATEGORY_OPTIONS.find(
+                  (option) => option.value === "uncategorized",
+                )?.color;
 
               return (
                 <article

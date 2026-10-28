@@ -110,3 +110,31 @@ export function formatTrendLabel(label, groupBy) {
 
   return label;
 }
+
+export function getTodayDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+export function getNextDateKey(dateKey) {
+  const [year, month, day] = String(dateKey || "")
+    .split("-")
+    .map((value) => Number(value));
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    return "";
+  }
+
+  const nextDate = new Date(year, month - 1, day + 1);
+  const nextYear = nextDate.getFullYear();
+  const nextMonth = String(nextDate.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(nextDate.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+}

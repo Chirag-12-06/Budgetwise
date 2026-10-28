@@ -1,4 +1,4 @@
-import { getTodayDate } from "../lib/api";
+import { getTodayDate } from "./date";
 
 export function createDefaultExpenseForm() {
   return {

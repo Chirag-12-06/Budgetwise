@@ -94,8 +94,11 @@ function App() {
   return (
     <>
       <Routes>
-        <Route element={<AuthLayout/>}>
-          <Route path={ROUTES.LOGIN} element={<AuthPage {...authPageProps} />} />
+        <Route element={<AuthLayout />}>
+          <Route
+            path={ROUTES.LOGIN}
+            element={<AuthPage {...authPageProps} />}
+          />
 
           <Route
             path={ROUTES.SIGNUP}
@@ -136,7 +139,9 @@ function App() {
                   isEditingFuture={expenseForm.editScope === "future"}
                   isEditingRecurringSeries={editingRecurringExpenseId !== null}
                   handleCancelEditExpense={handleCancelEditExpense}
-                  handleCancelEditRecurringExpense={handleCancelEditRecurringExpense}
+                  handleCancelEditRecurringExpense={
+                    handleCancelEditRecurringExpense
+                  }
                 />
               }
             />

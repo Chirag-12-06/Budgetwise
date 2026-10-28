@@ -3,4 +3,3 @@ flask-cors==6.0.2
 scikit-learn==1.8.0
 numpy==2.3.5
 googletrans==4.0.2
--r OCR/requirements.txt
