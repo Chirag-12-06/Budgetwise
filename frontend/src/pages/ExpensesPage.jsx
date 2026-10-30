@@ -51,7 +51,7 @@ export default function ExpensesPage({
           summaryExpenses={filteredExpenses}
         />
       </PanelCard>
-
+      
       <PanelCard>
         {filteredExpenses.length ? (
           <div className="max-h-[52vh] min-h-48 overflow-y-auto grid gap-3.5">

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/ui/button";
-import { ROUTES } from "../lib/routes";
+import { ROUTES } from "../routes/routes";
 
 export default function Navbar({ user, handleLogout, dark, setDark }) {
   const displayName = user?.name || user?.email || "Budgetwise user";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MAX_AVATAR_FILE_SIZE } from "../constants/profileConstants";
-import {ROUTES} from "../lib/routes";
+import {ROUTES} from "../routes/routes";
 import { Mail, Lock, Eye, EyeOff, EyeClosed } from "lucide-react";
 
 const authTabClasses =

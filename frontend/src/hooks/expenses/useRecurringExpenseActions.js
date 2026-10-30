@@ -7,7 +7,7 @@ import {
 } from "../../api/recurringExpense.api.js";
 
 import { formatDateKey } from "../../utils/date.js";
-import { ROUTES } from "../../lib/routes.js";
+import { ROUTES } from "../../routes/routes.js";
 
 export default function useRecurringExpenseActions({
   editingExpenseId,

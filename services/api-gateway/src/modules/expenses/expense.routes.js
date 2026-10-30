@@ -7,28 +7,12 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-/**
- * @route   GET /api/expenses
- * @desc    Fetch all expenses
- */
 router.get("/", getExpenses);
 
-/**
- * @route   PUT /api/expenses/:id
- * @desc    Update an expense by id
- */
 router.put("/:id", updateExpense);
 
-/**
- * @route   POST /api/expenses
- * @desc    Add a new expense
- */
 router.post("/", addExpense);
 
-/**
- * @route   DELETE /api/expenses/:id
- * @desc    Delete an expense by id
- */
 router.delete("/:id", deleteExpense);
 
 

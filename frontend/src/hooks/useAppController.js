@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getStoredUser, hasToken, logoutUser } from "../api/auth.api";
-import { ROUTES } from "../lib/routes";
+import { ROUTES } from "../routes/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
 import {
   createDefaultExpenseForm,

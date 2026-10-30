@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  schemas   = ["auth", "expenses", "recurring"]
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+  @@schema("auth")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+  @@schema("auth")
+}
+
+model UserPreference {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+
+  reportingCurrency String   @default("INR") @map("reporting_currency") @db.Char(3)
+  timeZone          String   @default("Asia/Kolkata") @map("time_zone") @db.VarChar(100)
+  dateFormat        String   @default("DD/MM/YYYY") @map("date_format") @db.VarChar(30)
+  language          String   @default("en") @db.VarChar(10)
+
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("user_preferences")
+  @@schema("auth")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+
+  @@schema("expenses")
+}
+
+model Transaction {
+  id              String          @id @default(uuid()) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  categoryId String @map("category_id") @db.VarChar(50)
+
+  type            TransactionType
+  title           String          @db.VarChar(200)
+  amount          Decimal         @db.Decimal(19, 4)
+  currencyCode    String          @map("currency_code") @db.Char(3)
+
+  transactionDate DateTime        @map("transaction_date") @db.Date
+
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([userId, transactionDate])
+  @@index([userId, type, transactionDate])
+  @@index([categoryId])
+
+  @@map("transactions")
+  @@schema("expenses")
+}
+
+model ExpenseGroup {
+  id   String @id @db.VarChar(50)
+  name String @db.VarChar(100)
+  icon String @db.VarChar(100)
+  color String @db.VarChar(7)
+
+  categories ExpenseCategory[]
+
+  @@map("budget_categories_groups")
+  @@schema("expenses")
+}
+
+model ExpenseCategory {
+  id      String @id @db.VarChar(50)
+  name    String @db.VarChar(100)
+  icon    String @db.VarChar(100)
+  color   String @db.VarChar(7)
+  groupId String @map("group_id") @db.VarChar(50)
+
+  group        ExpenseGroup @relation(fields: [groupId], references: [id])
+  transactions Transaction[]
+  budgets      BudgetCategory[]
+
+  @@map("expense_categories")
+  @@schema("expenses")
+}
+
+model BudgetCategory {
+  budgetId   String @map("budget_id") @db.Uuid
+  categoryId String @map("category_id") @db.VarChar(50)
+
+  budget   Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  @@id([budgetId, categoryId])
+  @@index([categoryId])
+
+  @@map("budget_categories")
+  @@schema("expenses")
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+
+  @@schema("expenses")
+}
+
+model Budget {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+
+  name         String       @db.VarChar(100)
+  amount       Decimal      @db.Decimal(19, 4)
+  currencyCode String       @map("currency_code") @db.Char(3)
+
+  period       BudgetPeriod
+  startDate    DateTime     @map("start_date") @db.Date
+  endDate      DateTime?    @map("end_date") @db.Date
+
+  isActive     Boolean      @default(true) @map("is_active")
+
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  categories   BudgetCategory[]
+
+  @@index([userId, isActive])
+  @@index([userId, startDate, endDate])
+
+  @@map("budgets")
+  @@schema("expenses")
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+
+  @@schema("recurring")
+}
+
+enum RecurrenceEndType {
+  FOREVER
+  COUNT
+  UNTIL_DATE
+
+  @@schema("recurring")
+}
+
+model RecurringExpense {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @map("user_id") @db.Uuid
+
+  title           String             @db.VarChar(200)
+  amount          Decimal            @db.Decimal(19, 4)
+  currencyCode    String             @map("currency_code") @db.Char(3)
+  categoryId      String             @map("category_id") @db.VarChar(50)
+  type            TransactionType
+
+  frequency       RecurrenceFrequency
+  intervalValue   Int                 @default(1) @map("interval_value")
+
+  startDate       DateTime            @map("start_date") @db.Date
+  endType         RecurrenceEndType   @map("end_type")
+  endCount        Int?                @map("end_count")
+  endDate         DateTime?           @map("end_date")
+
+  occurrencesDone Int                 @default(0) @map("occurrences_done")
+  nextDueDate     DateTime            @map("next_due_date") @db.Date
+
+  isActive        Boolean             @default(true) @map("is_active")
+
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  occurrences     RecurringOccurrence[]
+
+  @@index([nextDueDate])
+  @@index([userId, isActive])
+
+  @@map("recurring_expenses")
+  @@schema("recurring")
+}
+
+enum OccurrenceStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+  FAILED
+
+  @@schema("recurring")
+}
+
+model RecurringOccurrence {
+  id                 String           @id @default(uuid()) @db.Uuid
+  recurringExpenseId String           @map("recurring_expense_id") @db.Uuid
+  transactionId      String?          @map("transaction_id") @db.Uuid
+
+  scheduledDate      DateTime         @map("scheduled_date") @db.Date
+  status             OccurrenceStatus @default(PENDING)
+
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recurringExpense RecurringExpense @relation(fields: [recurringExpenseId], references: [id], onDelete: Cascade)
+
+  @@unique([recurringExpenseId, scheduledDate])
+  @@index([scheduledDate, status])
+  @@index([transactionId])
+
+  @@map("recurring_occurrences")
+  @@schema("recurring")
+}

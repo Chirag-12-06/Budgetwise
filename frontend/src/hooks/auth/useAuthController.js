@@ -5,7 +5,7 @@ import {
   loginUser,
   signupUser,
 } from "../../api/auth.api";
-import { ROUTES } from "../../lib/routes";
+import { ROUTES } from "../../routes/routes";
 
 export default function useAuthController({
   loginForm,

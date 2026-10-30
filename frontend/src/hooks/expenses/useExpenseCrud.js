@@ -9,7 +9,7 @@ import {
   removeExpense,
   updateExpense,
 } from "../../api/expense.api";
-import { ROUTES } from "../../lib/routes";
+import { ROUTES } from "../../routes/routes";
 import { formatDateKey } from "../../utils/date";
 import {
   createDefaultExpenseForm,

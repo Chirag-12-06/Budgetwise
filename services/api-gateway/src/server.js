@@ -1,18 +1,11 @@
-import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import path from "path";
+import express from "express";
 import { existsSync } from "fs";
 import { spawn, spawnSync } from "node:child_process";
+import path from "path";
 import { fileURLToPath } from "url";
-import { setTimeout as delay } from "node:timers/promises";
-import { PrismaClient } from "@prisma/client";
-import expenseRoutes from "./modules/expenses/expense.routes.js";
-import recurringExpenseRoutes from "./modules/recurrring-expenses/recurringExpense.routes.js";
-import { addRecurringExpense } from "./modules/recurrring-expenses/recurringExpense.controller.js";
 import { materializeDueRecurringExpensesForAllUsers } from "./modules/expenses/expense.controller.js";
-import authRoutes from "./modules/auth/auth.routes.js";
-import { requireAuth } from "./middleware/authMiddleware.js";
 import { logError, logInfo, logWarn } from "./utils/logger.js";
 
 // ✅ Handle ES modules dirname and load server-local env file
@@ -30,42 +23,19 @@ dotenv.config({
 });
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
 const ML_PORT =
   Number(process.env.ML_PORT) > 0 ? Number(process.env.ML_PORT) : 5001;
-const OCR_SERVICE_URL = (
-  process.env.OCR_SERVICE_URL || "http://127.0.0.1:5002"
-).replace(/\/+$/, "");
 
-const OCR_REQUEST_TIMEOUT_MS =
-  Number(process.env.OCR_REQUEST_TIMEOUT_MS) > 0
-    ? Number(process.env.OCR_REQUEST_TIMEOUT_MS)
-    : 120000;
-const INTERNAL_ML_URL = `http://127.0.0.1:${ML_PORT}`;
 const PYTHON_EXECUTABLE = String(
   process.env.PYTHON_EXECUTABLE ||
     path.join(__dirname, "../ml-service/.venv/bin/python"),
 ).trim();
-const ML_REQUEST_TIMEOUT_MS =
-  Number(process.env.ML_REQUEST_TIMEOUT_MS) > 0
-    ? Number(process.env.ML_REQUEST_TIMEOUT_MS)
-    : 20000;
-const ML_MAX_RETRIES =
-  Number(process.env.ML_MAX_RETRIES) >= 0
-    ? Number(process.env.ML_MAX_RETRIES)
-    : 2;
-const ML_RETRY_BASE_DELAY_MS =
-  Number(process.env.ML_RETRY_BASE_DELAY_MS) > 0
-    ? Number(process.env.ML_RETRY_BASE_DELAY_MS)
-    : 800;
 const INTERNAL_ML_RESTART_DELAY_MS =
   Number(process.env.INTERNAL_ML_RESTART_DELAY_MS) > 0
     ? Number(process.env.INTERNAL_ML_RESTART_DELAY_MS)
     : 3000;
-const ML_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 const ML_PYTHON_IMPORT_PROBE = "import flask, sklearn, joblib";
-let fetchPromise;
 let internalMlProcess = null;
 let internalMlStarting = false;
 let shuttingDown = false;
@@ -356,103 +326,41 @@ process.on("exit", () => {
   stopInternalMlService("process exit");
 });
 
-async function getFetch() {
-  if (!fetchPromise) {
-    fetchPromise = import("node-fetch").then((module) => module.default);
-  }
+// async function getFetch() {
+//   if (!fetchPromise) {
+//     fetchPromise = import("node-fetch").then((module) => module.default);
+//   }
 
-  return fetchPromise;
-}
+//   return fetchPromise;
+// }
 
-async function parseResponseBody(response) {
-  const text = await response.text();
+// async function parseResponseBody(response) {
+//   const text = await response.text();
 
-  if (!text) {
-    return { text: "", json: null };
-  }
+//   if (!text) {
+//     return { text: "", json: null };
+//   }
 
-  try {
-    return { text, json: JSON.parse(text) };
-  } catch {
-    return { text, json: null };
-  }
-}
+//   try {
+//     return { text, json: JSON.parse(text) };
+//   } catch {
+//     return { text, json: null };
+//   }
+// }
 
-async function fetchWithTimeout(fetchFn, url, options, timeoutMs) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+// async function fetchWithTimeout(fetchFn, url, options, timeoutMs) {
+//   const controller = new AbortController();
+//   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    return await fetchFn(url, {
-      ...options,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function callMlService(pathname, { method = "GET", body } = {}) {
-  ensureInternalMlService("ml request");
-
-  const fetchFn = await getFetch();
-  const url = `${INTERNAL_ML_URL}${pathname}`;
-
-  for (let attempt = 0; attempt <= ML_MAX_RETRIES; attempt += 1) {
-    try {
-      const response = await fetchWithTimeout(
-        fetchFn,
-        url,
-        {
-          method,
-          headers: body ? { "Content-Type": "application/json" } : undefined,
-          body: body ? JSON.stringify(body) : undefined,
-        },
-        ML_REQUEST_TIMEOUT_MS,
-      );
-
-      const payload = await parseResponseBody(response);
-
-      if (response.ok) {
-        return payload.json ?? {};
-      }
-
-      const message =
-        payload.json?.error ||
-        payload.json?.message ||
-        payload.text ||
-        `HTTP ${response.status}`;
-
-      const retryable = ML_RETRYABLE_STATUSES.has(response.status);
-      if (!retryable || attempt >= ML_MAX_RETRIES) {
-        const error = new Error(
-          `ML service error (${response.status}): ${message}`,
-        );
-        error.status = response.status;
-        throw error;
-      }
-    } catch (error) {
-      const isNetworkOrTimeout =
-        error?.name === "AbortError" ||
-        /ECONNRESET|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(
-          String(error?.message || ""),
-        );
-
-      if (isNetworkOrTimeout) {
-        ensureInternalMlService(`failed call to ${pathname}`);
-      }
-
-      if (!isNetworkOrTimeout || attempt >= ML_MAX_RETRIES) {
-        throw error;
-      }
-    }
-
-    const backoff = Math.min(5000, ML_RETRY_BASE_DELAY_MS * 2 ** attempt);
-    await delay(backoff);
-  }
-
-  throw new Error("ML service request failed after retries");
-}
+//   try {
+//     return await fetchFn(url, {
+//       ...options,
+//       signal: controller.signal,
+//     });
+//   } finally {
+//     clearTimeout(timeoutId);
+//   }
+// }
 
 app.use(express.json({ limit: "10mb" }));
 if (existsSync(frontendDistPath)) {
@@ -468,11 +376,6 @@ app.get(
   },
 );
 
-// ✅ API routes
-app.use("/api/expenses", expenseRoutes);
-app.post("/api/recurring-expenses", requireAuth, addRecurringExpense);
-app.use("/api/recurring-expenses", recurringExpenseRoutes);
-app.use("/api/auth", authRoutes);
 
 app.post("/api/test-route", (_req, res) => {
   res.json({ ok: true });
@@ -482,120 +385,8 @@ logInfo(
   "✅ API routes registered: /api/expenses, /api/recurring-expenses, /api/auth, /api/train-model, /api/predict-category, /api/ml-health",
 );
 
-// ✅ ML training endpoint
-app.post("/api/train-model", requireAuth, async (req, res) => {
-  try {
-    const userId = String(req.user.id);
 
-    // Fetch authenticated user's expenses from database directly
-    const expenses = await prisma.expense.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: "asc" },
-    });
 
-    if (expenses.length < 10) {
-      return res.status(400).json({
-        error: "Need at least 10 expenses to train the model",
-        current: expenses.length,
-      });
-    }
-
-    const result = await callMlService("/api/train-model", {
-      method: "POST",
-      body: {
-        expenses,
-        user_id: userId,
-      },
-    });
-    res.json(result);
-  } catch (error) {
-    logError("❌ Training error:", error);
-    const status = Number(error?.status || 503);
-    res.status(status >= 400 && status < 600 ? status : 503).json({
-      error:
-        "ML training is temporarily unavailable. Please retry in a minute.",
-      detail: error.message,
-    });
-  }
-});
-
-// ✅ ML prediction endpoint
-app.post("/api/predict-category", requireAuth, async (req, res) => {
-  try {
-    const { title = "", amount = 0 } = req.body || {};
-    if (!title || !String(title).trim()) {
-      return res.status(400).json({ error: "Title is required" });
-    }
-
-    const result = await callMlService("/api/predict-category", {
-      method: "POST",
-      body: {
-        title: String(title).trim(),
-        amount: Number(amount) || 0,
-        user_id: String(req.user.id),
-      },
-    });
-
-    res.json(result);
-  } catch (error) {
-    logError("❌ Prediction error:", error);
-
-    // Keep expense flow usable even when ML service is unstable.
-    res.json({
-      category: "uncategorized",
-      confidence: 0,
-      fallback: true,
-      message: "ML service temporarily unavailable",
-    });
-  }
-});
-
-app.get("/api/ml-health", async (_req, res) => {
-  try {
-    const routeSummary = (app.router?.stack || [])
-      .filter((layer) => layer.route)
-      .map((layer) => ({
-        path: layer.route.path,
-        methods: Object.keys(layer.route.methods || {}),
-      }));
-    logInfo(`ℹ Route snapshot: ${JSON.stringify(routeSummary)}`);
-
-    const result = await callMlService("/health");
-    res.json(result);
-  } catch (error) {
-    logError("❌ ML health check error:", error);
-    const status = Number(error?.status || 503);
-    res
-      .status(status >= 400 && status < 600 ? status : 503)
-      .json({ error: error.message });
-  }
-});
-
-// Proxy endpoint to the OCR microservice for receipt processing
-app.post("/api/process-receipt", async (req, res) => {
-  try {
-    const response = await fetch(
-      `${OCR_SERVICE_URL}/api/process-receipt`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(req.body || {}),
-      }
-    );
-
-    const result = await response.json();
-
-    return res.status(response.status).json(result);
-  } catch (error) {
-    logError("OCR receipt processing error:", error);
-
-    return res.status(503).json({
-      error: "OCR service is temporarily unavailable.",
-    });
-  }
-});
 
 // ✅ Fallback to index.html for any unknown route
 app.use((req, res) => {

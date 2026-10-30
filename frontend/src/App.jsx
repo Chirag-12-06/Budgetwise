@@ -4,7 +4,7 @@ import useWindowResize from "./hooks/ui/useWindowResize";
 import AppLayout from "./layout/AppLayout";
 import AuthLayout from "./layout/AuthLayout";
 import StatusBanner from "./layout/StatusBanner";
-import { ROUTES } from "./lib/routes";
+import { ROUTES } from "./routes/routes";
 import AddExpensePage from "./pages/AddExpensePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AuthPage from "./pages/AuthPage";
