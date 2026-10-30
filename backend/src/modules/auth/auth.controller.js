@@ -1,12 +1,12 @@
 // User authentication and management routes
-import prisma from "../lib/prisma.js";
+import prisma from "../../lib/prisma.js";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import jwt from "jsonwebtoken";
-import { invalidateAuthSession } from "../middleware/authMiddleware.js";
-import { logError } from "../utils/logger.js";
+import { invalidateAuthSession } from "../../middleware/authMiddleware.js";
+import { logError } from "../../utils/logger.js";
 import crypto from "crypto";
-import { sendPasswordResetEmail } from "../utils/email.js";
+import { sendPasswordResetEmail } from "../../utils/email.js";
 
 
 const PASSWORD_SALT_ROUNDS = 12;

@@ -1,7 +1,7 @@
 // Authentication routes
 import express from "express";
-import { signup, login, getProfile, updateProfile, logout, forgotPassword, resetPassword } from "../controllers/authController.js";
-import { requireAuth } from "../middleware/authMiddleware.js";
+import { signup, login, getProfile, updateProfile, logout, forgotPassword, resetPassword } from "./auth.controller.js";
+import { requireAuth } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 

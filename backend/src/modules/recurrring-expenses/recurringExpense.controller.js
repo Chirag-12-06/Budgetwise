@@ -1,6 +1,6 @@
-import prisma from "../lib/prisma.js";
-import { logError, logInfo } from "../utils/logger.js";
-import { materializeDueRecurringExpensesForUser } from "./expenseController.js";
+import prisma from "../../lib/prisma.js";
+import { logError } from "../../utils/logger.js";
+import { materializeDueRecurringExpensesForUser } from "../expenses/expense.controller.js";
 
 const RECURRENCE_FREQUENCY_MAP = {
   daily: "DAILY",

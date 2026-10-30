@@ -1,11 +1,11 @@
 import express from "express";
-import { requireAuth } from "../middleware/authMiddleware.js";
+import { requireAuth } from "../../middleware/authMiddleware.js";
 import {
   getRecurringExpenses,
   getRecurringExpenseById,
   updateRecurringExpense,
   deleteRecurringExpense,
-} from "../controllers/recurringExpenseController.js";
+} from "./recurringExpense.controller.js";
 
 const router = express.Router();
 

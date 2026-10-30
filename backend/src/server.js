@@ -7,11 +7,11 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "url";
 import { setTimeout as delay } from "node:timers/promises";
 import { PrismaClient } from "@prisma/client";
-import expenseRoutes from "./routes/expenseRoutes.js";
-import recurringExpenseRoutes from "./routes/recurringExpenseRoutes.js";
-import { addRecurringExpense } from "./controllers/recurringExpenseController.js";
-import { materializeDueRecurringExpensesForAllUsers } from "./controllers/expenseController.js";
-import authRoutes from "./routes/authRoutes.js";
+import expenseRoutes from "./modules/expenses/expense.routes.js";
+import recurringExpenseRoutes from "./modules/recurrring-expenses/recurringExpense.routes.js";
+import { addRecurringExpense } from "./modules/recurrring-expenses/recurringExpense.controller.js";
+import { materializeDueRecurringExpensesForAllUsers } from "./modules/expenses/expense.controller.js";
+import authRoutes from "./modules/auth/auth.routes.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
 import { logError, logInfo, logWarn } from "./utils/logger.js";
 

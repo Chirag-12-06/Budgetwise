@@ -20,6 +20,14 @@ function parseDateOnly(value) {
   return { year, month, day };
 }
 
+function toLocalDateKey(value) {
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+  return formatDateKey(parsedDate);
+}
+
 export function formatDateKey(value) {
   if (!value) {
     return "";
@@ -137,4 +145,22 @@ export function getNextDateKey(dateKey) {
   const nextMonth = String(nextDate.getMonth() + 1).padStart(2, "0");
   const nextDay = String(nextDate.getDate()).padStart(2, "0");
   return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
+export function extractExpenseDateKey(expense) {
+  const source = expense?.createdAt ?? expense?.date;
+  if (!source) {
+    return null;
+  }
+
+  if (typeof source === "string") {
+    const sourceDatePart = source.split("T")[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(sourceDatePart)) {
+      return sourceDatePart;
+    }
+
+    return toLocalDateKey(source);
+  }
+
+  return toLocalDateKey(source);
 }
