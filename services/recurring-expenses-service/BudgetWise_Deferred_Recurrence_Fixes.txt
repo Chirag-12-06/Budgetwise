@@ -1,0 +1,125 @@
+BudgetWise - Deferred Recurrence Engine Fixes
+
+Purpose
+
+This note records the recurrence-engine issues intentionally deferred
+while continuing development of BudgetWise. Revisit these items during
+the bug-fixing and hardening phase.
+
+Current implementation
+
+The recurring-expense service generates PENDING occurrence records
+within a rolling three-month window. It uses nextDueDate to continue
+generation and uses a database count of existing occurrence records to
+enforce COUNT limits.
+
+Known issues and follow-up work
+
+1.  COUNT semantics
+    -   COUNT must represent the maximum total number of scheduled
+        occurrences.
+    -   Count all existing occurrence records, regardless of status:
+        PENDING, COMPLETED, SKIPPED, and FAILED.
+    -   Do not use occurrencesDone to enforce the generation limit.
+    -   occurrencesDone should count completed occurrences only and
+        should be updated when an occurrence is completed.
+    -   Verify that repeated generator runs never create more than
+        endCount occurrences.
+2.  Duplicate handling and concurrency
+    -   The occurrence table should have a unique constraint on:
+        recurringExpenseId + scheduledDate.
+    -   createMany({ skipDuplicates: true }) prevents duplicate database
+        rows.
+    -   However, the in-memory count can still increase for rows that
+        were skipped.
+    -   The current count-and-insert flow is not safe against concurrent
+        generator executions.
+    -   Add database-safe locking or another concurrency-safe generation
+        strategy.
+    -   Test two generator executions attempting to process the same
+        recurring expense at the same time.
+3.  Monthly and yearly date calculations
+    -   Preserve the original day-of-month as the recurrence anchor.
+    -   Example: January 31 -> February 28/29 -> March 31.
+    -   Do not let a clamped February date cause future dates to drift
+        to the 28th.
+    -   Test leap-year behavior, including February 29 in non-leap
+        years.
+    -   Confirm the desired policy for dates that do not exist in a
+        target month.
+4.  Rolling-window replenishment
+    -   FOREVER rules should generate only a limited future window,
+        currently intended to be approximately three months.
+    -   Add a scheduled job that periodically replenishes the window.
+    -   Ensure nextDueDate is advanced correctly and that missed dates
+        are handled according to the chosen product behavior.
+    -   Test what happens when nextDueDate is already beyond the current
+        window.
+5.  End-date behavior
+    -   UNTIL_DATE must never generate an occurrence after endDate.
+    -   Confirm whether endDate itself is inclusive. The current
+        implementation treats it as inclusive.
+    -   Validate that endDate is present when endType is UNTIL_DATE.
+6.  Date and timezone safety
+    -   PostgreSQL DATE fields represent calendar dates, not timestamps.
+    -   Keep recurrence calculations date-only and avoid local timezone
+        or daylight saving changes shifting an occurrence to another
+        calendar day.
+    -   Test date handling in more than one timezone if deployment
+        environments differ.
+7.  Input validation
+    -   Validate frequency, intervalValue, endType, endCount, endDate,
+        startDate, and nextDueDate before writing to the database.
+    -   intervalValue must be a positive integer.
+    -   COUNT requires a valid positive endCount.
+    -   UNTIL_DATE requires a valid endDate.
+    -   Do not blindly spread req.body into Prisma create/update
+        operations.
+    -   Whitelist accepted fields.
+8.  Update behavior
+    -   When recurrence schedule fields change, regenerate future
+        PENDING occurrences.
+    -   Do not delete or rewrite completed occurrences or occurrences
+        linked to actual transactions.
+    -   Define how skipped and failed occurrences should behave during
+        rescheduling.
+    -   Perform the rule update and occurrence regeneration in one
+        transaction.
+9.  Occurrence processing
+    -   Generation creates PENDING occurrence records only.
+    -   It must not create expense transactions at generation time.
+    -   A later scheduler/worker should process due occurrences and call
+        the expenses-service internal API to create the actual
+        transaction.
+    -   Ensure processing is idempotent so retries do not create
+        duplicate transactions.
+10. Tests to add
+    -   DAILY, WEEKLY, MONTHLY, and YEARLY frequencies.
+    -   intervalValue greater than one.
+    -   January 29, 30, and 31 across February and March.
+    -   Leap-year and non-leap-year yearly recurrence.
+    -   FOREVER rolling-window generation and replenishment.
+    -   COUNT limit across repeated generator runs.
+    -   UNTIL_DATE inclusive boundary.
+    -   Duplicate generation and concurrent execution.
+    -   Timezone/date-only behavior.
+    -   Updating and deleting recurring rules.
+
+Important design decisions
+
+-   Recurring rules and occurrence records belong to
+    recurring-expenses-service.
+-   Actual transactions belong to expenses-service.
+-   Recurring service should call expenses-service through its internal
+    API when an occurrence becomes due; it should not write directly to
+    the expenses service’s database tables.
+-   Occurrence generation and recurring-rule creation should share a
+    Prisma transaction by passing the transaction client (tx) into the
+    generator.
+-   Keep occurrences PENDING until they are actually processed.
+
+Status
+
+Deferred intentionally. Do not treat the current recurrence generator as
+production-ready until the issues above have been reviewed, implemented,
+and tested.
