@@ -1,5 +1,5 @@
 import {
-  createTransaction,
+  createTransactionService,
   fetchTransactionsService,
   fetchTransactionsByCategoryService,
   fetchTransactionsByGroupService,
@@ -11,7 +11,7 @@ import {
 import asyncHandler from "../../../../utils/asyncHandler.js";
 
 export const createTransactionController = asyncHandler(async (req, res) => {
-  const transaction = await createTransaction(req.body, req.user.id);
+  const transaction = await createTransactionService(req.body, req.user.id);
 
   res.status(201).json({
     success: true,
@@ -20,6 +20,8 @@ export const createTransactionController = asyncHandler(async (req, res) => {
 });
 
 export const getAllTransactionsController = asyncHandler(async (req, res) => {
+  console.log("Authenticated user:", req.user);
+
   const transactions = await fetchTransactionsService(req.user.id);
 
   res.status(200).json({

@@ -3,7 +3,7 @@ import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/ui/panelCard";
 import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
 import { formatCurrency } from "../utils/currency";
-import { CATEGORY_OPTIONS, getCategoryDisplay } from "../lib/categoryConfig";
+import useCategory from "../hooks/useCategory";
 
 function hexToRgba(hex, alpha = 1) {
   if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
@@ -93,6 +93,7 @@ export default function AnalyticsPage({
     onTrendPointSelect: onTrendPointDateSelect,
   });
   const options = ["Daily", "Weekly", "Monthly", "Yearly"];
+  const { categories, groups } = useCategory();
 
   return (
     <section className="grid gap-4">
@@ -216,16 +217,15 @@ export default function AnalyticsPage({
 
                 {visibleCategories.length ? (
                   bubbleLayout.map((bubble) => {
-                    const categoryDisplay = getCategoryDisplay(
-                      bubble.categoryKey,
+                    const category = categories.find(
+                      (option) => option.id === bubble.categoryKey,
                     );
                     const bubbleColor =
-                      CATEGORY_OPTIONS.find(
-                        (option) => option.value === bubble.categoryKey,
+                      categories.find(
+                        (option) => option.id === bubble.categoryKey,
                       )?.color ??
-                      CATEGORY_OPTIONS.find(
-                        (option) => option.value === "uncategorized",
-                      )?.color;
+                      categories.find((option) => option.id === "uncategorized")
+                        ?.color;
                     const textColor = getContrastTextColor(bubbleColor);
                     const badgeLabel = `${bubble.percent.toFixed(1)}%`;
                     const estimatedCharWidthRatio = 0.56;
@@ -303,14 +303,14 @@ export default function AnalyticsPage({
             >
               <div className="grid gap-3">
                 {categoryEntries.map(([categoryKey, total]) => {
-                  const category = getCategoryDisplay(categoryKey);
+                  const category = categories.find(
+                    (item) => item.id === categoryKey,
+                  );
                   const color =
-                    CATEGORY_OPTIONS.find(
-                      (option) => option.value === categoryKey,
-                    )?.color ??
-                    CATEGORY_OPTIONS.find(
-                      (option) => option.value === "uncategorized",
-                    )?.color;
+                    categories.find((option) => option.id === expense.category)
+                      ?.color ??
+                    categories.find((option) => option.id === "uncategorized")
+                      ?.color;
                   const percent = totalCategoryAmount
                     ? (total / totalCategoryAmount) * 100
                     : 0;

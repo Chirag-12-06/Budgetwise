@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { getCategoryDisplay } from "../../lib/categoryConfig";
 
 export default function useExpenseCategory({
-  expenses,
+  categories,
   expenseForm,
   setExpenseForm,
   isEditingExpense,
@@ -10,10 +9,12 @@ export default function useExpenseCategory({
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [categoryManuallySelected, setCategoryManuallySelected] =
     useState(false);
+
   const categoryDropdownRef = useRef(null);
-  const selectedCategory = expenseForm.category
-  ? getCategoryDisplay(expenseForm.category)
-  : null;
+
+  const selectedCategory = categories.find(
+    (category) => category.id === expenseForm.category
+  ) || null;
 
   useEffect(() => {
     if (isEditingExpense) {
@@ -58,9 +59,14 @@ export default function useExpenseCategory({
     setExpenseForm,
   ]);
 
-  function handleCategorySelection(categoryValue) {
+  function handleCategorySelection(categoryId) {
     setCategoryManuallySelected(true);
-    setExpenseForm((current) => ({ ...current, category: categoryValue }));
+
+    setExpenseForm((current) => ({
+      ...current,
+      category: categoryId,
+    }));
+
     setIsCategoryMenuOpen(false);
   }
 

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getStoredUser, hasToken, logoutUser } from "../api/auth.api";
+import { clearStoredUser, getStoredUser, logoutUser } from "../api/auth.api";
+import { useTheme } from "../context/ThemeContext";
 import { ROUTES } from "../routes/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
+import { resolveDateRange } from "../utils/dateFilters";
 import {
   createDefaultExpenseForm,
   createDefaultRecurringForm,
@@ -14,8 +16,6 @@ import useCategoryFilters from "./expenses/useCategoryFilters";
 import useExpenseCrud from "./expenses/useExpenseCrud";
 import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
 import useDateFilter from "./filters/useDateFilters";
-import { useTheme } from "../context/ThemeContext";
-import { resolveDateRange } from "../utils/dateFilters";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -29,7 +29,8 @@ export default function useAppController() {
   const initialGroupBy = searchParams.get("groupBy") || "daily";
 
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState(initialGroupBy);
-  const [user, setUser] = useState(() => (hasToken() ? getStoredUser() : null));
+  const [user, setUser] = useState(getStoredUser);
+  const [authLoading, setAuthLoading] = useState(true);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [editingRecurringExpenseId, setEditingRecurringExpenseId] =
@@ -183,9 +184,9 @@ export default function useAppController() {
 
   function handleApiError(error, fallbackMessage) {
     const message = error?.message || fallbackMessage;
-    if (user && !hasToken()) {
+    if (!user) {
       resetToLoggedOutState({
-        message: message || "Session expired. Please log in again.",
+        message: message || "Please log in to continue.",
         type: "error",
       });
       return;
@@ -195,16 +196,16 @@ export default function useAppController() {
   }
 
   function handleAnalyticsGroupByChange(value) {
-  setAnalyticsGroupBy(value);
+    setAnalyticsGroupBy(value);
 
-  setSearchParams((prev) => {
-    const next = new URLSearchParams(prev);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
 
-    next.set("groupBy", value);
+      next.set("groupBy", value);
 
-    return next;
-  });
-}
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!user) {
@@ -235,15 +236,33 @@ export default function useAppController() {
   }, [user]);
 
   useEffect(() => {
-    if (!user || hasToken()) {
-      return;
+    let active = true;
+
+    async function restoreSession() {
+      try {
+        const currentUser = await getCurrentUser();
+
+        if (active) {
+          setUser(currentUser);
+        }
+      } catch {
+        if (active) {
+          clearStoredUser();
+          setUser(null);
+        }
+      } finally {
+        if (active) {
+          setAuthLoading(false);
+        }
+      }
     }
 
-    resetToLoggedOutState({
-      message: "Session expired. Please log in again.",
-      type: "error",
-    });
-  }, [user]);
+    restoreSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function activateCustomDateFilter(from, to) {
     activateCustomDateRange(from, to);

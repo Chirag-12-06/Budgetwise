@@ -1,7 +1,4 @@
-import {
-  registerUser,
-  loginUser,
-} from "./auth.service.js";
+import { registerUser, loginUser } from "./auth.service.js";
 
 import asyncHandler from "../../../../utils/asyncHandler.js";
 
@@ -13,37 +10,17 @@ const cookieOptions = {
 };
 
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Name, email and password are required",
-    });
-  }
-
-  if (password.length < 8) {
-    return res.status(400).json({
-      success: false,
-      message: "Password must be at least 8 characters",
-    });
-  }
-
-  const user = await registerUser({
-    name: name.trim(),
-    email: email.trim().toLowerCase(),
-    password,
-  });
+  const result = await registerUser(req.validated.body);
 
   res.status(201).json({
     success: true,
-    message: "Registration successful",
-    data: user,
+    message: "User registered successfully",
+    data: result,
   });
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.validated.body;
 
   if (!email || !password) {
     return res.status(400).json({
@@ -52,10 +29,7 @@ export const login = asyncHandler(async (req, res) => {
     });
   }
 
-  const { user, token } = await loginUser(
-    email.trim().toLowerCase(),
-    password
-  );
+  const { user, token } = await loginUser(email.trim().toLowerCase(), password);
 
   res.cookie("token", token, {
     ...cookieOptions,

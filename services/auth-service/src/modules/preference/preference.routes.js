@@ -6,10 +6,19 @@ import {
 } from "./preference.controller.js";
 
 import authMiddleware from "../../middleware/auth.middleware.js";
+import validate from "../../middleware/validate.middleware.js";
+
+import { updatePreferenceSchema } from "./preference.validation.js";
 
 const router = express.Router();
 
 router.get("/", authMiddleware, getPreferences);
-router.put("/", authMiddleware, updateUserPreferences);
+
+router.put(
+  "/",
+  authMiddleware,
+  validate(updatePreferenceSchema),
+  updateUserPreferences,
+);
 
 export { router };

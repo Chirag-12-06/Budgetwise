@@ -22,7 +22,7 @@ export const getProfile = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { name, avatarUrl } = req.body;
+  const { name, avatarUrl } = req.validated.body;
 
   if (name !== undefined && !name.trim()) {
     return res.status(400).json({

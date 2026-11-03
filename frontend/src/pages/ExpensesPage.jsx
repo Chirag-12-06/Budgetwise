@@ -3,7 +3,7 @@ import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/ui/panelCard";
 import RecurringExpenseActionDialog from "../components/recurringExpenseActionDialog";
 import { formatCurrency } from "../utils/currency";
-import { getCategoryDisplay, CATEGORY_OPTIONS } from "../lib/categoryConfig";
+import useCategory from "../hooks/useCategory";
 import { formatDateDMY } from "../utils/date";
 
 export default function ExpensesPage({
@@ -30,6 +30,8 @@ export default function ExpensesPage({
   onCategoryFilterToggle,
   onClearCategoryFilters,
 }) {
+  const { categories, groups } = useCategory();
+
   return (
     <section className="grid gap-4">
       <PanelCard>
@@ -51,19 +53,19 @@ export default function ExpensesPage({
           summaryExpenses={filteredExpenses}
         />
       </PanelCard>
-      
+
       <PanelCard>
         {filteredExpenses.length ? (
           <div className="max-h-[52vh] min-h-48 overflow-y-auto grid gap-3.5">
             {filteredExpenses.map((expense) => {
-              const category = getCategoryDisplay(expense.category);
+              const category = categories.find(
+                (item) => item.id === expense.category,
+              );
               const color =
-                CATEGORY_OPTIONS.find(
-                  (option) => option.value === expense.category,
-                )?.color ??
-                CATEGORY_OPTIONS.find(
-                  (option) => option.value === "uncategorized",
-                )?.color;
+                categories.find((option) => option.id === expense.category)
+                  ?.color ??
+                categories.find((option) => option.id === "uncategorized")
+                  ?.color;
 
               return (
                 <article

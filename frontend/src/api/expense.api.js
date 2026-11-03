@@ -7,17 +7,17 @@ export async function fetchExpenses(options = {}) {
   if (options.to) params.to = String(options.to);
   if (options.groupBy) params.groupBy = String(options.groupBy);
 
-  return api.get("/expenses", { params });
+  return api.get("/transactions", { params });
 }
 
 export async function createExpense(payload) {
-  return api.post("/expenses", payload);
+  return api.post("/transactions", payload);
 }
 
 export async function updateExpense(id, payload) {
-  return api.put(`/expenses/${id}`, payload);
+  return api.put(`/transactions/${id}`, payload);
 }
 
 export async function removeExpense(id) {
-  return api.delete(`/expenses/${id}`);
+  return api.delete(`/transactions/${id}`);
 }

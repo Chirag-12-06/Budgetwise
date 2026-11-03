@@ -1,6 +1,6 @@
 import prisma from "../../config/db.js";
 
-export const createTransaction = async (data, userId) => {
+export const createTransactionService = async (data, userId) => {
   return prisma.transaction.create({
     data: {
       ...data,

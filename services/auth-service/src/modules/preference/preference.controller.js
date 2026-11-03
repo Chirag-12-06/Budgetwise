@@ -22,7 +22,7 @@ export const getPreferences = asyncHandler(async (req, res) => {
 });
 
 export const updateUserPreferences = asyncHandler(async (req, res) => {
-  const data = {};
+  const data = req.validated.body;
 
   for (const field of allowedFields) {
     if (req.body[field] !== undefined) {

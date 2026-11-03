@@ -1,14 +1,14 @@
 import { useRef, useState } from "react";
+import { processReceipt } from "../api/receipt.api";
 import Button from "../components/ui/button";
 import Calendar from "../components/ui/calendar";
 import PanelCard from "../components/ui/panelCard";
 import UnderDevelopmentDialog from "../components/ui/underDevelopmentDialog";
-import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
 import useCategoryPrediction from "../hooks/expenses/useCategoryPrediction";
-import { CATEGORY_GROUPS, CATEGORY_OPTIONS } from "../lib/categoryConfig";
-import { processReceipt } from "../api/receipt.api";
-import resolveReceiptItemAmount from "../utils/receiptItemAmount";
+import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
+import useCategories from "../hooks/useCategory";
 import { getNextDateKey } from "../utils/date";
+import resolveReceiptItemAmount from "../utils/receiptItemAmount";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
@@ -53,31 +53,6 @@ export default function AddExpensePage({
   handleCancelEditExpense,
   handleCancelEditRecurringExpense,
 }) {
-  const isFormLocked =
-    isEditingExpense || isEditingRecurringSeries || isEditingFuture;
-  const {
-    isCategoryMenuOpen,
-    setIsCategoryMenuOpen,
-    categoryManuallySelected,
-    setCategoryManuallySelected,
-    categoryDropdownRef,
-    selectedCategory,
-    handleCategorySelection,
-  } = useExpenseCategory({
-    expenses,
-    expenseForm,
-    setExpenseForm,
-    isEditingExpense: isFormLocked,
-  });
-
-  useCategoryPrediction({
-    expenses,
-    expenseForm,
-    setExpenseForm,
-    isEditingExpense: isFormLocked,
-    categoryManuallySelected,
-  });
-
   const [scanError, setScanError] = useState("");
   const [scanErrorOpen, setScanErrorOpen] = useState(false);
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
@@ -88,6 +63,37 @@ export default function AddExpensePage({
   const [receiptPaidMap, setReceiptPaidMap] = useState({});
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
+  const { categories, groups } = useCategories();
+
+  const categoryGroups = (groups ?? []).map((group) => ({
+    ...group,
+    options: (categories ?? []).filter(
+      (category) => category.groupId === group.id,
+    ),
+  }));
+
+  const isFormLocked =
+    isEditingExpense || isEditingRecurringSeries || isEditingFuture;
+  const {
+    isCategoryMenuOpen,
+    setIsCategoryMenuOpen,
+    categoryDropdownRef,
+    selectedCategory,
+    handleCategorySelection,
+  } = useExpenseCategory({
+    categories,
+    expenseForm,
+    setExpenseForm,
+    isEditingExpense,
+  });
+
+  useCategoryPrediction({
+    expenses,
+    expenseForm,
+    setExpenseForm,
+    isEditingExpense: isFormLocked,
+    // categoryManuallySelected,
+  });
 
   showScanUnderDevelopmentPopup;
 
@@ -343,13 +349,11 @@ export default function AddExpensePage({
                   <span className="flex min-w-0 items-center gap-3">
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
-                      style={{
-                        backgroundColor: selectedCategory.color,
-                      }}
+                      style={{ backgroundColor: selectedCategory.color }}
                     >
                       <i className={selectedCategory.icon} aria-hidden="true" />
                     </span>
-                    <span className="text-base">{selectedCategory.label}</span>
+                    <span className="text-base">{selectedCategory.name}</span>
                   </span>
                 ) : (
                   <span className="flex min-w-0 items-center gap-3 text-gray-500 dark:text-slate-300">
@@ -359,6 +363,7 @@ export default function AddExpensePage({
                     <span className="text-base">Category</span>
                   </span>
                 )}
+
                 <i
                   className={`fas ${isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-gray-500 dark:text-slate-300`}
                   aria-hidden="true"
@@ -369,11 +374,7 @@ export default function AddExpensePage({
                 className="sr-only"
                 value={expenseForm.category}
                 onChange={(event) => {
-                  setCategoryManuallySelected(true);
-                  setExpenseForm((current) => ({
-                    ...current,
-                    category: event.target.value,
-                  }));
+                  handleCategorySelection(event.target.value);
                 }}
                 required
                 tabIndex={-1}
@@ -382,50 +383,49 @@ export default function AddExpensePage({
                 <option value="" disabled>
                   Category
                 </option>
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+
+                {categories.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
                   </option>
                 ))}
               </select>
 
-              {isCategoryMenuOpen ? (
+              {isCategoryMenuOpen && (
                 <div className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-2xl backdrop-blur dark:border-slate-600 dark:bg-slate-800/95">
-                  {CATEGORY_GROUPS.map((group) => (
+                  {categoryGroups.map((group) => (
                     <section
                       className="border-b border-gray-200 py-1.5 last:border-b-0 dark:border-slate-600/70"
-                      key={group.label}
+                      key={group.id}
                     >
                       <p className="px-2 pb-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-slate-300">
-                        {group.label}
+                        {group.name}
                       </p>
+
                       <div className="grid gap-1">
                         {group.options.map((option) => {
-                          const optionColor = option.color;
-                          const isSelected =
-                            expenseForm.category === option.value;
+                          const isSelected = expenseForm.category === option.id;
 
                           return (
                             <Button
+                              key={option.id}
                               variant="plain"
                               className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
                                 isSelected
                                   ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-500/25 dark:text-white"
                                   : "text-gray-700 hover:bg-gray-100 dark:text-slate-100 dark:hover:bg-slate-700/80"
                               }`}
-                              key={option.value}
                               type="button"
-                              onClick={() =>
-                                handleCategorySelection(option.value)
-                              }
+                              onClick={() => handleCategorySelection(option.id)}
                             >
                               <span
                                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
-                                style={{ backgroundColor: optionColor }}
+                                style={{ backgroundColor: option.color }}
                               >
                                 <i className={option.icon} aria-hidden="true" />
                               </span>
-                              <span className="truncate">{option.label}</span>
+
+                              <span className="truncate">{option.name}</span>
                             </Button>
                           );
                         })}
@@ -433,7 +433,7 @@ export default function AddExpensePage({
                     </section>
                   ))}
                 </div>
-              ) : null}
+              )}
             </div>
           </label>
 

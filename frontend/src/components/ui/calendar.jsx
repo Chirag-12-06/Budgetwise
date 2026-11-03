@@ -1,7 +1,7 @@
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import { useEffect, useMemo, useRef } from "react";
-import { extractExpenseDateKey } from "../../utils/date";
+import { extractExpenseDateKey,formatDateKey } from "../../utils/date";
 
 const calendarBaseClasses =
   "calendar-input w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white";

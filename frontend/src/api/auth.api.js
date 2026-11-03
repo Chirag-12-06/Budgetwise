@@ -1,144 +1,96 @@
+
 import api from "./api";
 
 const USER_KEY = "bw-user";
 const USER_ID_KEY = "bw-user-id";
-const TOKEN_KEY = "bw-token";
-const AVATAR_MAP_KEY = "bw-avatar-map";
-
-function readAvatarMap() {
-  const raw = localStorage.getItem(AVATAR_MAP_KEY);
-
-  if (!raw) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeAvatarMap(value) {
-  localStorage.setItem(AVATAR_MAP_KEY, JSON.stringify(value));
-}
-
-function saveAvatarForEmail(email, avatarDataUrl) {
-  if (!email || !avatarDataUrl) {
-    return;
-  }
-
-  const current = readAvatarMap();
-
-  writeAvatarMap({
-    ...current,
-    [String(email).toLowerCase()]: avatarDataUrl,
-  });
-}
-
-function removeAvatarForEmail(email) {
-  if (!email) {
-    return;
-  }
-
-  const key = String(email).toLowerCase();
-  const current = readAvatarMap();
-
-  if (!(key in current)) {
-    return;
-  }
-
-  const next = { ...current };
-  delete next[key];
-
-  writeAvatarMap(next);
-}
-
-function getAvatarForEmail(email) {
-  if (!email) {
-    return "";
-  }
-
-  const current = readAvatarMap();
-  return current[String(email).toLowerCase()] || "";
-}
-
-function storeSession(user, token) {
-  const avatarDataUrl = user?.avatarDataUrl || getAvatarForEmail(user?.email);
-
-  const userWithAvatar = avatarDataUrl ? { ...user, avatarDataUrl } : user;
-
-  localStorage.setItem(USER_KEY, JSON.stringify(userWithAvatar));
-  localStorage.setItem(USER_ID_KEY, String(user.id));
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function hasToken() {
-  return Boolean(localStorage.getItem(TOKEN_KEY));
-}
 
 export function getStoredUser() {
   const raw = localStorage.getItem(USER_KEY);
 
-  if (!raw) {
-    return null;
-  }
+  if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw);
-    const avatarDataUrl =
-      parsed?.avatarDataUrl || getAvatarForEmail(parsed?.email);
-
-    return avatarDataUrl ? { ...parsed, avatarDataUrl } : parsed;
+    return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-export async function loginUser({ email, password }) {
-  const data = await api.post("/auth/login", {
-    email,
-    password,
-  });
-
-  const userWithAvatar = {
-    ...data.user,
-    avatarDataUrl:
-      data.user?.avatarDataUrl || getAvatarForEmail(data.user?.email),
-  };
-
-  storeSession(userWithAvatar, data.token);
-
-  return { ...data, user: userWithAvatar };
+function storeUser(user) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.setItem(USER_ID_KEY, String(user.id));
 }
 
-export async function signupUser({ name, email, password, avatarDataUrl }) {
-  const data = await api.post("/auth/signup", {
+export function clearStoredUser() {
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(USER_ID_KEY);
+}
+
+// POST /api/auth/register
+export async function signupUser({ name, email, password }) {
+  const response = await api.post("/auth/register", {
     name,
     email,
     password,
-    avatarDataUrl: avatarDataUrl || null,
   });
 
-  if (data.user?.avatarDataUrl) {
-    saveAvatarForEmail(data.user.email || email, data.user.avatarDataUrl);
-  } else if (avatarDataUrl) {
-    saveAvatarForEmail(email, avatarDataUrl);
-  }
-
-  const userWithAvatar = {
-    ...data.user,
-    avatarDataUrl:
-      data.user?.avatarDataUrl || avatarDataUrl || getAvatarForEmail(email),
-  };
-
-  storeSession(userWithAvatar, data.token);
-
-  return { ...data, user: userWithAvatar };
+  return response;
 }
+
+// POST /api/auth/login
+export async function loginUser({ email, password }) {
+  const response = await api.post("/auth/login", {
+    email,
+    password,
+  });
+
+  const user = response.data;
+
+  storeUser(user);
+
+  return {
+    ...response,
+    user,
+  };
+}
+
+// POST /api/auth/logout
+export async function logoutUser() {
+  try {
+    await api.post("/auth/logout");
+  } finally {
+    clearStoredUser();
+  }
+}
+
+// GET /api/users/profile
+export async function getCurrentUser() {
+  const response = await api.get("/users/profile");
+
+  const user = response.data;
+
+  storeUser(user);
+
+  return user;
+}
+
+// PUT /api/users/profile
+export async function updateProfileUser({ name, avatarUrl }) {
+  const response = await api.put("/users/profile", {
+    name,
+    avatarUrl,
+  });
+
+  const user = response.data;
+
+  storeUser(user);
+
+  return {
+    ...response,
+    user,
+  };
+}
+
 
 export async function forgotPasswordUser(email) {
   return api.post("/auth/forgot-password", { email });
@@ -148,62 +100,4 @@ export async function resetPasswordUser(token, password) {
   return api.post(`/auth/reset-password/${encodeURIComponent(token)}`, {
     password,
   });
-}
-
-export async function updateProfileUser({ name, email, avatarDataUrl }) {
-  const previousUser = getStoredUser();
-  const previousEmail = previousUser?.email || "";
-
-  const payload = { name, email };
-
-  if (avatarDataUrl !== undefined) {
-    payload.avatarDataUrl = avatarDataUrl;
-  }
-
-  const data = await api.patch("/auth/profile", payload);
-
-  const nextEmail = data?.user?.email || email;
-
-  if (
-    previousEmail &&
-    previousEmail !== nextEmail &&
-    previousUser?.avatarDataUrl
-  ) {
-    saveAvatarForEmail(nextEmail, previousUser.avatarDataUrl);
-  }
-
-  if (avatarDataUrl !== undefined) {
-    if (avatarDataUrl) {
-      saveAvatarForEmail(nextEmail, avatarDataUrl);
-    } else {
-      removeAvatarForEmail(nextEmail);
-    }
-  }
-
-  if (previousEmail && previousEmail !== nextEmail) {
-    removeAvatarForEmail(previousEmail);
-  }
-
-  const resolvedAvatar =
-    data?.user?.avatarDataUrl !== undefined
-      ? data.user.avatarDataUrl || ""
-      : avatarDataUrl !== undefined
-        ? avatarDataUrl
-        : previousUser?.avatarDataUrl || getAvatarForEmail(nextEmail);
-
-  const userWithAvatar = {
-    ...data.user,
-    avatarDataUrl: resolvedAvatar || "",
-  };
-
-  localStorage.setItem(USER_KEY, JSON.stringify(userWithAvatar));
-  localStorage.setItem(USER_ID_KEY, String(userWithAvatar.id));
-
-  return { ...data, user: userWithAvatar };
-}
-
-export function logoutUser() {
-  localStorage.removeItem(USER_KEY);
-  localStorage.removeItem(USER_ID_KEY);
-  localStorage.removeItem(TOKEN_KEY);
 }

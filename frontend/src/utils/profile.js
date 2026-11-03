@@ -21,6 +21,7 @@ export function buildFormFromUser(user) {
     name: user?.name || "",
     email: user?.email || "",
     avatarDataUrl: user?.avatarDataUrl || "",
+    joinedOn: user?.createdAt || "",
   };
 }
 

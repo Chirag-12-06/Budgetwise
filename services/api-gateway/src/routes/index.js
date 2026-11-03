@@ -1,17 +1,18 @@
-import { Router } from "express";
+import express from "express";
+import services from "../config/services.js";
+import createServiceProxy from "../utils/createServiceProxy.js";
 
-import {router as authRoutes} from "../modules/auth/auth.routes.js";
-import {router as expensesRoutes} from "../modules/expenses/expenses.routes.js";
-import {router as ocrRoutes} from "../modules/ocr/ocr.routes.js";
-import {router as predictionRoutes} from "../modules/prediction/prediction.routes.js";
-import {router as recurringExpensesRoutes} from "../modules/recurring-expenses/recurring-expenses.routes.js";
+const router = express.Router();
 
-const router = Router();
+// Auth service
+router.use("/auth", createServiceProxy(services.auth, "/auth"));
+router.use("/users", createServiceProxy(services.auth, "/users"));
+router.use("/preferences", createServiceProxy(services.auth, "/preferences"));
 
-router.use("/auth", authRoutes);
-router.use("/expenses", expensesRoutes);
-router.use("/ocr", ocrRoutes);
-router.use("/prediction", predictionRoutes);
-router.use("/recurring-expenses", recurringExpensesRoutes);
+// Expenses service
+router.use("/categories", createServiceProxy(services.expenses, "/categories"));
+router.use("/groups", createServiceProxy(services.expenses, "/groups"));
+router.use("/transactions", createServiceProxy(services.expenses, "/transactions"));
+router.use("/budgets", createServiceProxy(services.expenses, "/budgets"));
 
 export default router;

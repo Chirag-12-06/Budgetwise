@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  CATEGORY_GROUPS,
-  CATEGORY_OPTIONS,
-  getCategoryDisplay,
-} from "../lib/categoryConfig";
+import useCategory from "../hooks/useCategory";
 import { formatCurrency } from "../utils/currency";
 import Button from "./ui/button";
 import Calendar from "./ui/calendar";
@@ -56,6 +52,8 @@ export default function ExpenseFilterPanel({
   stats = [],
   className = "mb-5 grid gap-4",
 }) {
+  const { categories, groups } = useCategory();
+
   const hasSummaryExpenses = Array.isArray(summaryExpenses);
   const computedTotalSpending = hasSummaryExpenses
     ? summaryExpenses.reduce(
@@ -102,37 +100,46 @@ export default function ExpenseFilterPanel({
       ),
     ),
   )
-    .map((value) => ({ value, ...getCategoryDisplay(value) }))
+    .map((value) => ({
+      value,
+      ...categories.find((category) => category.id === value),
+    }))
     .sort((left, right) => left.label.localeCompare(right.label));
   const availableCategorySet = new Set(
     availableCategoryOptions.map((option) => option.value),
   );
-  const availableCategoryGroups = CATEGORY_GROUPS.map((group) => {
-    const values = group.options
-      .map(({ value }) => value)
-      .filter((value) => availableCategorySet.has(value));
+  const availableCategoryGroups = groups
+    .map((group) => {
+      const values = categories
+        .filter(
+          (category) =>
+            category.groupId === group.id &&
+            availableCategorySet.has(category.id),
+        )
+        .map((category) => category.id);
 
-    if (!values.length) {
-      return null;
-    }
+      if (!values.length) {
+        return null;
+      }
 
-    const selectedCount = values.filter((value) =>
-      selectedCategoryFilters.includes(value),
-    ).length;
-    const accentColor =
-      CATEGORY_OPTIONS.find((option) => option.value === values[0])?.color ??
-      CATEGORY_OPTIONS.find((option) => option.value === "uncategorized")
-        ?.color;
+      const selectedCount = values.filter((value) =>
+        selectedCategoryFilters.includes(value),
+      ).length;
 
-    return {
-      label: group.label,
-      values,
-      selectedCount,
-      isAllSelected: selectedCount === values.length,
-      icon: categoryGroupIcons[group.label] || "fas fa-layer-group",
-      accentColor,
-    };
-  }).filter(Boolean);
+      const accentColor =
+        categories.find((option) => option.id === values[0])?.color ??
+        categories.find((option) => option.id === "uncategorized")?.color;
+
+      return {
+        label: group.name,
+        values,
+        selectedCount,
+        isAllSelected: selectedCount === values.length,
+        icon: categoryGroupIcons[group.name] || "fas fa-layer-group",
+        accentColor,
+      };
+    })
+    .filter(Boolean);
   const shouldConstrainGroupHeight = availableCategoryGroups.length > 3;
   const shouldConstrainCategoryHeight = availableCategoryOptions.length > 4;
   const categoryGridColumnsClass = "grid-cols-1";
