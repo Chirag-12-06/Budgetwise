@@ -15,8 +15,10 @@ from googletrans import Translator
 class CategoryPredictor:
     def __init__(self, model_path='model.pkl', user_id='default'):
         base_dir = Path(__file__).resolve().parent
-        configured_model_path = model_path or os.getenv('ML_MODEL_PATH', 'model.pkl')
+
+        configured_model_path = model_path or os.getenv("ML_MODEL_PATH", "model.pkl")
         resolved_model_path = Path(configured_model_path)
+
         if not resolved_model_path.is_absolute():
             resolved_model_path = base_dir / resolved_model_path
 
@@ -24,21 +26,18 @@ class CategoryPredictor:
 
         self.model_path = str(resolved_model_path)
         self.user_id = user_id
-        self.user_prefs_path = str(base_dir / f'user_preferences_{user_id}.json')
+        self.user_prefs_path = str(base_dir / f"user_preferences_{user_id}.json")
         self.model = None
         self.translator = Translator()
         self.user_preferences = {}
+
         self.load_model()
         self.load_user_preferences()
 
-        data_dir_candidates = [
-            base_dir.parent / 'src' / 'data',
-            base_dir.parent.parent / 'src' / 'data',
-        ]
-        data_dir = next((path for path in data_dir_candidates if path.exists()), data_dir_candidates[0])
+        # Category keyword mappings
+        data_dir = base_dir / "data"
 
-        # Load category mappings from shared JSON file
-        with open(data_dir / 'category_keywords.json', 'r', encoding='utf-8') as f:
+        with open(data_dir / "category_keywords.json", "r", encoding="utf-8") as f:
             self.keyword_map = json.load(f)
         
         # Load regional keywords

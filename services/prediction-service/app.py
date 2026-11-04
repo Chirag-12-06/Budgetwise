@@ -130,6 +130,6 @@ def root_health():
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('ML_PORT') or os.getenv('PORT', '5001'))
+    port = int(os.getenv('ML_PORT') or os.getenv('PORT', '5003'))
     debug_enabled = os.getenv('FLASK_DEBUG', '0') == '1'
     app.run(host='0.0.0.0', port=port, debug=debug_enabled)

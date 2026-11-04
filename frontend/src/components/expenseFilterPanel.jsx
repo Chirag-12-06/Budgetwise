@@ -63,7 +63,7 @@ export default function ExpenseFilterPanel({
     : 0;
   const computedTrackedCategories = hasSummaryExpenses
     ? new Set(
-        summaryExpenses.map((expense) => expense?.category || "uncategorized"),
+        summaryExpenses.map((expense) => expense?.category),
       ).size
     : 0;
   const computedVisibleEntries = hasSummaryExpenses
@@ -94,17 +94,24 @@ export default function ExpenseFilterPanel({
       ? expenses
       : [];
   const availableCategoryOptions = Array.from(
-    new Set(
-      categorySourceExpenses.map(
-        (expense) => expense?.category || "uncategorized",
-      ),
+  new Set(
+    categorySourceExpenses.map(
+      (expense) => expense?.category,
     ),
-  )
-    .map((value) => ({
+  ),
+)
+  .map((value) => {
+    const category = categories.find((item) => item.id === value);
+
+    return {
       value,
-      ...categories.find((category) => category.id === value),
-    }))
-    .sort((left, right) => left.label.localeCompare(right.label));
+      label: category?.name,
+      icon: category?.icon,
+      color:
+        category?.color 
+    };
+  })
+  .sort((left, right) => left.label.localeCompare(right.label));
   const availableCategorySet = new Set(
     availableCategoryOptions.map((option) => option.value),
   );
@@ -127,8 +134,7 @@ export default function ExpenseFilterPanel({
       ).length;
 
       const accentColor =
-        categories.find((option) => option.id === values[0])?.color ??
-        categories.find((option) => option.id === "uncategorized")?.color;
+        categories.find((option) => option.id === values[0])?.color 
 
       return {
         label: group.name,
@@ -175,7 +181,7 @@ export default function ExpenseFilterPanel({
     }
 
     const normalizedValues = Array.from(
-      new Set(groupValues.map((value) => value || "uncategorized")),
+      new Set(groupValues.map((value) => value)),
     );
     const allSelected = normalizedValues.every((value) =>
       selectedCategoryFilters.includes(value),

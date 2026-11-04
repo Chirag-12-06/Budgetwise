@@ -3,8 +3,13 @@ import prisma from "../../config/db.js";
 export const createTransactionService = async (data, userId) => {
   return prisma.transaction.create({
     data: {
-      ...data,
       userId,
+      title: data.title,
+      amount: Number(data.amount),
+      categoryId: data.category,
+      type: data.type || "EXPENSE",
+      currencyCode: data.currencyCode || "INR",
+      transactionDate: new Date(data.date),
     },
   });
 };

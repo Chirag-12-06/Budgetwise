@@ -36,35 +36,37 @@ export default function useExpenseCrud({
   activeDateRange,
 }) {
   async function refreshExpenses(options = activeDateRange) {
-    if (!user) {
-      return [];
-    }
-
-    setLoadingExpenses(true);
-
-    try {
-      const expensesData = await fetchExpenses(options);
-
-      const expenses = Array.isArray(expensesData)
-        ? expensesData.map((item) => ({
-            ...item,
-            isRecurring: Boolean(item.recurringId),
-          }))
-        : [];
-
-      const sorted = [...expenses].sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.date || a.startDate || 0);
-        const dateB = new Date(b.createdAt || b.date || b.startDate || 0);
-
-        return dateB - dateA;
-      });
-
-      setExpenses(sorted);
-      return sorted;
-    } finally {
-      setLoadingExpenses(false);
-    }
+  if (!user) {
+    return [];
   }
+
+  setLoadingExpenses(true);
+
+  try {
+    const response = await fetchExpenses(options);
+
+    const expenses = Array.isArray(response?.data)
+      ? response.data.map((item) => ({
+          ...item,
+          category: item.categoryId,
+          date: item.transactionDate,
+          isRecurring: Boolean(item.recurringId),
+        }))
+      : [];
+
+    const sorted = [...expenses].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date || a.startDate || 0);
+      const dateB = new Date(b.createdAt || b.date || b.startDate || 0);
+
+      return dateB - dateA;
+    });
+
+    setExpenses(sorted);
+    return sorted;
+  } finally {
+    setLoadingExpenses(false);
+  }
+}
 
   async function handleAddExpense(event) {
     event.preventDefault();

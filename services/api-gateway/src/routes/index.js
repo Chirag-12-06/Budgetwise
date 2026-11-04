@@ -1,18 +1,35 @@
 import express from "express";
 import services from "../config/services.js";
 import createServiceProxy from "../utils/createServiceProxy.js";
+import protectedRoute from "../utils/protectedRoute.js";
 
 const router = express.Router();
 
-// Auth service
+// Public auth routes
 router.use("/auth", createServiceProxy(services.auth, "/auth"));
-router.use("/users", createServiceProxy(services.auth, "/users"));
-router.use("/preferences", createServiceProxy(services.auth, "/preferences"));
 
-// Expenses service
-router.use("/categories", createServiceProxy(services.expenses, "/categories"));
-router.use("/groups", createServiceProxy(services.expenses, "/groups"));
-router.use("/transactions", createServiceProxy(services.expenses, "/transactions"));
-router.use("/budgets", createServiceProxy(services.expenses, "/budgets"));
+// Protected auth routes
+router.use("/users", ...protectedRoute(services.auth, "/users"));
+router.use("/preferences", ...protectedRoute(services.auth, "/preferences"));
+
+// Protected expenses routes
+router.use("/categories", ...protectedRoute(services.expenses, "/categories"));
+router.use("/groups", ...protectedRoute(services.expenses, "/groups"));
+router.use(
+  "/transactions",
+  ...protectedRoute(services.expenses, "/transactions"),
+);
+router.use("/budgets", ...protectedRoute(services.expenses, "/budgets"));
+
+// Protected OCR routes
+router.use(
+  "/process-receipt",
+  ...protectedRoute(services.ocr, "/process-receipt"),
+);
+
+// Protected prediction routes
+router.use("/", ...protectedRoute(services.prediction, ""));
+
+
 
 export default router;

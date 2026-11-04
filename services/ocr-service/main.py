@@ -13,6 +13,7 @@ CORS(app, origins=[
     "http://localhost:5174",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
+    "http://localhost:5000",
 ])  # Enable CORS for frontend
 
 SERVICE_STARTED_AT = datetime.now(timezone.utc)
@@ -66,7 +67,7 @@ def process_receipt():
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('OCR_PORT') or os.getenv('PORT', '5002'))
+    port = int(os.getenv('OCR_PORT') or os.getenv('PORT', '5004'))
     debug_enabled = os.getenv('FLASK_DEBUG', '0') == '1'
 
     app.run(

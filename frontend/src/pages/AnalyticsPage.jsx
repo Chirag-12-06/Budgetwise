@@ -223,9 +223,7 @@ export default function AnalyticsPage({
                     const bubbleColor =
                       categories.find(
                         (option) => option.id === bubble.categoryKey,
-                      )?.color ??
-                      categories.find((option) => option.id === "uncategorized")
-                        ?.color;
+                      )?.color 
                     const textColor = getContrastTextColor(bubbleColor);
                     const badgeLabel = `${bubble.percent.toFixed(1)}%`;
                     const estimatedCharWidthRatio = 0.56;
@@ -257,7 +255,7 @@ export default function AnalyticsPage({
                           animationDuration: `${bubble.animationDuration}s`,
                           animationDelay: `${bubble.animationDelay}s`,
                         }}
-                        title={`${categoryDisplay.label}: ${formatCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
+                        title={`${category?.name}: ${formatCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
                       >
                         <span
                           className="pointer-events-none inline-block max-w-full whitespace-nowrap font-bold leading-none"
@@ -301,58 +299,63 @@ export default function AnalyticsPage({
                 maxHeight: `${bubblePanelHeight}px`,
               }}
             >
-              <div className="grid gap-3">
-                {categoryEntries.map(([categoryKey, total]) => {
-                  const category = categories.find(
-                    (item) => item.id === categoryKey,
-                  );
-                  const color =
-                    categories.find((option) => option.id === expense.category)
-                      ?.color ??
-                    categories.find((option) => option.id === "uncategorized")
-                      ?.color;
-                  const percent = totalCategoryAmount
-                    ? (total / totalCategoryAmount) * 100
-                    : 0;
-                  const isHidden = hiddenBubbleCategories.includes(categoryKey);
+              {categoryEntries.map(([categoryKey, total]) => {
+                const category = categories.find(
+                  (item) => item.id === categoryKey,
+                );
 
-                  return (
-                    <Button
-                      variant="plain"
-                      className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
-                        isHidden
-                          ? "opacity-45"
-                          : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
-                      key={categoryKey}
-                      type="button"
-                      onClick={() => toggleBubbleCategory(categoryKey)}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
-                            style={{ backgroundColor: color }}
-                          >
-                            <i className={category.icon} aria-hidden="true" />
-                          </span>
-                          <strong className="truncate">{category.label}</strong>
-                        </div>
-                        <span>{formatCurrency(total)}</span>
+                const color = category?.color;
+
+                const percent = totalCategoryAmount
+                  ? (total / totalCategoryAmount) * 100
+                  : 0;
+
+                const isHidden = hiddenBubbleCategories.includes(categoryKey);
+
+                return (
+                  <Button
+                    variant="plain"
+                    className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
+                      isHidden
+                        ? "opacity-45"
+                        : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                    key={categoryKey}
+                    type="button"
+                    onClick={() => toggleBubbleCategory(categoryKey)}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
+                          style={{ backgroundColor: color }}
+                        >
+                          <i
+                            className={
+                              category?.icon 
+                            }
+                            aria-hidden="true"
+                          />
+                        </span>
+
+                        <strong className="truncate">{category?.name}</strong>
                       </div>
-                      <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                        <div
-                          className="h-full rounded-[inherit]"
-                          style={{
-                            width: `${percent}%`,
-                            backgroundColor: color,
-                          }}
-                        />
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
+
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+
+                    <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        className="h-full rounded-[inherit]"
+                        style={{
+                          width: `${percent}%`,
+                          backgroundColor: color,
+                        }}
+                      />
+                    </div>
+                  </Button>
+                );
+              })}
             </div>
           ) : (
             <div className="py-6 text-gray-500 dark:text-gray-300">

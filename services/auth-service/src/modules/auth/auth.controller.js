@@ -22,14 +22,10 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.validated.body;
 
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Email and password are required",
-    });
-  }
-
-  const { user, token } = await loginUser(email.trim().toLowerCase(), password);
+  const { user, token } = await loginUser(
+    email.trim().toLowerCase(),
+    password,
+  );
 
   res.cookie("token", token, {
     ...cookieOptions,

@@ -30,7 +30,7 @@ export default function ExpensesPage({
   onCategoryFilterToggle,
   onClearCategoryFilters,
 }) {
-  const { categories, groups } = useCategory();
+  const { categories } = useCategory();
 
   return (
     <section className="grid gap-4">
@@ -58,14 +58,10 @@ export default function ExpensesPage({
         {filteredExpenses.length ? (
           <div className="max-h-[52vh] min-h-48 overflow-y-auto grid gap-3.5">
             {filteredExpenses.map((expense) => {
-              const category = categories.find(
-                (item) => item.id === expense.category,
-              );
-              const color =
-                categories.find((option) => option.id === expense.category)
-                  ?.color ??
-                categories.find((option) => option.id === "uncategorized")
-                  ?.color;
+              const category =
+                categories.find((item) => item.id === expense.category)
+
+              const color = category?.color;
 
               return (
                 <article
@@ -77,7 +73,10 @@ export default function ExpensesPage({
                       className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm"
                       style={{ backgroundColor: color }}
                     >
-                      <i className={category.icon} aria-hidden="true" />
+                      <i
+                        className={category?.icon}
+                        aria-hidden="true"
+                      />
                     </span>
                     <div className="grid gap-1">
                       <div className="flex items-center gap-2">
