@@ -31,7 +31,6 @@ function App() {
     customDateFrom,
     customDateTo,
     dateRangeError,
-    user,
     expenses,
     editingExpenseId,
     editingRecurringExpenseId,
@@ -76,6 +75,8 @@ function App() {
     topCategories,
     trendData,
     maxTrendValue,
+    user,
+    authLoading,
   } = useAppController();
 
   const authPageProps = {
@@ -114,16 +115,7 @@ function App() {
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute user={user} />}>
-          <Route
-            element={
-              <AppLayout
-                user={user}
-                handleLogout={handleLogout}
-                dark={dark}
-                setDark={setDark}
-              />
-            }
-          >
+          <Route element={<ProtectedRoute user={user} loading={authLoading} />}>
             <Route
               path={ROUTES.HOME}
               element={

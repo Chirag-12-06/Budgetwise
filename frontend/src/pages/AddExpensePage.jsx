@@ -1,14 +1,14 @@
-import { useRef, useState } from "react";
-import { processReceipt } from "../api/receipt.api";
+import { useState } from "react";
 import Button from "../components/ui/button";
 import Calendar from "../components/ui/calendar";
 import PanelCard from "../components/ui/panelCard";
-import UnderDevelopmentDialog from "../components/ui/underDevelopmentDialog";
 import useCategoryPrediction from "../hooks/expenses/useCategoryPrediction";
 import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
 import useCategories from "../hooks/useCategory";
 import { getNextDateKey } from "../utils/date";
 import resolveReceiptItemAmount from "../utils/receiptItemAmount";
+import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
+import ReceiptDialog from "../components/receipt/ReceiptDialog";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
@@ -53,14 +53,8 @@ export default function AddExpensePage({
   handleCancelEditExpense,
   handleCancelEditRecurringExpense,
 }) {
-  const [scanError, setScanError] = useState("");
-  const [scanErrorOpen, setScanErrorOpen] = useState(false);
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
     useState(false);
-  const fileInputRef = useRef(null);
-  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
-  const [receiptBill, setReceiptBill] = useState(null);
-  const [receiptPaidMap, setReceiptPaidMap] = useState({});
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
   const { categories, groups } = useCategories();
@@ -94,6 +88,21 @@ export default function AddExpensePage({
     isEditingExpense: isFormLocked,
     // categoryManuallySelected,
   });
+
+  const {
+    fileInputRef,
+    receiptBill,
+    receiptPaidMap,
+    receiptDialogOpen,
+    setReceiptDialogOpen,
+    scanError,
+    scanErrorOpen,
+    setScanErrorOpen,
+    isScanning,
+    handleReceiptScan,
+    toggleReceiptItem,
+    applyReceiptSelection,
+  } = useReceiptScanner({ setExpenseForm });
 
   showScanUnderDevelopmentPopup;
 
@@ -130,207 +139,35 @@ export default function AddExpensePage({
             ? "Edit Expense"
             : "Add New Expense"}
         </h2>
+
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          style={{ display: "none" }}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-
-            reader.onload = async () => {
-              try {
-                const dataUrl = reader.result;
-
-                const json = await processReceipt(dataUrl, file.name);
-
-                if (json?.error) {
-                  throw new Error(json.error);
-                }
-
-                const bill = json?.data?.bills?.[0] ?? null;
-
-                const items = Array.isArray(bill?.items) ? bill.items : [];
-
-                const paidMap = {};
-
-                items.forEach((_, index) => {
-                  paidMap[String(index)] = true;
-                });
-
-                setReceiptBill(bill);
-                setReceiptPaidMap(paidMap);
-                setReceiptDialogOpen(true);
-              } catch (err) {
-                console.error("Receipt upload failed:", err);
-
-                setScanError(
-                  err.message || "Receipt processing failed. Please try again.",
-                );
-                setScanErrorOpen(true);
-              }
-            };
-
-            reader.onerror = () => {
-              setScanError("Failed to read the selected image.");
-              setScanErrorOpen(true);
-            };
-
-            reader.readAsDataURL(file);
-            e.target.value = "";
-          }}
+          className="hidden"
+          onChange={handleReceiptScan}
         />
+
         <Button
           variant="plain"
           className={scanButtonClasses}
           type="button"
-          onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          disabled={isScanning}
+          onClick={() => fileInputRef.current?.click()}
         >
           <i className="fas fa-camera" aria-hidden="true" />
-          <span>Scan Receipt</span>
+          <span>{isScanning ? "Scanning..." : "Scan Receipt"}</span>
         </Button>
       </div>
 
-      {receiptDialogOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
-          onClick={() => setReceiptDialogOpen(false)}
-          role="presentation"
-        >
-          <div
-            className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-800"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="receipt-scan-dialog-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3
-              id="receipt-scan-dialog-title"
-              className="text-xl font-bold text-gray-900 dark:text-white"
-            >
-              {receiptBill?.restaurant_name || "Receipt"}
-            </h3>
-
-            <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-600">
-              <table className="min-w-full border-collapse text-left text-sm">
-                <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:bg-slate-700/60 dark:text-slate-200">
-                  <tr>
-                    <th className="px-3 py-2">Item</th>
-                    <th className="px-3 py-2">Qty</th>
-                    <th className="px-3 py-2">Unit_Price</th>
-                    <th className="px-3 py-2">Amount</th>
-                    <th className="px-3 py-2">Paid</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
-                  {(Array.isArray(receiptBill?.items) ? receiptBill.items : [])
-                    .length ? (
-                    (receiptBill.items || []).map((item, index) => {
-                      const amount = resolveReceiptItemAmount(item);
-                      const key = String(index);
-                      const isPaid = Boolean(receiptPaidMap[key]);
-
-                      return (
-                        <tr
-                          key={key}
-                          className="text-gray-800 dark:text-slate-100"
-                        >
-                          <td className="px-3 py-2">
-                            {item?.name || "(unnamed)"}
-                          </td>
-                          <td className="px-3 py-2">{item?.quantity ?? ""}</td>
-                          <td className="px-3 py-2">
-                            {item?.base_amount ?? ""}
-                          </td>
-                          <td className="px-3 py-2">
-                            {amount ? amount.toFixed(2) : ""}
-                          </td>
-                          <td className="px-3 py-2">
-                            <label className="inline-flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={isPaid}
-                                onChange={(event) => {
-                                  const checked = event.target.checked;
-                                  setReceiptPaidMap((current) => ({
-                                    ...current,
-                                    [key]: checked,
-                                  }));
-                                }}
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-500"
-                              />
-                              <span className="text-sm text-gray-700 dark:text-slate-200">
-                                {isPaid ? "Paid" : "Not paid"}
-                              </span>
-                            </label>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td
-                        className="px-3 py-4 text-sm text-gray-600 dark:text-slate-200"
-                        colSpan={5}
-                      >
-                        No items detected on this receipt.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-3">
-              <Button
-                variant="plain"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
-                type="button"
-                onClick={() => setReceiptDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="plain"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
-                type="button"
-                onClick={() => {
-                  const items = Array.isArray(receiptBill?.items)
-                    ? receiptBill.items
-                    : [];
-                  const selectedTotal = items.reduce((sum, item, index) => {
-                    const key = String(index);
-                    if (!receiptPaidMap[key]) return sum;
-                    return sum + resolveReceiptItemAmount(item);
-                  }, 0);
-
-                  const restaurantName = receiptBill?.restaurant_name || "";
-                  setExpenseForm((current) => ({
-                    ...current,
-                    title: restaurantName ? restaurantName : current.title,
-                    amount: selectedTotal
-                      ? selectedTotal.toFixed(2)
-                      : current.amount,
-                  }));
-                  setReceiptDialogOpen(false);
-                }}
-              >
-                Use selection
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <UnderDevelopmentDialog
-        open={scanErrorOpen}
-        title="Receipt scan failed"
-        message={scanError || "Please try again."}
-        onClose={() => setScanErrorOpen(false)}
-        labelledBy="receipt-scan-error-dialog"
+      <ReceiptDialog
+        isOpen={receiptDialogOpen}
+        receiptBill={receiptBill}
+        receiptPaidMap={receiptPaidMap}
+        onClose={() => setReceiptDialogOpen(false)}
+        onToggleItem={toggleReceiptItem}
+        onApply={() => applyReceiptSelection(resolveReceiptItemAmount)}
+        resolveReceiptItemAmount={resolveReceiptItemAmount}
       />
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
@@ -588,14 +425,6 @@ export default function AddExpensePage({
           </Button>
         )}
       </form>
-
-      <UnderDevelopmentDialog
-        open={showScanUnderDevelopmentPopup}
-        title="Feature Under Development"
-        message="Receipt scanning is under development and will be available soon."
-        labelledBy="scan-receipt-popup-title"
-        onClose={() => setShowScanUnderDevelopmentPopup(false)}
-      />
 
       {showRecurringModal ? (
         <div

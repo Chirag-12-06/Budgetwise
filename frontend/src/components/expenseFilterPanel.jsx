@@ -95,9 +95,9 @@ export default function ExpenseFilterPanel({
       : [];
   const availableCategoryOptions = Array.from(
   new Set(
-    categorySourceExpenses.map(
-      (expense) => expense?.category,
-    ),
+    categorySourceExpenses
+      .map((expense) => expense?.category)
+      .filter(Boolean),
   ),
 )
   .map((value) => {
@@ -105,10 +105,9 @@ export default function ExpenseFilterPanel({
 
     return {
       value,
-      label: category?.name,
-      icon: category?.icon,
-      color:
-        category?.color 
+      label: category?.name || "Uncategorized",
+      icon: category?.icon || null,
+      color: category?.color || "#808080",
     };
   })
   .sort((left, right) => left.label.localeCompare(right.label));

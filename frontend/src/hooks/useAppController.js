@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { clearStoredUser, getStoredUser, logoutUser } from "../api/auth.api";
 import { useTheme } from "../context/ThemeContext";
 import { ROUTES } from "../routes/routes";
 import { formatDateKey, formatTrendLabel } from "../utils/date";
@@ -16,6 +15,11 @@ import useCategoryFilters from "./expenses/useCategoryFilters";
 import useExpenseCrud from "./expenses/useExpenseCrud";
 import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
 import useDateFilter from "./filters/useDateFilters";
+import {
+  clearStoredUser,
+  getCurrentUser,
+  logoutUser,
+} from "../api/auth.api";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -29,8 +33,8 @@ export default function useAppController() {
   const initialGroupBy = searchParams.get("groupBy") || "daily";
 
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState(initialGroupBy);
-  const [user, setUser] = useState(getStoredUser);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(null);
+const [authLoading, setAuthLoading] = useState(true);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [editingRecurringExpenseId, setEditingRecurringExpenseId] =
@@ -208,61 +212,60 @@ export default function useAppController() {
   }
 
   useEffect(() => {
-    if (!user) {
-      setExpenses([]);
-      return;
-    }
+  if (authLoading) return;
 
-    let ignore = false;
+  if (!user) {
+    setExpenses([]);
+    return;
+  }
 
-    async function loadExpenses() {
-      const today = formatDateKey(new Date());
+  let ignore = false;
 
-      const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-      try {
-        await refreshExpenses(activeDateRange);
-      } catch (error) {
-        if (!ignore) {
-          handleApiError(error, "Unable to load expenses");
-        }
+  async function loadExpenses() {
+    try {
+      await refreshExpenses(activeDateRange);
+    } catch (error) {
+      if (!ignore) {
+        handleApiError(error, "Unable to load expenses");
       }
     }
+  }
 
-    loadExpenses();
-    return () => {
-      ignore = true;
-    };
-  }, [user]);
+  loadExpenses();
+
+  return () => {
+    ignore = true;
+  };
+}, [user, authLoading]);
 
   useEffect(() => {
-    let active = true;
+  let active = true;
 
-    async function restoreSession() {
-      try {
-        const currentUser = await getCurrentUser();
+  async function restoreSession() {
+    try {
+      const currentUser = await getCurrentUser();
 
-        if (active) {
-          setUser(currentUser);
-        }
-      } catch {
-        if (active) {
-          clearStoredUser();
-          setUser(null);
-        }
-      } finally {
-        if (active) {
-          setAuthLoading(false);
-        }
+      if (active) {
+        setUser(currentUser);
+      }
+    } catch {
+      if (active) {
+        clearStoredUser();
+        setUser(null);
+      }
+    } finally {
+      if (active) {
+        setAuthLoading(false);
       }
     }
+  }
 
-    restoreSession();
+  restoreSession();
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  return () => {
+    active = false;
+  };
+}, []);
 
   function activateCustomDateFilter(from, to) {
     activateCustomDateRange(from, to);
@@ -511,5 +514,8 @@ export default function useAppController() {
     trendData,
     maxTrendValue,
     handleAnalyticsGroupByChange,
+    user,
+  authLoading,
+  expenses,
   };
 }

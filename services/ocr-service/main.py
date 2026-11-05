@@ -34,7 +34,7 @@ def root_health():
     return health()
 
 
-@app.route('/api/process-receipt', methods=['POST'])
+@app.route('/api/process-receipt/', methods=['POST'])
 def process_receipt():
     try:
         data = request.json or {}
