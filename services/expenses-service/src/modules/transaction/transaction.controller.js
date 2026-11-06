@@ -8,7 +8,7 @@ import {
   deleteTransactionService,
 } from "./transaction.service.js";
 
-import asyncHandler from "../../../../utils/asyncHandler.js";
+import asyncHandler from "../../utils/asyncHandler.js";
 
 export const createTransactionController = asyncHandler(async (req, res) => {
   const transaction = await createTransactionService(req.body, req.user.id);

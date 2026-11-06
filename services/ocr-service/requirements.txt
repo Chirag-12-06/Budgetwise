@@ -1,5 +1,9 @@
+Flask
+flask-cors
+python-dotenv
 numpy==2.3.5
 opencv-python==4.10.0.84
-pillow==11.0.0
+Pillow==11.0.0
 requests==2.32.3
 pytesseract==0.3.13
+gunicorn

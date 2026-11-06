@@ -3,7 +3,7 @@ import {
   updateUserProfile,
 } from "./user.service.js";
 
-import asyncHandler from "../../../../utils/asyncHandler.js";
+import asyncHandler from "../../utils/asyncHandler.js";
 
 export const getProfile = asyncHandler(async (req, res) => {
   const user = await fetchUserProfile(req.user.id);

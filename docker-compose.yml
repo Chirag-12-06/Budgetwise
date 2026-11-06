@@ -1,0 +1,101 @@
+
+services:
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: budgetwise-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile.dev
+    container_name: budgetwise-api-gateway
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./services/api-gateway/.env
+    environment:
+      PORT: 5000
+      CLIENT_URL: http://localhost:5173
+      AUTH_SERVICE_URL: http://auth-service:5001
+      EXPENSES_SERVICE_URL: http://expenses-service:5002
+      PREDICTION_SERVICE_URL: http://prediction-service:5003
+      OCR_SERVICE_URL: http://ocr-service:5004
+      RECURRING_EXPENSES_SERVICE_URL: http://recurring-expenses-service:5005
+    depends_on:
+      - auth-service
+      - expenses-service
+      - recurring-expenses-service
+      - prediction-service
+      - ocr-service
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services
+      dockerfile: auth-service/Dockerfile.dev
+    container_name: budgetwise-auth-service
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./services/auth-service/.env
+    restart: unless-stopped
+
+  # Expenses Service
+  expenses-service:
+    build:
+      context: ./services
+      dockerfile: expenses-service/Dockerfile.dev
+    container_name: budgetwise-expenses-service
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./services/expenses-service/.env
+    restart: unless-stopped
+
+  # Recurring Expenses Service
+  recurring-expenses-service:
+    build:
+      context: ./services
+      dockerfile: recurring-expenses-service/Dockerfile.dev
+    container_name: budgetwise-recurring-expenses-service
+    ports:
+      - "5005:5005"
+    env_file:
+      - ./services/recurring-expenses-service/.env
+    restart: unless-stopped
+
+  # Prediction Service
+  prediction-service:
+    build:
+      context: ./services/prediction-service
+      dockerfile: Dockerfile.dev
+    container_name: budgetwise-prediction-service
+    ports:
+      - "5003:5003"
+    # env_file:
+    #   - ./services/prediction-service/.env
+    restart: unless-stopped
+
+  # OCR Service
+  ocr-service:
+    build:
+      context: ./services/ocr-service
+      dockerfile: Dockerfile.dev
+    container_name: budgetwise-ocr-service
+    ports:
+      - "5004:5004"
+    # env_file:
+    #   - ./services/ocr-service/.env
+    restart: unless-stopped

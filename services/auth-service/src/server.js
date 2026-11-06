@@ -1,11 +1,10 @@
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-
-import routes from "./routes/index.js";
+import errorMiddleware from "./middleware/error.middleware.js";
 import prisma from "./config/db.js";
-import errorMiddleware from "../../middleware/error.middleware.js";
+import routes from "./routes/index.js";
 
 const app = express();
 

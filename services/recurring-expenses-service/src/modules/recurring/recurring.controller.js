@@ -6,7 +6,7 @@ import {
   deleteRecurringExpenseService,
 } from "./recurring.service.js";
 
-import asyncHandler from "../../../../utils/asyncHandler.js";
+import asyncHandler from "../../utils/asyncHandler.js";
 
 // Create recurring expense
 export const createRecurringExpenseController = asyncHandler(async (req, res) => {

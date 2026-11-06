@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import routes from "./routes/index.js";
 import prisma from "./config/db.js";
-import errorMiddleware from "../../middleware/error.middleware.js";
+import errorMiddleware from "./middleware/error.middleware.js";
 
 const app = express();
 
@@ -32,7 +32,7 @@ app.get("/health", async (req, res) => {
 
 app.use(errorMiddleware);
 
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5005;
 
 app.listen(PORT, () => {
   console.log(`Recurring Expenses Service running on port ${PORT}`);

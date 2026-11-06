@@ -7,7 +7,7 @@ import {
   deleteOccurrenceService,
 } from "./occurrence.service.js";
 
-import asyncHandler from "../../../../utils/asyncHandler.js";
+import asyncHandler from "../../utils/asyncHandler.js";
 
 // Create occurrence
 export const createOccurrenceController = asyncHandler(async (req, res) => {

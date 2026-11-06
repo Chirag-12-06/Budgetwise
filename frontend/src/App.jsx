@@ -114,8 +114,17 @@ function App() {
 
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
-        <Route element={<ProtectedRoute user={user} />}>
-          <Route element={<ProtectedRoute user={user} loading={authLoading} />}>
+        <Route element={<ProtectedRoute user={user} loading={authLoading} />}>
+          <Route
+            element={
+              <AppLayout
+                user={user}
+                handleLogout={handleLogout}
+                dark={dark}
+                setDark={setDark}
+              />
+            }
+          >
             <Route
               path={ROUTES.HOME}
               element={

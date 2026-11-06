@@ -6,7 +6,7 @@ import {
   deleteBudgetService,
 } from "./budget.service.js";
 
-import asyncHandler from "../../../../utils/asyncHandler.js";
+import asyncHandler from "../../utils/asyncHandler.js";
 
 // Create budget
 export const createBudgetController = asyncHandler(async (req, res) => {

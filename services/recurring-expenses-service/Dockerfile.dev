@@ -1,0 +1,16 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY recurring-expenses-service/package*.json ./
+
+RUN npm ci
+
+COPY recurring-expenses-service/ ./
+COPY prisma/ ./prisma/
+
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
+EXPOSE 5005
+
+CMD ["npm", "run", "dev"]

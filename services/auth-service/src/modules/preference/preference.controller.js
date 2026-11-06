@@ -3,7 +3,7 @@ import {
   updatePreferences,
 } from "./preference.service.js";
 
-import asyncHandler from "../../../../utils/asyncHandler.js";
+import asyncHandler from "../../utils/asyncHandler.js";
 
 const allowedFields = [
   "reportingCurrency",
