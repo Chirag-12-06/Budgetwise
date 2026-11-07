@@ -9,6 +9,7 @@ import { getNextDateKey } from "../utils/date";
 import resolveReceiptItemAmount from "../utils/receiptItemAmount";
 import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
 import ReceiptDialog from "../components/receipt/ReceiptDialog";
+import { CURRENCY_OPTIONS } from "../constants/currencies";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
@@ -56,6 +57,7 @@ export default function AddExpensePage({
   const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
     useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
   const { categories, groups } = useCategories();
 
@@ -105,7 +107,10 @@ export default function AddExpensePage({
   } = useReceiptScanner({ setExpenseForm });
 
   showScanUnderDevelopmentPopup;
-
+  const currentCurrency =
+    CURRENCY_OPTIONS.find(
+      (currency) => currency.code === (expenseForm.currencyCode || "INR"),
+    ) || CURRENCY_OPTIONS[0];
   const recurringUntilDateMin = getNextDateKey(expenseForm.date);
   const recurringUntilDateIsInvalid =
     recurringForm.enabled &&
@@ -291,9 +296,63 @@ export default function AddExpensePage({
           </label>
         </div>
 
-        <label className="grid gap-2">
+        <div className="flex gap-2">
+          {/* Currency selector */}
+            <div className="relative w-36 shrink-0">
+              <button
+                type="button"
+                className={`${fieldClasses} flex h-full w-full items-center justify-between gap-2`}
+                onClick={() => setCurrencyOpen((previous) => !previous)}
+              >
+                <span className="flex items-center gap-4">
+                  <img
+                    src={currentCurrency.flag}
+                    alt={currentCurrency.name}
+                    className="h-6 w-10 rounded-sm object-cover"
+                  />
+                  <span>
+                    {currentCurrency.symbol}
+                  </span>
+                </span>
+
+                <i className="fas fa-chevron-down text-xs" />
+              </button>
+
+              {currencyOpen && (
+                <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-36 overflow-y-auto rounded-lg border bg-white dark:border-gray-600 dark:bg-gray-800 shadow-xl">
+                  {CURRENCY_OPTIONS.map((currency) => (
+                    <button
+                      key={currency.code}
+                      type="button"
+                      className="flex w-full items-center gap-6 px-3 py-2 text-left dark:text-white dark:hover:bg-gray-700"
+                      onClick={() => {
+                        setExpenseForm((current) => ({
+                          ...current,
+                          currencyCode: currency.code,
+                        }));
+                        setCurrencyOpen(false);
+                      }}
+                    >
+                      <img
+                        src={currency.flag}
+                        alt={currency.name}
+                        className="h-6 w-10 rounded-sm object-cover"
+                      />
+
+                      <span>
+                        {currency.symbol}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <i className="fas fa-chevron-down pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500" />
+
+          {/* Amount input */}
           <input
-            className={fieldClasses}
+            className={`${fieldClasses} min-w-0 flex-1`}
             type="number"
             min="0"
             step="0.01"
@@ -307,7 +366,7 @@ export default function AddExpensePage({
             required
             placeholder="Amount"
           />
-        </label>
+        </div>
 
         <Calendar
           className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"

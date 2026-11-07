@@ -50,9 +50,27 @@ export const fetchTransactionByIdService = async (id, userId) => {
 };
 
 export const updateTransactionService = async (id, userId, data) => {
+  const {
+    title,
+    amount,
+    categoryId,
+    type,
+    currencyCode,
+    transactionDate,
+  } = data;
+
   return prisma.transaction.updateMany({
     where: { id, userId },
-    data,
+    data: {
+      ...(title !== undefined && { title }),
+      ...(amount !== undefined && { amount }),
+      ...(categoryId !== undefined && { categoryId }),
+      ...(type !== undefined && { type }),
+      ...(currencyCode !== undefined && { currencyCode }),
+      ...(transactionDate !== undefined && {
+        transactionDate: new Date(transactionDate),
+      }),
+    },
   });
 };
 

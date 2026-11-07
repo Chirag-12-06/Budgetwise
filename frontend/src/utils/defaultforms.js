@@ -4,6 +4,7 @@ export function createDefaultExpenseForm() {
   return {
     title: "",
     amount: "",
+    currencyCode: "INR",
     category: "",
     date: getTodayDate(),
     editScope: null,

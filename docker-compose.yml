@@ -8,6 +8,9 @@ services:
     container_name: budgetwise-frontend
     ports:
       - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     environment:
       VITE_API_URL: http://localhost:5000/api
     depends_on:

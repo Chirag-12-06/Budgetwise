@@ -4,9 +4,6 @@ import { formatCurrency } from "../utils/currency";
 import Button from "./ui/button";
 import Calendar from "./ui/calendar";
 
-const summaryCardClasses =
-  "rounded-lg border bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800 sm:p-4";
-
 const periodModes = [
   { value: "day", label: "Day" },
   { value: "week", label: "Week" },
@@ -18,19 +15,6 @@ const relativeModes = [
   { value: "previous", label: "Previous" },
   { value: "current", label: "Current" },
 ];
-
-const summaryGridTemplateColumns =
-  "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)";
-const categoryGroupIcons = {
-  Food: "fas fa-bowl-food",
-  Drinks: "fas fa-glass-cheers",
-  Entertainment: "fas fa-film",
-  Home: "fas fa-home",
-  Life: "fas fa-heart",
-  Transportation: "fas fa-route",
-  Utilities: "fas fa-bolt",
-  Other: "fas fa-layer-group",
-};
 
 export default function ExpenseFilterPanel({
   expenses = [],
@@ -62,9 +46,7 @@ export default function ExpenseFilterPanel({
       )
     : 0;
   const computedTrackedCategories = hasSummaryExpenses
-    ? new Set(
-        summaryExpenses.map((expense) => expense?.category),
-      ).size
+    ? new Set(summaryExpenses.map((expense) => expense?.category)).size
     : 0;
   const computedVisibleEntries = hasSummaryExpenses
     ? summaryExpenses.length
@@ -94,23 +76,23 @@ export default function ExpenseFilterPanel({
       ? expenses
       : [];
   const availableCategoryOptions = Array.from(
-  new Set(
-    categorySourceExpenses
-      .map((expense) => expense?.category)
-      .filter(Boolean),
-  ),
-)
-  .map((value) => {
-    const category = categories.find((item) => item.id === value);
+    new Set(
+      categorySourceExpenses
+        .map((expense) => expense?.category)
+        .filter(Boolean),
+    ),
+  )
+    .map((value) => {
+      const category = categories.find((item) => item.id === value);
 
-    return {
-      value,
-      label: category?.name || "Uncategorized",
-      icon: category?.icon || null,
-      color: category?.color || "#808080",
-    };
-  })
-  .sort((left, right) => left.label.localeCompare(right.label));
+      return {
+        value,
+        label: category?.name || "Uncategorized",
+        icon: category?.icon || null,
+        color: category?.color || "#808080",
+      };
+    })
+    .sort((left, right) => left.label.localeCompare(right.label));
   const availableCategorySet = new Set(
     availableCategoryOptions.map((option) => option.value),
   );
@@ -132,15 +114,18 @@ export default function ExpenseFilterPanel({
         selectedCategoryFilters.includes(value),
       ).length;
 
-      const accentColor =
-        categories.find((option) => option.id === values[0])?.color 
+      const accentColor = categories.find(
+        (option) => option.id === values[0],
+      )?.color;
 
       return {
         label: group.name,
         values,
         selectedCount,
         isAllSelected: selectedCount === values.length,
-        icon: categoryGroupIcons[group.name] || "fas fa-layer-group",
+        icon:
+          groups.find((g) => g.name === group.name)?.icon ||
+          "fas fa-layer-group",
         accentColor,
       };
     })
@@ -304,11 +289,16 @@ export default function ExpenseFilterPanel({
           {resolvedStats.length ? (
             <div
               className="grid gap-2 sm:gap-3"
-              style={{ gridTemplateColumns: summaryGridTemplateColumns }}
+              style={{
+                gridTemplateColumns:
+                  "minmax(8.5rem, 1.55fr) minmax(5.25rem, 1fr) minmax(5.25rem, 1fr)",
+              }}
             >
               {resolvedStats.map((stat) => (
                 <article
-                  className={`${summaryCardClasses} min-w-0`}
+                  className={
+                    "rounded-lg border bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800 sm:p-4 min-w-0"
+                  }
                   key={stat.label}
                 >
                   <span className="mb-1 block truncate text-[0.72rem] text-gray-500 dark:text-gray-300 sm:text-xs">
