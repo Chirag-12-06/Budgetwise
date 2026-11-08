@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import api from "../../api/api";
+import {
+  getPreferences,
+  updatePreferences,
+} from "../../api/preference.api";
 
 const DEFAULT_PREFERENCES = {
   reportingCurrency: "INR",
@@ -13,15 +16,15 @@ export default function usePreferences(showStatus) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Fetch preferences when the component mounts
+  // Fetch preferences
   useEffect(() => {
     const fetchPreferences = async () => {
       try {
-        const response = await api.get("/preferences");
+        const data = await getPreferences();
 
         setPreferences({
           ...DEFAULT_PREFERENCES,
-          ...response.data.data,
+          ...(data.data ?? data),
         });
       } catch (error) {
         showStatus?.(
@@ -36,7 +39,7 @@ export default function usePreferences(showStatus) {
     fetchPreferences();
   }, []);
 
-  // Update a single preference in local state
+  // Update local state
   const setPreference = (field, value) => {
     setPreferences((previous) => ({
       ...previous,
@@ -44,24 +47,28 @@ export default function usePreferences(showStatus) {
     }));
   };
 
-  // Save preferences to backend
+  // Save preferences
   const savePreferences = async () => {
     try {
       setSaving(true);
 
-      const response = await api.put("/preferences", preferences);
+      const data = await updatePreferences(preferences);
 
       setPreferences({
         ...DEFAULT_PREFERENCES,
-        ...response.data.data,
+        ...(data.data ?? data),
       });
 
       showStatus?.("Preferences updated successfully", "success");
+
+      return true;
     } catch (error) {
       showStatus?.(
         error.response?.data?.message || "Failed to update preferences",
         "error"
       );
+
+      return false;
     } finally {
       setSaving(false);
     }

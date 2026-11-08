@@ -3,6 +3,7 @@ import useCategory from "../hooks/useCategory";
 import { formatCurrency } from "../utils/currency";
 import Button from "./ui/button";
 import Calendar from "./ui/calendar";
+import usePreferences from "../hooks/profile/usePreferences";
 
 const periodModes = [
   { value: "day", label: "Day" },
@@ -37,6 +38,8 @@ export default function ExpenseFilterPanel({
   className = "mb-5 grid gap-4",
 }) {
   const { categories, groups } = useCategory();
+  const { preferences } = usePreferences();
+  const reportingCurrency = preferences?.reportingCurrency || "INR";
 
   const hasSummaryExpenses = Array.isArray(summaryExpenses);
   const computedTotalSpending = hasSummaryExpenses
@@ -56,7 +59,9 @@ export default function ExpenseFilterPanel({
     ? [
         {
           label: "Total Spending",
-          value: summaryTotalSpending ?? formatCurrency(computedTotalSpending),
+          value:
+            summaryTotalSpending ??
+            formatCurrency(computedTotalSpending, reportingCurrency),
         },
         {
           label: "Categories",

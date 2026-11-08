@@ -316,45 +316,7 @@ export const logout = async (req, res) => {
 };
 
 
-export const forgotPassword = async (req, res) => {
-  try {
-    const email = String(req.body?.email || "")
-      .trim()
-      .toLowerCase();
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    // Don't reveal whether email exists
-    if (user) {
-  const token = crypto.randomBytes(32).toString("hex");
-
-  const expiry = new Date(Date.now() + 30 * 60 * 1000);
-
-  const resetLink =
-  `${process.env.FRONTEND_URL}/reset-password/${token}`;
-
-  await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordResetToken: token,
-        passwordResetExpiry: expiry,
-      },
-    });
-
-    await sendPasswordResetEmail(email, resetLink);
-  }
-
-  return res.json({
-    message: "If the account exists, reset instructions have been sent.",
-  });
-
-  } catch (error) {
-    logError("Forgot password error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 
 export const resetPassword = async (req, res) => {

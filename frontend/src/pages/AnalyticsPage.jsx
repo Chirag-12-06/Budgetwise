@@ -4,39 +4,8 @@ import PanelCard from "../components/ui/panelCard";
 import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
 import { formatCurrency } from "../utils/currency";
 import useCategory from "../hooks/useCategory";
-
-function hexToRgba(hex, alpha = 1) {
-  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
-    return `rgba(107, 114, 128, ${alpha})`;
-  }
-
-  const normalized =
-    hex.length === 4
-      ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
-      : hex;
-  const value = Number.parseInt(normalized.slice(1), 16);
-  const red = (value >> 16) & 255;
-  const green = (value >> 8) & 255;
-  const blue = value & 255;
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function getContrastTextColor(hex) {
-  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
-    return "#ffffff";
-  }
-
-  const normalized =
-    hex.length === 4
-      ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
-      : hex;
-  const value = Number.parseInt(normalized.slice(1), 16);
-  const red = (value >> 16) & 255;
-  const green = (value >> 8) & 255;
-  const blue = value & 255;
-  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-  return luminance >= 160 ? "#111827" : "#ffffff";
-}
+import usePreferences from "../hooks/profile/usePreferences";
+import { hexToRgba, getContrastTextColor } from "../utils/color";
 
 export default function AnalyticsPage({
   expenses,
@@ -93,8 +62,9 @@ export default function AnalyticsPage({
     onTrendPointSelect: onTrendPointDateSelect,
   });
   const options = ["Daily", "Weekly", "Monthly", "Yearly"];
-  const { categories, groups } = useCategory();
-
+  const { categories } = useCategory();
+  const { preferences } = usePreferences();
+  const reportingCurrency = preferences?.reportingCurrency || "INR";
   return (
     <section className="grid gap-4">
       <PanelCard>
@@ -114,7 +84,10 @@ export default function AnalyticsPage({
           onCategoryFilterToggle={onCategoryFilterToggle}
           onClearCategoryFilters={onClearCategoryFilters}
           summaryExpenses={displayedAnalyticsExpenses}
-          summaryTotalSpending={formatCurrency(summaryTotalSpending)}
+          summaryTotalSpending={formatCurrency(
+            summaryTotalSpending,
+            reportingCurrency,
+          )}
           summaryTrackedCategories={categoryEntries.length}
           summaryVisibleEntries={displayedAnalyticsExpenses.length}
         />
@@ -220,10 +193,9 @@ export default function AnalyticsPage({
                     const category = categories.find(
                       (option) => option.id === bubble.categoryKey,
                     );
-                    const bubbleColor =
-                      categories.find(
-                        (option) => option.id === bubble.categoryKey,
-                      )?.color 
+                    const bubbleColor = categories.find(
+                      (option) => option.id === bubble.categoryKey,
+                    )?.color;
                     const textColor = getContrastTextColor(bubbleColor);
                     const badgeLabel = `${bubble.percent.toFixed(1)}%`;
                     const estimatedCharWidthRatio = 0.56;
@@ -255,7 +227,7 @@ export default function AnalyticsPage({
                           animationDuration: `${bubble.animationDuration}s`,
                           animationDelay: `${bubble.animationDelay}s`,
                         }}
-                        title={`${category?.name}: ${formatCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
+                        title={`${category?.name}: ${formatCurrency(bubble.value, reportingCurrency)} (${bubble.percent.toFixed(1)}%)`}
                       >
                         <span
                           className="pointer-events-none inline-block max-w-full whitespace-nowrap font-bold leading-none"
@@ -330,18 +302,13 @@ export default function AnalyticsPage({
                           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
                           style={{ backgroundColor: color }}
                         >
-                          <i
-                            className={
-                              category?.icon 
-                            }
-                            aria-hidden="true"
-                          />
+                          <i className={category?.icon} aria-hidden="true" />
                         </span>
 
                         <strong className="truncate">{category?.name}</strong>
                       </div>
 
-                      <span>{formatCurrency(total)}</span>
+                      <span>{formatCurrency(total, reportingCurrency)}</span>
                     </div>
 
                     <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">

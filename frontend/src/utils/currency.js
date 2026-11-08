@@ -1,7 +1,14 @@
-export function formatCurrency(value) {
-  return new Intl.NumberFormat("en-IN", {
+export function formatCurrency(
+  value,
+  currency = "INR",
+  locale = "en-IN"
+) {
+  const amount = Number(value);
+
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "INR",
+    currency,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(Number(value || 0));
+  }).format(Number.isFinite(amount) ? amount : 0);
 }

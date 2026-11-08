@@ -1,6 +1,7 @@
 import Chart from "chart.js/auto";
 import { useEffect, useRef } from "react";
 import { formatCurrency } from "../../utils/currency";
+import  usePreferences  from "../profile/usePreferences";
 
 export default function useTrendChart({
   visibleTrendPoints,
@@ -11,6 +12,9 @@ export default function useTrendChart({
 }) {
   const lineCanvasRef = useRef(null);
   const lineChartRef = useRef(null);
+  const { preferences } = usePreferences();
+  const reportingCurrency = preferences?.reportingCurrency ;
+
   const chartTitles = {
     daily: "Daily Expense Trend",
     weekly: "Weekly Expense Trend",
@@ -115,7 +119,7 @@ export default function useTrendChart({
         }
       }
 
-      return formatCurrency(numericValue);
+      return formatCurrency(numericValue, reportingCurrency);
     }
 
     function limitLogScaleTicks(scale) {
@@ -225,7 +229,7 @@ export default function useTrendChart({
               label: (context) => {
                 const originalValue =
                   rawValues[context.dataIndex] ?? context.parsed.y;
-                return `Amount: ${formatCurrency(originalValue)}`;
+                return `Amount: ${formatCurrency(originalValue, reportingCurrency)}`;
               },
             },
           },

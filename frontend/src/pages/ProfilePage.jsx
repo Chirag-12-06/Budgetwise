@@ -1,7 +1,7 @@
 import Button from "../components/ui/button";
 import PanelCard from "../components/ui/panelCard";
 import useProfile from "../hooks/profile/useProfile";
-// import { formatCurrency } from "../utils/currency";
+import { formatCurrency } from "../utils/currency";
 import usePreferences from "../hooks/profile/usePreferences";
 import { useState } from "react";
 
@@ -21,13 +21,6 @@ const primaryButtonClasses =
 const dangerTextButtonClasses =
   "text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300";
 
-function formatCurrency(amount, currency = "INR") {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency,
-  }).format(Number(amount) || 0);
-}
-
 export default function ProfilePage({
   user,
   expenses = [],
@@ -45,6 +38,9 @@ export default function ProfilePage({
     setPreference,
     savePreferences,
   } = usePreferences(showStatus);
+
+  const reportingCurrency = preferences.reportingCurrency;
+
   const trackedCategories = new Set(
     expenses.map((expense) => expense?.category || "uncategorized"),
   ).size;
@@ -195,7 +191,7 @@ export default function ProfilePage({
               Total Spending
             </p>
             <p className="mt-1 text-lg font-bold">
-              {formatCurrency(totalSpent)}
+              {formatCurrency(totalSpent, reportingCurrency)}
             </p>
           </article>
           <article className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
@@ -203,7 +199,7 @@ export default function ProfilePage({
               This Month
             </p>
             <p className="mt-1 text-lg font-bold">
-              {formatCurrency(monthSpent)}
+              {formatCurrency(monthSpent, reportingCurrency)}
             </p>
           </article>
           <article className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
@@ -217,7 +213,7 @@ export default function ProfilePage({
               Avg Expense
             </p>
             <p className="mt-1 text-lg font-bold">
-              {formatCurrency(averageExpense)}
+              {formatCurrency(averageExpense, reportingCurrency)}
             </p>
           </article>
         </div>
@@ -228,7 +224,7 @@ export default function ProfilePage({
         </p>
       </PanelCard>
 
-      <PanelCard className="grid gap-5">
+      <PanelCard className="grid gap-4">
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

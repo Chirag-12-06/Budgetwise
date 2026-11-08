@@ -15,11 +15,8 @@ import useCategoryFilters from "./expenses/useCategoryFilters";
 import useExpenseCrud from "./expenses/useExpenseCrud";
 import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
 import useDateFilter from "./filters/useDateFilters";
-import {
-  clearStoredUser,
-  getCurrentUser,
-  logoutUser,
-} from "../api/auth.api";
+import { clearStoredUser, logoutUser } from "../api/auth.api";
+import {getCurrentUser} from "../api/user.api";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -34,7 +31,7 @@ export default function useAppController() {
 
   const [analyticsGroupBy, setAnalyticsGroupBy] = useState(initialGroupBy);
   const [user, setUser] = useState(null);
-const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [editingRecurringExpenseId, setEditingRecurringExpenseId] =
@@ -212,60 +209,60 @@ const [authLoading, setAuthLoading] = useState(true);
   }
 
   useEffect(() => {
-  if (authLoading) return;
+    if (authLoading) return;
 
-  if (!user) {
-    setExpenses([]);
-    return;
-  }
+    if (!user) {
+      setExpenses([]);
+      return;
+    }
 
-  let ignore = false;
+    let ignore = false;
 
-  async function loadExpenses() {
-    try {
-      await refreshExpenses(activeDateRange);
-    } catch (error) {
-      if (!ignore) {
-        handleApiError(error, "Unable to load expenses");
+    async function loadExpenses() {
+      try {
+        await refreshExpenses(activeDateRange);
+      } catch (error) {
+        if (!ignore) {
+          handleApiError(error, "Unable to load expenses");
+        }
       }
     }
-  }
 
-  loadExpenses();
+    loadExpenses();
 
-  return () => {
-    ignore = true;
-  };
-}, [user, authLoading]);
+    return () => {
+      ignore = true;
+    };
+  }, [user, authLoading]);
 
   useEffect(() => {
-  let active = true;
+    let active = true;
 
-  async function restoreSession() {
-    try {
-      const currentUser = await getCurrentUser();
+    async function restoreSession() {
+      try {
+        const currentUser = await getCurrentUser();
 
-      if (active) {
-        setUser(currentUser);
-      }
-    } catch {
-      if (active) {
-        clearStoredUser();
-        setUser(null);
-      }
-    } finally {
-      if (active) {
-        setAuthLoading(false);
+        if (active) {
+          setUser(currentUser);
+        }
+      } catch {
+        if (active) {
+          clearStoredUser();
+          setUser(null);
+        }
+      } finally {
+        if (active) {
+          setAuthLoading(false);
+        }
       }
     }
-  }
 
-  restoreSession();
+    restoreSession();
 
-  return () => {
-    active = false;
-  };
-}, []);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function activateCustomDateFilter(from, to) {
     activateCustomDateRange(from, to);
@@ -515,7 +512,7 @@ const [authLoading, setAuthLoading] = useState(true);
     maxTrendValue,
     handleAnalyticsGroupByChange,
     user,
-  authLoading,
-  expenses,
+    authLoading,
+    expenses,
   };
 }

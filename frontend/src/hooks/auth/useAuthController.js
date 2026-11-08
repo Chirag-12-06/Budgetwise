@@ -1,10 +1,11 @@
 
 import {
-  updateProfileUser,
   loginUser,
   signupUser,
   logoutUser,
+  forgotPasswordUser,
 } from "../../api/auth.api";
+import {updateProfileUser} from "../../api/user.api";
 
 import { ROUTES } from "../../routes/routes";
 
@@ -97,10 +98,34 @@ export default function useAuthController({
     }
   }
 
+  async function handleForgotPassword(email) {
+  try {
+    const data = await forgotPasswordUser(email);
+
+    showStatus(
+      data.message || "Reset instructions sent.",
+      "success"
+    );
+
+    return { ok: true };
+  } catch (error) {
+    showStatus(
+      error?.message || "Unable to send reset instructions",
+      "error"
+    );
+
+    return {
+      ok: false,
+      message: error?.message,
+    };
+  }
+}
+
   return {
     handleLogin,
     handleSignup,
     handleUpdateProfile,
     handleLogout,
+    handleForgotPassword,
   };
 }

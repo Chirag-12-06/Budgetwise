@@ -5,6 +5,7 @@ import RecurringExpenseActionDialog from "../components/recurringExpenseActionDi
 import { formatCurrency } from "../utils/currency";
 import useCategory from "../hooks/useCategory";
 import { formatDateDMY } from "../utils/date";
+import usePreferences  from "../hooks/profile/usePreferences";
 
 export default function ExpensesPage({
   expenses,
@@ -31,6 +32,9 @@ export default function ExpensesPage({
   onClearCategoryFilters,
 }) {
   const { categories } = useCategory();
+  const { preferences } = usePreferences();
+
+  const reportingCurrency = preferences?.reportingCurrency || "INR";
 
   return (
     <section className="grid gap-4">
@@ -98,7 +102,7 @@ export default function ExpensesPage({
                       </span>
                     </div>
                     <div className="font-bold">
-                      {formatCurrency(expense.amount)}
+                      {formatCurrency(expense.amount, reportingCurrency)}
                     </div>
                     <div className="flex items-center gap-3">
                       <Button

@@ -7,7 +7,9 @@ import StatusBanner from "./layout/StatusBanner";
 import { ROUTES } from "./routes/routes";
 import AddExpensePage from "./pages/AddExpensePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
-import AuthPage from "./pages/AuthPage";
+import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import ProfilePage from "./pages/ProfilePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -79,38 +81,47 @@ function App() {
     authLoading,
   } = useAppController();
 
-  const authPageProps = {
-    handleLogin,
-    handleSignup,
-    handleForgotPassword,
-    loginForm,
-    setLoginForm,
-    signupForm,
-    setSignupForm,
-    submitting,
-    dark,
-    setDark,
-  };
+const loginPageProps = {
+  handleLogin,
+  loginForm,
+  setLoginForm,
+  submitting,
+  dark,
+  setDark,
+};
+
+const signupPageProps = {
+  handleSignup,
+  signupForm,
+  setSignupForm,
+  submitting,
+  dark,
+  setDark,
+};
+
+const forgotPasswordPageProps = {
+  handleForgotPassword,
+};
 
   return (
     <>
       <Routes>
         <Route element={<AuthLayout />}>
-          <Route
-            path={ROUTES.LOGIN}
-            element={<AuthPage {...authPageProps} />}
-          />
+  <Route
+    path={ROUTES.LOGIN}
+    element={<LoginPage {...loginPageProps} />}
+  />
 
-          <Route
-            path={ROUTES.SIGNUP}
-            element={<AuthPage {...authPageProps} />}
-          />
+  <Route
+    path={ROUTES.SIGNUP}
+    element={<SignupPage {...signupPageProps} />}
+  />
 
-          <Route
-            path={ROUTES.FORGOT_PASSWORD}
-            element={<AuthPage {...authPageProps} />}
-          />
-        </Route>
+  <Route
+    path={ROUTES.FORGOT_PASSWORD}
+    element={<ForgotPasswordPage {...forgotPasswordPageProps} />}
+  />
+</Route>
 
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 

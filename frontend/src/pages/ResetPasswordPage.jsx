@@ -11,7 +11,6 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -40,15 +39,10 @@ export default function ResetPasswordPage() {
     }
   }
 
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <form className="w-full max-w-md space-y-4"
-        onSubmit={handleSubmit}
-      >
-        <h1 className="text-3xl font-bold text-center">
-          Reset Password
-        </h1>
+      <form className="w-full max-w-md space-y-4" onSubmit={handleSubmit}>
+        <h1 className="text-3xl font-bold text-center">Reset Password</h1>
 
         <input
           className="w-full rounded-md border px-4 py-3"
@@ -66,11 +60,7 @@ export default function ResetPasswordPage() {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
 
-        {message && (
-          <div className="text-sm text-red-500">
-            {message}
-          </div>
-        )}
+        {message && <div className="text-sm text-red-500">{message}</div>}
 
         <button
           className="w-full rounded-md bg-indigo-600 px-4 py-3 text-white"
