@@ -81,49 +81,49 @@ function App() {
     authLoading,
   } = useAppController();
 
-const loginPageProps = {
-  handleLogin,
-  loginForm,
-  setLoginForm,
-  submitting,
-  dark,
-  setDark,
-};
+  const loginPageProps = {
+    handleLogin,
+    loginForm,
+    setLoginForm,
+    submitting,
+    dark,
+    setDark,
+  };
 
-const signupPageProps = {
-  handleSignup,
-  signupForm,
-  setSignupForm,
-  submitting,
-  dark,
-  setDark,
-};
+  const signupPageProps = {
+    handleSignup,
+    signupForm,
+    setSignupForm,
+    submitting,
+    dark,
+    setDark,
+  };
 
-const forgotPasswordPageProps = {
-  handleForgotPassword,
-};
+  const forgotPasswordPageProps = {
+    handleForgotPassword,
+  };
 
   return (
     <>
       <Routes>
         <Route element={<AuthLayout />}>
-  <Route
-    path={ROUTES.LOGIN}
-    element={<LoginPage {...loginPageProps} />}
-  />
+          <Route
+            path={ROUTES.LOGIN}
+            element={<LoginPage {...loginPageProps} />}
+          />
 
-  <Route
-    path={ROUTES.SIGNUP}
-    element={<SignupPage {...signupPageProps} />}
-  />
+          <Route
+            path={ROUTES.SIGNUP}
+            element={<SignupPage {...signupPageProps} />}
+          />
 
-  <Route
-    path={ROUTES.FORGOT_PASSWORD}
-    element={<ForgotPasswordPage {...forgotPasswordPageProps} />}
-  />
-</Route>
+          <Route
+            path={ROUTES.FORGOT_PASSWORD}
+            element={<ForgotPasswordPage {...forgotPasswordPageProps} />}
+          />
+        </Route>
 
-        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage showStatus = {showStatus} />} />
 
         <Route element={<ProtectedRoute user={user} loading={authLoading} />}>
           <Route

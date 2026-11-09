@@ -3,37 +3,38 @@ import { useNavigate, useParams } from "react-router-dom";
 import { resetPasswordUser } from "../api/auth.api";
 import { ROUTES } from "../routes/routes";
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordPage({ showStatus }) {
   const { token } = useParams();
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
+
   const navigate = useNavigate();
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     if (password !== confirmPassword) {
-      setMessage("Passwords do not match");
+      showStatus("Passwords do not match", "error");
       return;
     }
 
     setSubmitting(true);
-    setMessage("");
 
     try {
       const data = await resetPasswordUser(token, password);
 
-      setMessage(data.message || "Password reset successful");
-      setTimeout(() => {
-        navigate(ROUTES.HOME);
-      }, 2000);
+      showStatus(data.message || "Password reset successful", "success");
 
       setPassword("");
       setConfirmPassword("");
+
+      setTimeout(() => {
+        navigate(ROUTES.LOGIN);
+      }, 2000);
     } catch (error) {
-      setMessage(error.message || "Unable to reset password");
+      showStatus(error.message || "Unable to reset password", "error");
     } finally {
       setSubmitting(false);
     }
@@ -50,6 +51,9 @@ export default function ResetPasswordPage() {
           placeholder="New password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          minLength={8}
+          maxLength={128}
+          required
         />
 
         <input
@@ -58,12 +62,12 @@ export default function ResetPasswordPage() {
           placeholder="Confirm password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          required
         />
 
-        {message && <div className="text-sm text-red-500">{message}</div>}
-
         <button
-          className="w-full rounded-md bg-indigo-600 px-4 py-3 text-white"
+          type="submit"
+          className="w-full rounded-md bg-indigo-600 px-4 py-3 text-white disabled:opacity-50"
           disabled={submitting}
         >
           {submitting ? "Updating..." : "Reset Password"}

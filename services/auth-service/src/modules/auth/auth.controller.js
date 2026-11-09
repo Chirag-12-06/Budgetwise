@@ -1,8 +1,11 @@
-import { registerUser, loginUser } from "./auth.service.js";
+import {
+  registerUser,
+  loginUser,
+  forgotPasswordUser,
+  resetPasswordUser,
+} from "./auth.service.js";
 
 import asyncHandler from "../../utils/asyncHandler.js";
-
-import { sendPasswordResetEmail } from "../../utils/email.js";
 
 const cookieOptions = {
   httpOnly: true,
@@ -24,10 +27,7 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.validated.body;
 
-  const { user, token } = await loginUser(
-    email.trim().toLowerCase(),
-    password,
-  );
+  const { user, token } = await loginUser(email.trim().toLowerCase(), password);
 
   res.cookie("token", token, {
     ...cookieOptions,
@@ -50,61 +50,25 @@ export const logout = asyncHandler(async (req, res) => {
   });
 });
 
-export const forgotPassword = async (req, res) => {
-  try {
-    const email = String(req.body?.email || "")
-      .trim()
-      .toLowerCase();
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.validated.body;
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+  const result = await forgotPasswordUser(email);
 
-    // Don't reveal whether the email exists
-    if (user) {
-      const token = crypto.randomBytes(32).toString("hex");
+  res.status(200).json({
+    success: true,
+    ...result,
+  });
+});
 
-      // Store only the hashed token
-      const tokenHash = crypto
-        .createHash("sha256")
-        .update(token)
-        .digest("hex");
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.validated.body;
 
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+  const result = await resetPasswordUser(token, password);
 
-      const resetLink =
-        `${process.env.CLIENT_URL}/reset-password/${token}`;
-
-      // Invalidate previous unused reset tokens
-      await prisma.passwordResetToken.updateMany({
-        where: {
-          userId: user.id,
-          usedAt: null,
-        },
-        data: {
-          usedAt: new Date(),
-        },
-      });
-
-      await prisma.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          tokenHash,
-          expiresAt,
-        },
-      });
-
-      await sendPasswordResetEmail(email, resetLink);
-    }
-
-    return res.json({
-      message: "If the account exists, reset instructions have been sent.",
-    });
-  } catch (error) {
-    logError("Forgot password error:", error);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    ...result,
+  });
+});

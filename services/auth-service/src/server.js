@@ -18,7 +18,11 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+console.log("[AUTH] Loading app.js");
+
 app.use("/api", routes);
+
+console.log("[AUTH] Routes mounted");
 
 app.get("/health", async (req, res) => {
   try {

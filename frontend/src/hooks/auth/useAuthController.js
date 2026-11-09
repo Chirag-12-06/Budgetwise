@@ -1,11 +1,10 @@
-
 import {
   loginUser,
   signupUser,
   logoutUser,
   forgotPasswordUser,
 } from "../../api/auth.api";
-import {updateProfileUser} from "../../api/user.api";
+import { updateProfileUser } from "../../api/user.api";
 
 import { ROUTES } from "../../routes/routes";
 
@@ -55,10 +54,7 @@ export default function useAuthController({
     try {
       await signupUser(signupForm);
 
-      showStatus(
-        "Account created successfully. Please log in.",
-        "success"
-      );
+      showStatus("Account created successfully. Please log in.", "success");
 
       navigate(ROUTES.LOGIN);
     } catch (error) {
@@ -99,27 +95,29 @@ export default function useAuthController({
   }
 
   async function handleForgotPassword(email) {
-  try {
-    const data = await forgotPasswordUser(email);
+    try {
+      const response = await forgotPasswordUser(email);
 
-    showStatus(
-      data.message || "Reset instructions sent.",
-      "success"
-    );
+      showStatus(
+        response.data.message || "Reset instructions sent.",
+        "success",
+      );
 
-    return { ok: true };
-  } catch (error) {
-    showStatus(
-      error?.message || "Unable to send reset instructions",
-      "error"
-    );
+      return { ok: true };
+    } catch (error) {
+      showStatus(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to send reset instructions",
+        "error",
+      );
 
-    return {
-      ok: false,
-      message: error?.message,
-    };
+      return {
+        ok: false,
+        message: error?.response?.data?.message || error?.message,
+      };
+    }
   }
-}
 
   return {
     handleLogin,

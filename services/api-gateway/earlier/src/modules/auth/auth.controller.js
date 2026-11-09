@@ -9,7 +9,6 @@ import crypto from "crypto";
 import { sendPasswordResetEmail } from "../../utils/email.js";
 
 
-const PASSWORD_SALT_ROUNDS = 12;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 const loginAttemptStore = new Map();
 
@@ -319,67 +318,6 @@ export const logout = async (req, res) => {
 
 
 
-export const resetPassword = async (req, res) => {
-  try {
-    const token = String(req.params.token || "");
-    const password = String(req.body?.password || "");
 
-    if (!token || !password) {
-      return res.status(400).json({
-        message: "Token and password are required",
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        message: "Password must be at least 6 characters",
-      });
-    }
-
-    const user = await prisma.user.findFirst({
-      where: {
-        passwordResetToken: token,
-      },
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        message: "Invalid reset token",
-      });
-    }
-
-    if (
-      !user.passwordResetExpiry ||
-      user.passwordResetExpiry < new Date()
-    ) {
-      return res.status(400).json({
-        message: "Reset token has expired",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(
-      password,
-      PASSWORD_SALT_ROUNDS
-    );
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        passwordResetToken: null,
-        passwordResetExpiry: null,
-      },
-    });
-
-    res.json({
-      message: "Password reset successful",
-    });
-  } catch (error) {
-    logError("Reset password error:", error);
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
-};
 
 
