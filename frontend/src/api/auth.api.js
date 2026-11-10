@@ -62,8 +62,6 @@ export async function forgotPasswordUser(email) {
   return api.post("/auth/forgot-password", { email });
 }
 
-
-
 export async function resetPasswordUser(token, password) {
   return api.post(`/auth/reset-password/${encodeURIComponent(token)}`, {
     password,

@@ -1,19 +1,19 @@
 import { Route, Routes } from "react-router-dom";
-import useAppController from "./hooks/useAppController";
 import useWindowResize from "./hooks/ui/useWindowResize";
+import useAppController from "./hooks/useAppController";
 import AppLayout from "./layout/AppLayout";
 import AuthLayout from "./layout/AuthLayout";
 import StatusBanner from "./layout/StatusBanner";
-import { ROUTES } from "./routes/routes";
 import AddExpensePage from "./pages/AddExpensePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
-import LoginPage from "./pages/auth/LoginPage";
-import SignupPage from "./pages/auth/SignupPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import LoginPage from "./pages/auth/LoginPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+import SignupPage from "./pages/auth/SignupPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import ProfilePage from "./pages/ProfilePage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { ROUTES } from "./routes/routes";
 
 function App() {
   useWindowResize();
@@ -101,6 +101,8 @@ function App() {
 
   const forgotPasswordPageProps = {
     handleForgotPassword,
+    dark,
+    setDark,
   };
 
   return (
@@ -123,7 +125,16 @@ function App() {
           />
         </Route>
 
-        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage showStatus = {showStatus} />} />
+        <Route
+          path={ROUTES.RESET_PASSWORD}
+          element={
+            <ResetPasswordPage
+              showStatus={showStatus}
+              dark={dark}
+              setDark={setDark}
+            />
+          }
+        />
 
         <Route element={<ProtectedRoute user={user} loading={authLoading} />}>
           <Route

@@ -4,7 +4,10 @@ import useProfile from "../hooks/profile/useProfile";
 import { formatCurrency } from "../utils/currency";
 import usePreferences from "../hooks/profile/usePreferences";
 import { useState } from "react";
-
+import {
+  PreferenceSelect,
+  SummaryCard,
+} from "../components/profile";
 import {
   CURRENCY_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -186,36 +189,22 @@ export default function ProfilePage({
           Spending Snapshot
         </h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <article className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
-              Total Spending
-            </p>
-            <p className="mt-1 text-lg font-bold">
-              {formatCurrency(totalSpent, reportingCurrency)}
-            </p>
-          </article>
-          <article className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
-              This Month
-            </p>
-            <p className="mt-1 text-lg font-bold">
-              {formatCurrency(monthSpent, reportingCurrency)}
-            </p>
-          </article>
-          <article className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
-              Entries
-            </p>
-            <p className="mt-1 text-lg font-bold">{expenses.length}</p>
-          </article>
-          <article className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
-              Avg Expense
-            </p>
-            <p className="mt-1 text-lg font-bold">
-              {formatCurrency(averageExpense, reportingCurrency)}
-            </p>
-          </article>
+          <SummaryCard
+            title="Total Spending"
+            value={formatCurrency(totalSpent, reportingCurrency)}
+          />
+
+          <SummaryCard
+            title="This Month"
+            value={formatCurrency(monthSpent, reportingCurrency)}
+          />
+
+          <SummaryCard title="Entries" value={expenses.length} />
+
+          <SummaryCard
+            title="Avg Expense"
+            value={formatCurrency(averageExpense, reportingCurrency)}
+          />
         </div>
 
         <p className="text-sm text-gray-500 dark:text-gray-300">
@@ -251,75 +240,34 @@ export default function ProfilePage({
         ) : isEditingPreferences ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={fieldLabelClasses}>
-                <span className={fieldTextClasses}>Currency</span>
-                <select
-                  className={fieldInputClasses}
-                  value={preferences.reportingCurrency}
-                  onChange={(event) =>
-                    setPreference("reportingCurrency", event.target.value)
-                  }
-                >
-                  {CURRENCY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <PreferenceSelect
+                label="Currency"
+                value={preferences.reportingCurrency}
+                onChange={(value) => setPreference("reportingCurrency", value)}
+                options={CURRENCY_OPTIONS}
+              />
 
-              <label className={fieldLabelClasses}>
-                <span className={fieldTextClasses}>Timezone</span>
-                <select
-                  className={fieldInputClasses}
-                  value={preferences.timeZone}
-                  onChange={(event) =>
-                    setPreference("timeZone", event.target.value)
-                  }
-                >
-                  {TIMEZONE_OPTIONS.map((timezone) => (
-                    <option key={timezone} value={timezone}>
-                      {timezone}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <PreferenceSelect
+                label="Timezone"
+                value={preferences.timeZone}
+                onChange={(value) => setPreference("timeZone", value)}
+                options={TIMEZONE_OPTIONS}
+              />
 
-              <label className={fieldLabelClasses}>
-                <span className={fieldTextClasses}>Language</span>
-                <select
-                  className={fieldInputClasses}
-                  value={preferences.language}
-                  onChange={(event) =>
-                    setPreference("language", event.target.value)
-                  }
-                >
-                  {LANGUAGE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <PreferenceSelect
+                label="Language"
+                value={preferences.language}
+                onChange={(value) => setPreference("language", value)}
+                options={LANGUAGE_OPTIONS}
+              />
 
-              <label className={fieldLabelClasses}>
-                <span className={fieldTextClasses}>Date Format</span>
-                <select
-                  className={fieldInputClasses}
-                  value={preferences.dateFormat}
-                  onChange={(event) =>
-                    setPreference("dateFormat", event.target.value)
-                  }
-                >
-                  {DATE_FORMAT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <PreferenceSelect
+                label="Date Format"
+                value={preferences.dateFormat}
+                onChange={(value) => setPreference("dateFormat", value)}
+                options={DATE_FORMAT_OPTIONS}
+              />
             </div>
-
             <div className="flex justify-end gap-3">
               <Button
                 variant="plain"

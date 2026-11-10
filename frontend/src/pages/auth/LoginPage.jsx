@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeClosed } from "lucide-react";
 import { ROUTES } from "../../routes/routes";
+import { ThemeButton, Header, AuthTabs } from "../../components/auth";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
@@ -25,50 +26,11 @@ export default function LoginPage({
 
   return (
     <>
-      <div className="flex justify-end pt-4">
-        <button
-          className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-800 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-          type="button"
-          onClick={() => setDark((value) => !value)}
-        >
-          {dark ? "☀️" : "🌙"}
-        </button>
-      </div>
+      <ThemeButton dark={dark} setDark={setDark} />
 
-      <header className="pt-8 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">
-          Welcome to
-        </p>
+      <Header />
 
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-gray-900 dark:text-white">
-          Budgetwise
-        </h1>
-
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Track every rupee, every day.
-        </p>
-      </header>
-
-      <div
-        className="my-6 grid grid-cols-2 gap-3"
-        role="tablist"
-        aria-label="Authentication mode"
-      >
-        <button
-          className="rounded-md bg-indigo-600 px-4 py-3 text-white"
-          type="button"
-        >
-          Login
-        </button>
-
-        <button
-          className="rounded-md bg-gray-200 px-4 py-3 text-gray-800 dark:bg-gray-700 dark:text-white"
-          type="button"
-          onClick={() => navigate(ROUTES.SIGNUP)}
-        >
-          Sign Up
-        </button>
-      </div>
+      <AuthTabs activeTab="login" />
 
       <form className="grid gap-4" onSubmit={handleLogin}>
         <label className={fieldLabelClasses}>
@@ -121,11 +83,7 @@ export default function LoginPage({
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               onClick={() => setShowPassword((value) => !value)}
             >
-              {showPassword ? (
-                <EyeClosed size={18} />
-              ) : (
-                <Eye size={18} />
-              )}
+              {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </label>

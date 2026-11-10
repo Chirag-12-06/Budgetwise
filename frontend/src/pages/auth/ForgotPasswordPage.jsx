@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail } from "lucide-react";
 
 import { ROUTES } from "../../routes/routes";
+import ThemeButton from "../../components/auth/themeButton";
 
 const fieldLabelClasses = "grid gap-2";
 
@@ -17,6 +18,8 @@ const primaryButtonClasses =
 export default function ForgotPasswordPage({
   handleForgotPassword,
   submitting,
+  dark,
+  setDark,
 }) {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState("");
@@ -31,6 +34,8 @@ export default function ForgotPasswordPage({
 
   return (
     <div className="grid gap-6">
+      <ThemeButton dark={dark} setDark={setDark} />
+
       <header className="pt-8 text-center">
         <h1 className="text-3xl font-black text-gray-900 dark:text-white">
           Forgot Password?

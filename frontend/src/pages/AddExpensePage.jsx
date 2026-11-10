@@ -1,15 +1,14 @@
 import { useState } from "react";
+import ReceiptDialog from "../components/receipt/ReceiptDialog";
 import Button from "../components/ui/button";
 import Calendar from "../components/ui/calendar";
 import PanelCard from "../components/ui/panelCard";
-import useCategoryPrediction from "../hooks/expenses/useCategoryPrediction";
+import { CURRENCY_OPTIONS } from "../constants/currencies";
 import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
+import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
 import useCategories from "../hooks/useCategory";
 import { getNextDateKey } from "../utils/date";
 import resolveReceiptItemAmount from "../utils/receiptItemAmount";
-import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
-import ReceiptDialog from "../components/receipt/ReceiptDialog";
-import { CURRENCY_OPTIONS } from "../constants/currencies";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
@@ -54,8 +53,6 @@ export default function AddExpensePage({
   handleCancelEditExpense,
   handleCancelEditRecurringExpense,
 }) {
-  const [showScanUnderDevelopmentPopup, setShowScanUnderDevelopmentPopup] =
-    useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [tempRecurring, setTempRecurring] = useState(recurringForm);
@@ -68,8 +65,6 @@ export default function AddExpensePage({
     ),
   }));
 
-  const isFormLocked =
-    isEditingExpense || isEditingRecurringSeries || isEditingFuture;
   const {
     isCategoryMenuOpen,
     setIsCategoryMenuOpen,
@@ -83,30 +78,18 @@ export default function AddExpensePage({
     isEditingExpense,
   });
 
-  useCategoryPrediction({
-    expenses,
-    expenseForm,
-    setExpenseForm,
-    isEditingExpense: isFormLocked,
-    // categoryManuallySelected,
-  });
-
   const {
     fileInputRef,
     receiptBill,
     receiptPaidMap,
     receiptDialogOpen,
     setReceiptDialogOpen,
-    scanError,
-    scanErrorOpen,
-    setScanErrorOpen,
     isScanning,
     handleReceiptScan,
     toggleReceiptItem,
     applyReceiptSelection,
   } = useReceiptScanner({ setExpenseForm });
 
-  showScanUnderDevelopmentPopup;
   const currentCurrency =
     CURRENCY_OPTIONS.find(
       (currency) => currency.code === (expenseForm.currencyCode || "INR"),
