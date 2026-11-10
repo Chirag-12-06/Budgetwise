@@ -55,6 +55,34 @@ export default function useAppController() {
     user,
     resetToLoggedOutState,
   });
+  
+  function resetToLoggedOutState({
+    message = "Logged out",
+    type = "success",
+  } = {}) {
+    showStatus(message, type);
+    clearInactivityTimeout();
+    logoutUser();
+    setUser(null);
+    setExpenses([]);
+    setLoginForm({ email: "", password: "" });
+    setSignupForm({
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      avatarDataUrl: "",
+    });
+    setExpenseForm(createDefaultExpenseForm());
+    setRecurringForm(createDefaultRecurringForm());
+    setEditingExpenseId(null);
+    navigate(ROUTES.LOGIN);
+    setDateFilterMode("current:month");
+    setSelectedCategoryFilters([]);
+    setCustomDateFrom("");
+    setCustomDateTo("");
+    setDateRangeError("");
+  }
   const { status, clearStatus, showStatus } = useStatusMessage();
   const {
     selectedCategoryFilters,
@@ -155,33 +183,6 @@ export default function useAppController() {
     clearStatus,
   });
 
-  function resetToLoggedOutState({
-    message = "Logged out",
-    type = "success",
-  } = {}) {
-    showStatus(message, type);
-    clearInactivityTimeout();
-    logoutUser();
-    setUser(null);
-    setExpenses([]);
-    setLoginForm({ email: "", password: "" });
-    setSignupForm({
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      avatarDataUrl: "",
-    });
-    setExpenseForm(createDefaultExpenseForm());
-    setRecurringForm(createDefaultRecurringForm());
-    setEditingExpenseId(null);
-    navigate(ROUTES.LOGIN);
-    setDateFilterMode("current:month");
-    setSelectedCategoryFilters([]);
-    setCustomDateFrom("");
-    setCustomDateTo("");
-    setDateRangeError("");
-  }
 
   function handleApiError(error, fallbackMessage) {
     const message = error?.message || fallbackMessage;
@@ -364,9 +365,6 @@ export default function useAppController() {
     accumulator[key] = (accumulator[key] || 0) + Number(expense.amount || 0);
     return accumulator;
   }, {});
-  const topCategories = Object.entries(categoryTotals)
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, 6);
   const groupedTrendMap = analyticsExpenses.reduce((accumulator, expense) => {
     const expenseDateKey = formatDateKey(expense.createdAt);
     const [yearPart = "", monthPart = ""] = String(expenseDateKey).split("-");
@@ -507,7 +505,6 @@ export default function useAppController() {
     analyticsExpenses,
     analyticsTotal,
     categoryTotals,
-    topCategories,
     trendData,
     maxTrendValue,
     handleAnalyticsGroupByChange,

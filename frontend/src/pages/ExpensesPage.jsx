@@ -1,11 +1,12 @@
-import Button from "../components/ui/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
-import PanelCard from "../components/ui/panelCard";
 import RecurringExpenseActionDialog from "../components/recurringExpenseActionDialog";
-import { formatCurrency } from "../utils/currency";
+import Button from "../components/ui/Button";
+import PanelCard from "../components/ui/PanelCard";
+import usePreferences from "../hooks/profile/usePreferences";
 import useCategory from "../hooks/useCategory";
+import { formatCurrency } from "../utils/currency";
 import { formatDateDMY } from "../utils/date";
-import usePreferences  from "../hooks/profile/usePreferences";
+import useAppController from "../hooks/useAppController";
 
 export default function ExpensesPage({
   expenses,
@@ -26,13 +27,14 @@ export default function ExpensesPage({
   onRecurringExpenseActionRequest,
   onRecurringExpenseActionClose,
   onRecurringExpenseActionSelect,
-  categoryFilterExpenses,
+  // categoryFilterExpenses,
   selectedCategoryFilters,
   onCategoryFilterToggle,
   onClearCategoryFilters,
 }) {
   const { categories } = useCategory();
   const { preferences } = usePreferences();
+  // const {emptyFilteredState,filteredExpenses} = useAppController();
 
   const reportingCurrency = preferences?.reportingCurrency || "INR";
 
@@ -42,7 +44,6 @@ export default function ExpensesPage({
         <ExpenseFilterPanel
           className="grid gap-4"
           expenses={expenses}
-          categoryFilterExpenses={categoryFilterExpenses}
           dateFilterMode={dateFilterMode}
           onDateFilterModeChange={setDateFilterMode}
           customDateFrom={customDateFrom}

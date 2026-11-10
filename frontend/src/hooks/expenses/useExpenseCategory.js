@@ -12,9 +12,8 @@ export default function useExpenseCategory({
 
   const categoryDropdownRef = useRef(null);
 
-  const selectedCategory = categories.find(
-    (category) => category.id === expenseForm.category
-  ) || null;
+  const selectedCategory =
+    categories.find((category) => category.id === expenseForm.category) || null;
 
   useEffect(() => {
     if (isEditingExpense) {

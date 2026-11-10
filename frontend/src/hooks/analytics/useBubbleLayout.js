@@ -7,8 +7,13 @@ import {
 export default function useBubbleLayout({
   visibleCategories,
   bubbleBoardSize,
-  totalCategoryAmount,
+  categoryEntries,
 }) {
+
+  const totalCategoryAmount = useMemo(
+    () => categoryEntries.reduce((sum, [, value]) => sum + value, 0),
+    [categoryEntries],
+  );
 
   const bubblePanelHeight = useMemo(
   () => calculateCategoryPanelsHeight(
@@ -33,5 +38,6 @@ export default function useBubbleLayout({
   return {
     bubblePanelHeight,
     bubbleLayout,
+    totalCategoryAmount,
   };
 }

@@ -1,4 +1,4 @@
-import Button from "../ui/button"; // Adjust import path
+import Button from "../ui/Button"; // Adjust import path
 
 export default function ReceiptDialog({
   isOpen,

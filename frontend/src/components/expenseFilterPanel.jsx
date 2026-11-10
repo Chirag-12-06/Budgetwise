@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import useCategory from "../hooks/useCategory";
 import { formatCurrency } from "../utils/currency";
-import Button from "./ui/button";
-import Calendar from "./ui/calendar";
+import Button from "./ui/Button";
+import Calendar from "./ui/Calendar";
 import usePreferences from "../hooks/profile/usePreferences";
+import useAppController from "../hooks/useAppController";
 
 const periodModes = [
   { value: "day", label: "Day" },
@@ -19,7 +20,7 @@ const relativeModes = [
 
 export default function ExpenseFilterPanel({
   expenses = [],
-  categoryFilterExpenses = null,
+  // categoryFilterExpenses = null,
   dateFilterMode,
   onDateFilterModeChange,
   customDateFrom,
@@ -37,6 +38,7 @@ export default function ExpenseFilterPanel({
   stats = [],
   className = "mb-5 grid gap-4",
 }) {
+  const {dateFilteredExpenses:categoryFilterExpenses} = useAppController();
   const { categories, groups } = useCategory();
   const { preferences } = usePreferences();
   const reportingCurrency = preferences?.reportingCurrency || "INR";

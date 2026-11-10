@@ -1,11 +1,13 @@
-import Button from "../components/ui/button";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
-import PanelCard from "../components/ui/panelCard";
+import PanelCard from "../components/ui/PanelCard";
 import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
 import { formatCurrency } from "../utils/currency";
 import useCategory from "../hooks/useCategory";
 import usePreferences from "../hooks/profile/usePreferences";
-import { hexToRgba, getContrastTextColor } from "../utils/color";
+import {
+  CategoryBubbleChart,
+  CategoryBreakdown,
+} from "../components/analytics";
 
 export default function AnalyticsPage({
   expenses,
@@ -24,14 +26,12 @@ export default function AnalyticsPage({
   analyticsGroupBy,
   handleAnalyticsGroupByChange,
   trendData,
-  categoryFilterExpenses,
   selectedCategoryFilters,
   onCategoryFilterToggle,
   onClearCategoryFilters,
 }) {
   const {
     lineCanvasRef,
-    bubbleBoardRef,
     isDarkMode,
     excludeOutliers,
     setExcludeOutliers,
@@ -42,12 +42,6 @@ export default function AnalyticsPage({
     displayedAnalyticsExpenses,
     summaryTotalSpending,
     categoryEntries,
-    totalCategoryAmount,
-    visibleCategories,
-    bubblePanelHeight,
-    bubbleLayout,
-    hiddenBubbleCategories,
-    toggleBubbleCategory,
     handleQuickDateMode,
     handleApplyDateRange,
     chartTitle,
@@ -71,7 +65,6 @@ export default function AnalyticsPage({
         <ExpenseFilterPanel
           className="grid gap-4"
           expenses={expenses}
-          categoryFilterExpenses={categoryFilterExpenses}
           dateFilterMode={dateFilterMode}
           onDateFilterModeChange={handleQuickDateMode}
           customDateFrom={customDateFrom}
@@ -173,163 +166,20 @@ export default function AnalyticsPage({
       </PanelCard>
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <PanelCard>
-          {categoryEntries.length ? (
-            <div className="pt-3">
-              <div
-                className="relative w-full overflow-hidden rounded-2xl"
-                ref={bubbleBoardRef}
-                style={{ height: `${bubblePanelHeight}px` }}
-              >
-                <div
-                  className="pointer-events-none absolute left-4 top-3 text-sm font-semibold tracking-wide"
-                  style={{ color: isDarkMode ? "#e5e7eb" : "#1f2937" }}
-                >
-                  Category Share
-                </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CategoryBubbleChart
+            categoryEntries={categoryEntries}
+            categories={categories}
+            isDarkMode={isDarkMode}
+            reportingCurrency={reportingCurrency}
+          />
 
-                {visibleCategories.length ? (
-                  bubbleLayout.map((bubble) => {
-                    const category = categories.find(
-                      (option) => option.id === bubble.categoryKey,
-                    );
-                    const bubbleColor = categories.find(
-                      (option) => option.id === bubble.categoryKey,
-                    )?.color;
-                    const textColor = getContrastTextColor(bubbleColor);
-                    const badgeLabel = `${bubble.percent.toFixed(1)}%`;
-                    const estimatedCharWidthRatio = 0.56;
-                    const maxTextWidth = bubble.diameter * 0.78;
-                    const estimatedFontSizePx = Math.floor(
-                      maxTextWidth /
-                        Math.max(
-                          1,
-                          badgeLabel.length * estimatedCharWidthRatio,
-                        ),
-                    );
-                    const badgeFontSizePx = Math.max(
-                      11,
-                      Math.min(36, estimatedFontSizePx),
-                    );
-
-                    return (
-                      <div
-                        className="floating-bubble absolute flex items-center justify-center rounded-full text-center"
-                        key={bubble.categoryKey}
-                        style={{
-                          left: `${Math.round(bubble.x)}px`,
-                          top: `${Math.round(bubble.y)}px`,
-                          width: `${Math.round(bubble.diameter)}px`,
-                          height: `${Math.round(bubble.diameter)}px`,
-                          backgroundColor: bubbleColor,
-                          border: `2px solid ${hexToRgba(bubbleColor, 0.95)}`,
-                          color: textColor,
-                          animationDuration: `${bubble.animationDuration}s`,
-                          animationDelay: `${bubble.animationDelay}s`,
-                        }}
-                        title={`${category?.name}: ${formatCurrency(bubble.value, reportingCurrency)} (${bubble.percent.toFixed(1)}%)`}
-                      >
-                        <span
-                          className="pointer-events-none inline-block max-w-full whitespace-nowrap font-bold leading-none"
-                          style={{
-                            fontSize: `${badgeFontSizePx}px`,
-                            lineHeight: 1,
-                          }}
-                        >
-                          {badgeLabel}
-                        </span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-300">
-                    All categories are hidden. Click a category in the legend to
-                    show it again.
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="py-6 text-gray-500 dark:text-gray-300">
-              No category data available for the selected range.
-            </div>
-          )}
-        </PanelCard>
-
-        <PanelCard>
-          <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-            <div>
-              <h3>Category Breakdown</h3>
-            </div>
-          </div>
-
-          {categoryEntries.length ? (
-            <div
-              className="overflow-y-auto overscroll-y-contain pr-1 hide-scrollbar"
-              style={{
-                minHeight: `${bubblePanelHeight}px`,
-                maxHeight: `${bubblePanelHeight}px`,
-              }}
-            >
-              {categoryEntries.map(([categoryKey, total]) => {
-                const category = categories.find(
-                  (item) => item.id === categoryKey,
-                );
-
-                const color = category?.color;
-
-                const percent = totalCategoryAmount
-                  ? (total / totalCategoryAmount) * 100
-                  : 0;
-
-                const isHidden = hiddenBubbleCategories.includes(categoryKey);
-
-                return (
-                  <Button
-                    variant="plain"
-                    className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
-                      isHidden
-                        ? "opacity-45"
-                        : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
-                    key={categoryKey}
-                    type="button"
-                    onClick={() => toggleBubbleCategory(categoryKey)}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span
-                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
-                          style={{ backgroundColor: color }}
-                        >
-                          <i className={category?.icon} aria-hidden="true" />
-                        </span>
-
-                        <strong className="truncate">{category?.name}</strong>
-                      </div>
-
-                      <span>{formatCurrency(total, reportingCurrency)}</span>
-                    </div>
-
-                    <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                      <div
-                        className="h-full rounded-[inherit]"
-                        style={{
-                          width: `${percent}%`,
-                          backgroundColor: color,
-                        }}
-                      />
-                    </div>
-                  </Button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="py-6 text-gray-500 dark:text-gray-300">
-              No category data available yet.
-            </div>
-          )}
-        </PanelCard>
+          <CategoryBreakdown
+            categoryEntries={categoryEntries}
+            categories={categories}
+            reportingCurrency={reportingCurrency}
+          />
+        </div>
       </div>
     </section>
   );

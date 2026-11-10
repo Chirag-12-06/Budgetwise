@@ -1,5 +1,5 @@
-import Button from "../components/ui/button";
-import PanelCard from "../components/ui/panelCard";
+import Button from "../components/ui/Button";
+import PanelCard from "../components/ui/PanelCard";
 import useProfile from "../hooks/profile/useProfile";
 import { formatCurrency } from "../utils/currency";
 import usePreferences from "../hooks/profile/usePreferences";

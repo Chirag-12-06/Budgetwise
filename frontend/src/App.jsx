@@ -66,17 +66,13 @@ function App() {
     handleCategoryFilterToggle,
     clearCategoryFilters,
     totalSpent,
-    monthSpent,
-    latestExpenses,
-    dateFilteredExpenses,
     filteredExpenses,
+    monthSpent,
     emptyFilteredState,
     analyticsExpenses,
     analyticsTotal,
     categoryTotals,
-    topCategories,
     trendData,
-    maxTrendValue,
     user,
     authLoading,
   } = useAppController();
@@ -195,8 +191,7 @@ function App() {
                   onRecurringExpenseActionSelect={
                     handleRecurringExpenseActionSelect
                   }
-                  expenses={expenses}
-                  categoryFilterExpenses={dateFilteredExpenses}
+                                    expenses={expenses}
                   selectedCategoryFilters={selectedCategoryFilters}
                   onCategoryFilterToggle={handleCategoryFilterToggle}
                   onClearCategoryFilters={clearCategoryFilters}
@@ -207,6 +202,7 @@ function App() {
               path={ROUTES.ANALYTICS}
               element={
                 <AnalyticsPage
+                  expenses={expenses}
                   dateFilterMode={dateFilterMode}
                   setDateFilterMode={handleDateFilterModeChange}
                   customDateFrom={customDateFrom}
@@ -222,10 +218,6 @@ function App() {
                   analyticsGroupBy={analyticsGroupBy}
                   handleAnalyticsGroupByChange={handleAnalyticsGroupByChange}
                   trendData={trendData}
-                  maxTrendValue={maxTrendValue}
-                  topCategories={topCategories}
-                  expenses={expenses}
-                  categoryFilterExpenses={dateFilteredExpenses}
                   selectedCategoryFilters={selectedCategoryFilters}
                   onCategoryFilterToggle={handleCategoryFilterToggle}
                   onClearCategoryFilters={clearCategoryFilters}

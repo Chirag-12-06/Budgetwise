@@ -1,7 +1,4 @@
 import { useMemo, useState } from "react";
-import useBubbleBoardSize from "./useBubbleBoardSize";
-import useBubbleLayout from "./useBubbleLayout";
-import useBubbleVisibility from "./useBubbleVisibility";
 import useOutlierFiltering from "./useOutlierFiltering";
 import useTrendChart from "./useTrendChart";
 import { useTheme } from "../../context/ThemeContext";
@@ -17,7 +14,7 @@ export default function useAnalyticsPage({
   onTrendPointSelect,
 }) {
   const [useLogScale, setUseLogScale] = useState(false);
-  const { dark: isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const trendPoints = useMemo(
     () =>
       (trendData || [])
@@ -54,18 +51,6 @@ export default function useAnalyticsPage({
     rawCategoryEntries,
     analyticsTotal,
   });
-  const totalCategoryAmount = useMemo(
-    () => categoryEntries.reduce((sum, [, value]) => sum + value, 0),
-    [categoryEntries],
-  );
-  const { hiddenBubbleCategories, visibleCategories, toggleBubbleCategory } =
-    useBubbleVisibility(categoryEntries);
-  const { bubbleBoardSize, bubbleBoardRef } = useBubbleBoardSize();
-  const { bubblePanelHeight, bubbleLayout } = useBubbleLayout({
-    visibleCategories,
-    totalCategoryAmount,
-    bubbleBoardSize,
-  });
   const { lineCanvasRef, chartTitle } = useTrendChart({
     visibleTrendPoints,
     analyticsGroupBy,
@@ -91,7 +76,6 @@ export default function useAnalyticsPage({
 
   return {
     lineCanvasRef,
-    bubbleBoardRef,
     isDarkMode,
     excludeOutliers,
     setExcludeOutliers,
@@ -102,12 +86,6 @@ export default function useAnalyticsPage({
     displayedAnalyticsExpenses,
     summaryTotalSpending,
     categoryEntries,
-    totalCategoryAmount,
-    visibleCategories,
-    bubblePanelHeight,
-    bubbleLayout,
-    hiddenBubbleCategories,
-    toggleBubbleCategory,
     handleQuickDateMode,
     handleApplyDateRange,
     chartTitle,

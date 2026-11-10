@@ -30,18 +30,32 @@ export default function Button({
 }) {
   let stateClasses = variantClasses.filterIdle;
 
-  if (variant === "plain") {
-    stateClasses = variantClasses.plain;
-  } else if (variant === "outline") {
-    stateClasses = variantClasses.outline;
-  } else if (variant === "nav") {
-    stateClasses = active ? variantClasses.navActive : variantClasses.navIdle;
-  } else if (variant === "expenseEdit") {
-    stateClasses = variantClasses.expenseEdit;
-  } else if (variant === "expenseDelete") {
-    stateClasses = variantClasses.expenseDelete;
-  } else if (active) {
-    stateClasses = variantClasses.filterActive;
+  switch (variant) {
+    case "plain":
+      stateClasses = variantClasses.plain;
+      break;
+
+    case "outline":
+      stateClasses = variantClasses.outline;
+      break;
+
+    case "nav":
+      stateClasses = active ? variantClasses.navActive : variantClasses.navIdle;
+      break;
+
+    case "expenseEdit":
+      stateClasses = variantClasses.expenseEdit;
+      break;
+
+    case "expenseDelete":
+      stateClasses = variantClasses.expenseDelete;
+      break;
+
+    default:
+      stateClasses = active
+        ? variantClasses.filterActive
+        : variantClasses.filterIdle;
+      break;
   }
 
   const resolvedBaseClasses =

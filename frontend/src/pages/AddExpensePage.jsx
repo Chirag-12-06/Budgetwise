@@ -1,8 +1,8 @@
 import { useState } from "react";
 import ReceiptDialog from "../components/receipt/ReceiptDialog";
-import Button from "../components/ui/button";
-import Calendar from "../components/ui/calendar";
-import PanelCard from "../components/ui/panelCard";
+import Button from "../components/ui/Button";
+import Calendar from "../components/ui/Calendar";
+import PanelCard from "../components/ui/PanelCard";
 import { CURRENCY_OPTIONS } from "../constants/currencies";
 import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
 import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
