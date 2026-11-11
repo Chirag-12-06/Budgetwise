@@ -11,7 +11,7 @@ import {
 import useAuthController from "./auth/useAuthController";
 import useSessionTimeout from "./auth/useSessionTimeout";
 import useStatusMessage from "./auth/useStatusMessage";
-import useCategoryFilters from "./expenses/useCategoryFilters";
+import useCategoryFilters from "./filters/useCategoryFilters";
 import useExpenseCrud from "./expenses/useExpenseCrud";
 import useRecurringExpenseActions from "./expenses/useRecurringExpenseActions";
 import useDateFilter from "./filters/useDateFilters";

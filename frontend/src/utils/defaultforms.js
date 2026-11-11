@@ -7,7 +7,6 @@ export function createDefaultExpenseForm() {
     currencyCode: "INR",
     category: "",
     date: getTodayDate(),
-    editScope: null,
   };
 }
 

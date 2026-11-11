@@ -94,36 +94,38 @@ export default function AddExpensePage({
     CURRENCY_OPTIONS.find(
       (currency) => currency.code === (expenseForm.currencyCode || "INR"),
     ) || CURRENCY_OPTIONS[0];
-  const recurringUntilDateMin = getNextDateKey(expenseForm.date);
-  const recurringUntilDateIsInvalid =
-    recurringForm.enabled &&
-    recurringForm.endType === "UNTIL_DATE" &&
-    Boolean(recurringForm.endDate) &&
-    Boolean(expenseForm.date) &&
-    recurringForm.endDate <= expenseForm.date;
-  const showRecurringSection =
-    !isEditingExpense || isEditingRecurringSeries || isEditingFuture;
-  const showRecurringFields = recurringForm.enabled && showRecurringSection;
+  // const recurringUntilDateMin = getNextDateKey(expenseForm.date);
+  // const recurringUntilDateIsInvalid =
+  //   recurringForm.enabled &&
+  //   recurringForm.endType === "UNTIL_DATE" &&
+  //   Boolean(recurringForm.endDate) &&
+  //   Boolean(expenseForm.date) &&
+  //   recurringForm.endDate <= expenseForm.date;
+  // const showRecurringSection =
+  //   !isEditingExpense || isEditingRecurringSeries || isEditingFuture;
+  // const showRecurringFields = recurringForm.enabled && showRecurringSection;
 
-  const handleRecurringToggle = () => {
-    // Open modal; do not persist until Save. If it was disabled, pre-check enabled in temp state
-    if (!recurringForm.enabled) {
-      setTempRecurring({ ...recurringForm, enabled: true });
-    } else {
-      setTempRecurring(recurringForm);
-    }
-    setShowRecurringModal(true);
-  };
+  // const handleRecurringToggle = () => {
+  //   // Open modal; do not persist until Save. If it was disabled, pre-check enabled in temp state
+  //   if (!recurringForm.enabled) {
+  //     setTempRecurring({ ...recurringForm, enabled: true });
+  //   } else {
+  //     setTempRecurring(recurringForm);
+  //   }
+  //   setShowRecurringModal(true);
+  // };
 
-  const displayRecurringEnabled = showRecurringModal
-    ? Boolean(tempRecurring && tempRecurring.enabled)
-    : Boolean(recurringForm && recurringForm.enabled);
+  // const displayRecurringEnabled = showRecurringModal
+  //   ? Boolean(tempRecurring && tempRecurring.enabled)
+  //   : Boolean(recurringForm && recurringForm.enabled);
 
   return (
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
-          {isEditingExpense || isEditingRecurringSeries || isEditingFuture
+          {isEditingExpense 
+          // || isEditingRecurringSeries || 
+          // isEditingFuture
             ? "Edit Expense"
             : "Add New Expense"}
         </h2>
@@ -359,7 +361,8 @@ export default function AddExpensePage({
           }
         />
 
-        {showRecurringSection ? (
+          
+         {/* showRecurringSection ? (
           <label className="grid gap-2">
             <Button
               variant="plain"
@@ -388,9 +391,9 @@ export default function AddExpensePage({
               />
             </Button>
 
-            {/* Recurring details are edited in a modal for a cleaner UX */}
-          </label>
-        ) : null}
+            // Recurring details are edited in a modal for a cleaner UX
+           </label>
+        ) : null} 
 
         {isEditingFuture ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -412,7 +415,8 @@ export default function AddExpensePage({
               Cancel
             </Button>
           </div>
-        ) : isEditingRecurringSeries ? (
+        ) 
+        : isEditingRecurringSeries ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
               variant="plain"
@@ -432,7 +436,8 @@ export default function AddExpensePage({
               Cancel
             </Button>
           </div>
-        ) : isEditingExpense ? (
+        ):  */}
+        {isEditingExpense ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
               variant="plain"
@@ -464,7 +469,7 @@ export default function AddExpensePage({
         )}
       </form>
 
-      {showRecurringModal ? (
+      {/* {showRecurringModal ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
           onClick={() => setShowRecurringModal(false)}
@@ -655,7 +660,7 @@ export default function AddExpensePage({
             </div>
           </div>
         </div>
-      ) : null}
+      ) : null} */}
     </PanelCard>
   );
 }

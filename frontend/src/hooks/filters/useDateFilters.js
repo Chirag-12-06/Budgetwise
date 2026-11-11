@@ -1,153 +1,129 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import {
   validateCustomDateRange,
   resolveDateRange,
 } from "../../utils/dateFilters";
-import { useSearchParams } from "react-router-dom";
 
-export default function useDateFilter({
-  refreshExpenses,
-  handleApiError,
-  setSelectedCategoryFilters,
-  setActiveDateRange,
-}) {
+export default function useDateFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialMode = searchParams.get("mode") ?? "current:month";
-  const initialFrom = searchParams.get("from") || "";
-  const initialTo = searchParams.get("to") || "";
-  const [dateFilterMode, setDateFilterMode] = useState(initialMode);
-  const [customDateFrom, setCustomDateFrom] = useState(initialFrom);
-  const [customDateTo, setCustomDateTo] = useState(initialTo);
+
+  const [dateFilterMode, setDateFilterMode] = useState(
+    searchParams.get("mode") || "current:month",
+  );
+
+  const [customDateFrom, setCustomDateFrom] = useState(
+    searchParams.get("from") || "",
+  );
+
+  const [customDateTo, setCustomDateTo] = useState(
+    searchParams.get("to") || "",
+  );
+
   const [dateRangeError, setDateRangeError] = useState("");
+
+  const activeDateRange = useMemo(() => {
+    if (dateFilterMode === "custom") {
+      const error = validateCustomDateRange(customDateFrom, customDateTo);
+
+      if (error) return null;
+
+      return {
+        from: customDateFrom,
+        to: customDateTo,
+      };
+    }
+
+    const { startDate, endDate } = resolveDateRange({
+      dateFilterMode,
+      customDateFrom,
+      customDateTo,
+    });
+
+    return {
+      from: startDate?.toISOString().split("T")[0],
+      to: endDate?.toISOString().split("T")[0],
+    };
+  }, [dateFilterMode, customDateFrom, customDateTo]);
+
+  function updateCustomDateRange(from, to) {
+    const error = validateCustomDateRange(from, to);
+
+    if (error) {
+      setDateRangeError(error);
+      return;
+    }
+
+    setDateRangeError("");
+    setDateFilterMode("custom");
+
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+
+      next.set("mode", "custom");
+      next.set("from", from);
+      next.set("to", to);
+
+      return next;
+    });
+  }
 
   function activateCustomDateRange(from, to) {
     setCustomDateFrom(from);
     setCustomDateTo(to);
-    setDateFilterMode("custom");
-    setDateRangeError("");
-  }
-
-  async function refreshCustomDateExpenses(from, to) {
-    setDateRangeError("");
-    setDateFilterMode("custom");
-    setSelectedCategoryFilters([]);
-    const options = { from, to };
-
-    setSearchParams({
-      mode: "custom",
-      from,
-      to,
-    });
-
-    setActiveDateRange(options);
-    try {
-      await refreshExpenses(options);
-    } catch (error) {
-      handleApiError(error, "Unable to load expenses for selected date");
-    }
-  }
-
-  function syncCustomDateFilter(nextFrom, nextTo) {
-    const validationError = validateCustomDateRange(nextFrom, nextTo);
-
-    if (validationError) {
-      setDateRangeError(validationError);
-      return;
-    }
-    refreshCustomDateExpenses(nextFrom, nextTo);
+    updateCustomDateRange(from, to);
   }
 
   function handleCustomDateFromChange(value) {
-    const nextFrom = value;
-    let nextTo = customDateTo;
+    const nextTo =
+      value && (!customDateTo || value > customDateTo) ? value : customDateTo;
 
-    if (value && (!nextTo || new Date(value) > new Date(nextTo))) {
-      nextTo = value;
-      setCustomDateTo(value);
+    setCustomDateFrom(value);
+
+    if (nextTo !== customDateTo) {
+      setCustomDateTo(nextTo);
     }
 
-    setCustomDateFrom(nextFrom);
-    syncCustomDateFilter(nextFrom, nextTo);
+    updateCustomDateRange(value, nextTo);
   }
 
   function handleCustomDateToChange(value) {
-    const nextTo = value;
-    let nextFrom = customDateFrom;
+    const nextFrom =
+      value && (!customDateFrom || value < customDateFrom)
+        ? value
+        : customDateFrom;
 
-    if (value && (!nextFrom || new Date(value) < new Date(nextFrom))) {
-      nextFrom = value;
-      setCustomDateFrom(value);
+    setCustomDateTo(value);
+
+    if (nextFrom !== customDateFrom) {
+      setCustomDateFrom(nextFrom);
     }
 
-    setCustomDateTo(nextTo);
-    syncCustomDateFilter(nextFrom, nextTo);
+    updateCustomDateRange(nextFrom, value);
   }
 
   function applyCustomDateRange() {
-    const validationError = validateCustomDateRange(
-      customDateFrom,
-      customDateTo,
-    );
-
-    if (validationError) {
-      setDateRangeError(validationError);
-      return;
-    }
-
-    refreshCustomDateExpenses(customDateFrom, customDateTo);
+    updateCustomDateRange(customDateFrom, customDateTo);
   }
 
-  async function handleDateFilterModeChange(modeValue) {
+  function handleDateFilterModeChange(modeValue) {
     setDateFilterMode(modeValue);
-    if (modeValue !== "custom") {
-      setSearchParams((prev) => {
-  const next = new URLSearchParams(prev);
-
-  next.set("mode", modeValue);
-
-  return next;
-});
-    }
-
-    setSelectedCategoryFilters([]);
+    setDateRangeError("");
 
     if (modeValue !== "custom") {
       setCustomDateFrom("");
       setCustomDateTo("");
-    }
 
-    setDateRangeError("");
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous);
 
-    const { startDate, endDate } = resolveDateRange({
-      dateFilterMode: modeValue,
-      customDateFrom,
-      customDateTo,
-    });
+        next.set("mode", modeValue);
+        next.delete("from");
+        next.delete("to");
 
-    let options = {
-      from: startDate?.toISOString().split("T")[0],
-      to: endDate?.toISOString().split("T")[0],
-    };
-
-    setActiveDateRange(options);
-
-    try {
-      await refreshExpenses(options);
-    } catch (error) {
-      handleApiError(
-        error,
-        "Unable to load expenses for the selected date range",
-      );
-    }
-
-    try {
-      setActiveDateRange(options);
-      await refreshExpenses(options);
-    } catch (error) {
-      handleApiError(
-        error,
-        "Unable to load expenses for the selected date range",
-      );
+        return next;
+      });
     }
   }
 
@@ -157,6 +133,7 @@ export default function useDateFilter({
     customDateFrom,
     customDateTo,
     dateRangeError,
+    activeDateRange,
     handleCustomDateFromChange,
     handleCustomDateToChange,
     applyCustomDateRange,

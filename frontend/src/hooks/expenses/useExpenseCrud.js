@@ -1,209 +1,108 @@
-import { getTodayDate } from "../../utils/date";
-import {
-  createRecurringExpense,
-  updateRecurringExpense,
-} from "../../api/recurringExpense.api";
+
+import { useState } from "react";
+
 import {
   createExpense,
   fetchExpenses,
   removeExpense,
   updateExpense,
 } from "../../api/expense.api";
-import { ROUTES } from "../../routes/routes";
-import { formatDateKey } from "../../utils/date";
-import {
-  createDefaultExpenseForm,
-  createDefaultRecurringForm,
-} from "../../utils/defaultforms";
 
 export default function useExpenseCrud({
   user,
-  expenseForm,
-  recurringForm,
   editingExpenseId,
-  editingRecurringExpenseId,
-  setEditingExpenseId,
-  setEditingRecurringExpenseId,
-  setExpenseForm,
-  setRecurringForm,
-  setExpenses,
-  setSubmitting,
-  setLoadingExpenses,
   handleApiError,
   showStatus,
   clearStatus,
-  navigate,
   activeDateRange,
 }) {
+  const [expenses, setExpenses] = useState([]);
+  const [loadingExpenses, setLoadingExpenses] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   async function refreshExpenses(options = activeDateRange) {
-  if (!user) {
-    return [];
-  }
+    if (!user) return [];
 
-  setLoadingExpenses(true);
+    setLoadingExpenses(true);
 
-  try {
-    const response = await fetchExpenses(options);
+    try {
+      const response = await fetchExpenses(options);
 
-    const expenses = Array.isArray(response?.data)
-      ? response.data.map((item) => ({
-          ...item,
-          category: item.categoryId,
-          date: item.transactionDate,
-          isRecurring: Boolean(item.recurringId),
-        }))
-      : [];
+      const fetchedExpenses = Array.isArray(response?.data)
+        ? response.data.map((item) => ({
+            ...item,
+            category: item.categoryId,
+            date: item.transactionDate,
+          }))
+        : [];
 
-    const sorted = [...expenses].sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.date || a.startDate || 0);
-      const dateB = new Date(b.createdAt || b.date || b.startDate || 0);
+      const sortedExpenses = [...fetchedExpenses].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date || 0);
+        const dateB = new Date(b.createdAt || b.date || 0);
 
-      return dateB - dateA;
-    });
+        return dateB - dateA;
+      });
 
-    setExpenses(sorted);
-    return sorted;
-  } finally {
-    setLoadingExpenses(false);
-  }
-}
-
-  async function handleAddExpense(event) {
-    event.preventDefault();
-
-    if (
-      recurringForm.enabled &&
-      recurringForm.endType === "UNTIL_DATE" &&
-      recurringForm.endDate &&
-      expenseForm.date &&
-      recurringForm.endDate <= expenseForm.date
-    ) {
-      showStatus("Until date must be after the start date.", "error");
-      return;
+      setExpenses(sortedExpenses);
+      return sortedExpenses;
+    } finally {
+      setLoadingExpenses(false);
     }
+  }
 
+  async function saveExpense(expenseForm) {
     setSubmitting(true);
     clearStatus();
 
     const payload = {
       title: expenseForm.title.trim(),
       amount: expenseForm.amount,
+      currencyCode: expenseForm.currencyCode,
       category: expenseForm.category,
       date: expenseForm.date,
     };
 
-    const recurringPayload = {
-      title: expenseForm.title.trim(),
-      amount: expenseForm.amount,
-      category: expenseForm.category,
-      frequency: recurringForm.frequency,
-      intervalValue: recurringForm.intervalValue,
-      startDate: expenseForm.date,
-      endType: recurringForm.endType,
-      endCount: recurringForm.endCount,
-      endDate: recurringForm.endDate,
-    };
-
     try {
-      if (editingRecurringExpenseId !== null) {
-        await updateRecurringExpense(
-          editingRecurringExpenseId,
-          recurringPayload,
-        );
-        await refreshExpenses(activeDateRange);
-        showStatus("Recurring expense updated successfully", "success");
-      } else if (editingExpenseId !== null) {
-        const updatePayload =
-          expenseForm.editScope === "future"
-            ? { ...payload, scope: "future", recurring: recurringForm }
-            : payload;
-        await updateExpense(editingExpenseId, updatePayload);
-        await refreshExpenses(activeDateRange);
+      if (editingExpenseId !== null) {
+        await updateExpense(editingExpenseId, payload);
         showStatus("Expense updated successfully", "success");
-      } else if (recurringForm.enabled) {
-        await createRecurringExpense(recurringPayload);
-        await refreshExpenses(activeDateRange);
-        showStatus("Recurring expense saved successfully", "success");
       } else {
         await createExpense(payload);
-        await refreshExpenses(activeDateRange);
         showStatus("Expense added successfully", "success");
       }
 
-      setExpenseForm((current) => createDefaultExpenseForm());
-      setRecurringForm(createDefaultRecurringForm());
-      setEditingExpenseId(null);
-      setEditingRecurringExpenseId(null);
+      await refreshExpenses(activeDateRange);
     } catch (error) {
-      let errorMessage = "Unable to add expense";
+      handleApiError(
+        error,
+        editingExpenseId !== null
+          ? "Unable to update expense"
+          : "Unable to add expense",
+      );
 
-      if (editingRecurringExpenseId !== null) {
-        errorMessage = "Unable to update recurring expense";
-      } else if (editingExpenseId !== null) {
-        errorMessage = "Unable to update expense";
-      }
-
-      handleApiError(error, errorMessage);
+      throw error;
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleStartEditExpense(expense) {
-    const dateValue = expense?.createdAt
-      ? formatDateKey(expense.createdAt)
-      : getTodayDate();
-    setEditingExpenseId(expense.id);
-    setExpenseForm({
-      title: expense.title || "",
-      amount:
-        expense.amount !== undefined && expense.amount !== null
-          ? String(expense.amount)
-          : "",
-      category: expense.category || "",
-      date: dateValue,
-      editScope: null,
-    });
-    setRecurringForm(createDefaultRecurringForm());
-    navigate(ROUTES.HOME);
-    clearStatus();
-  }
-
-  function handleCancelEditExpense() {
-    setEditingExpenseId(null);
-    setEditingRecurringExpenseId(null);
-    setExpenseForm(createDefaultExpenseForm());
-    setRecurringForm(createDefaultRecurringForm());
-  }
-
-  async function handleDeleteExpense(id) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this expense?",
-    );
-    if (!confirmed) return;
-  }
-
-  async function handleDeleteExpense(id) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this expense?",
-    );
-    if (!confirmed) return;
+  async function deleteExpense(id) {
     try {
       await removeExpense(id);
       await refreshExpenses(activeDateRange);
-      if (id === editingExpenseId) {
-        handleCancelEditExpense();
-      }
       showStatus("Expense deleted successfully", "success");
     } catch (error) {
       handleApiError(error, "Failed to delete expense");
     }
   }
+
   return {
+    expenses,
+    setExpenses,
+    loadingExpenses,
+    submitting,
     refreshExpenses,
-    handleAddExpense,
-    handleStartEditExpense,
-    handleCancelEditExpense,
-    handleDeleteExpense,
+    saveExpense,
+    deleteExpense,
   };
 }
