@@ -1,35 +1,32 @@
+import {
+  CategoryBreakdown,
+  CategoryBubbleChart,
+} from "../components/analytics";
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
 import PanelCard from "../components/ui/PanelCard";
 import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
-import { formatCurrency } from "../utils/currency";
+import useExpenseAnalytics from "../hooks/analytics/useExpenseAnalytics";
+import useExpenses from "../hooks/expenses/useExpenses";
 import useCategory from "../hooks/useCategory";
-import usePreferences from "../hooks/profile/usePreferences";
-import {
-  CategoryBubbleChart,
-  CategoryBreakdown,
-} from "../components/analytics";
 
 export default function AnalyticsPage({
-  expenses,
-  dateFilterMode,
-  setDateFilterMode,
-  customDateFrom,
-  setCustomDateFrom,
-  customDateTo,
-  setCustomDateTo,
-  applyCustomDateRange,
-  onTrendPointDateSelect,
-  dateRangeError,
-  analyticsTotal,
-  categoryTotals,
-  analyticsExpenses,
   analyticsGroupBy,
   handleAnalyticsGroupByChange,
-  trendData,
-  selectedCategoryFilters,
-  onCategoryFilterToggle,
-  onClearCategoryFilters,
 }) {
+  const {
+    expenses,
+    filteredExpenses,
+    handleDateFilterModeChange,
+    applyCustomDateRange,
+    handleTrendPointDateSelect,
+  } = useExpenses();
+
+  const { analyticsTotal, categoryTotals, trendData } = useExpenseAnalytics({
+    expenses,
+    filteredExpenses,
+    analyticsGroupBy,
+  });
+
   const {
     lineCanvasRef,
     isDarkMode,
@@ -39,56 +36,33 @@ export default function AnalyticsPage({
     setUseLogScale,
     visibleTrendPoints,
     outlierWarningText,
-    displayedAnalyticsExpenses,
-    summaryTotalSpending,
     categoryEntries,
-    handleQuickDateMode,
-    handleApplyDateRange,
     chartTitle,
   } = useAnalyticsPage({
     trendData,
-    analyticsExpenses,
+    analyticsExpenses: filteredExpenses,
     categoryTotals,
     analyticsGroupBy,
     analyticsTotal,
-    setDateFilterMode,
+    setDateFilterMode: handleDateFilterModeChange,
     applyCustomDateRange,
-    onTrendPointSelect: onTrendPointDateSelect,
+    onTrendPointSelect: handleTrendPointDateSelect,
   });
+
   const options = ["Daily", "Weekly", "Monthly", "Yearly"];
+
   const { categories } = useCategory();
-  const { preferences } = usePreferences();
-  const reportingCurrency = preferences?.reportingCurrency || "INR";
+
   return (
     <section className="grid gap-4">
       <PanelCard>
-        <ExpenseFilterPanel
-          className="grid gap-4"
-          expenses={expenses}
-          dateFilterMode={dateFilterMode}
-          onDateFilterModeChange={handleQuickDateMode}
-          customDateFrom={customDateFrom}
-          onCustomDateFromChange={setCustomDateFrom}
-          customDateTo={customDateTo}
-          onCustomDateToChange={setCustomDateTo}
-          onApplyDateRange={handleApplyDateRange}
-          dateRangeError={dateRangeError}
-          selectedCategoryFilters={selectedCategoryFilters}
-          onCategoryFilterToggle={onCategoryFilterToggle}
-          onClearCategoryFilters={onClearCategoryFilters}
-          summaryExpenses={displayedAnalyticsExpenses}
-          summaryTotalSpending={formatCurrency(
-            summaryTotalSpending,
-            reportingCurrency,
-          )}
-          summaryTrackedCategories={categoryEntries.length}
-          summaryVisibleEntries={displayedAnalyticsExpenses.length}
-        />
+        <ExpenseFilterPanel className="grid gap-4" />
       </PanelCard>
 
       <PanelCard>
         <div className="flex flex-col gap-0 lg:flex-row lg:items-start lg:justify-between">
           <h3 className="text-xl font-bold whitespace-nowrap">{chartTitle}</h3>
+
           <div className="flex w-full flex-col items-end gap-1.5">
             <div className="inline-flex items-center rounded-xl border dark:border-gray-700 dark:bg-gray-900/40 p-1.5">
               {options.map((option, index) => (
@@ -98,15 +72,16 @@ export default function AnalyticsPage({
                     handleAnalyticsGroupByChange(option.toLowerCase())
                   }
                   className={`
-                  relative px-4 py-2 text-sm font-medium transition-all duration-200
-                  ${
-                    analyticsGroupBy === option.toLowerCase()
-                      ? "rounded-lg bg-indigo-600 text-white shadow-sm"
-                      : "dark:text-gray-300 dark:hover:text-white"
-                  }
-                `}
+                    relative px-4 py-2 text-sm font-medium transition-all duration-200
+                    ${
+                      analyticsGroupBy === option.toLowerCase()
+                        ? "rounded-lg bg-indigo-600 text-white shadow-sm"
+                        : "dark:text-gray-300 dark:hover:text-white"
+                    }
+                  `}
                 >
                   {option}
+
                   {index !== options.length - 1 &&
                     analyticsGroupBy !== option.toLowerCase() &&
                     analyticsGroupBy !== options[index + 1].toLowerCase() && (
@@ -115,6 +90,7 @@ export default function AnalyticsPage({
                 </button>
               ))}
             </div>
+
             <div className="flex flex-wrap items-center rounded-xl border dark:border-gray-700 dark:bg-gray-900/40 p-1.5">
               <label className="flex cursor-pointer items-center gap-2 px-3 text-sm font-medium dark:text-gray-300">
                 <input
@@ -144,9 +120,11 @@ export default function AnalyticsPage({
             <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
               Outliers Detected
             </h4>
+
             <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">
               {outlierWarningText}
             </p>
+
             <p className="mt-2 text-xs text-yellow-700/90 dark:text-yellow-500">
               Tip: Enable Exclude Outliers or Log Scale for better
               visualization.
@@ -171,13 +149,11 @@ export default function AnalyticsPage({
             categoryEntries={categoryEntries}
             categories={categories}
             isDarkMode={isDarkMode}
-            reportingCurrency={reportingCurrency}
           />
 
           <CategoryBreakdown
             categoryEntries={categoryEntries}
             categories={categories}
-            reportingCurrency={reportingCurrency}
           />
         </div>
       </div>

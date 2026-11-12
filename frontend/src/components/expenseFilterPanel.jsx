@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import useCategory from "../hooks/useCategory";
-import { formatCurrency } from "../utils/currency";
+import useFormattedCurrency from "../hooks/useFormattedCurrency";
 import Button from "./ui/Button";
 import Calendar from "./ui/Calendar";
-import usePreferences from "../hooks/profile/usePreferences";
-import useAppController from "../hooks/useAppController";
+import useExpenses from "../hooks/expenses/useExpenses";
 
 const periodModes = [
   { value: "day", label: "Day" },
@@ -18,70 +17,56 @@ const relativeModes = [
   { value: "current", label: "Current" },
 ];
 
-export default function ExpenseFilterPanel({
-  expenses = [],
-  // categoryFilterExpenses = null,
-  dateFilterMode,
-  onDateFilterModeChange,
-  customDateFrom,
-  onCustomDateFromChange,
-  customDateTo,
-  onCustomDateToChange,
-  dateRangeError,
-  selectedCategoryFilters = [],
-  onCategoryFilterToggle,
-  onClearCategoryFilters,
-  summaryExpenses = null,
-  summaryTotalSpending = null,
-  summaryTrackedCategories = null,
-  summaryVisibleEntries = null,
-  stats = [],
-  className = "mb-5 grid gap-4",
-}) {
-  const {dateFilteredExpenses:categoryFilterExpenses} = useAppController();
+export default function ExpenseFilterPanel({ className = "mb-5 grid gap-4" }) {
   const { categories, groups } = useCategory();
-  const { preferences } = usePreferences();
-  const reportingCurrency = preferences?.reportingCurrency || "INR";
+  const {
+    expenses,
+    dateFilteredExpenses,
+    filteredExpenses,
+    dateFilterMode,
+    handleDateFilterModeChange,
+    customDateFrom,
+    handleCustomDateFromChange,
+    customDateTo,
+    handleCustomDateToChange,
+    dateRangeError,
+    selectedCategoryFilters,
+    handleCategoryFilterToggle,
+    clearCategoryFilters,
+  } = useExpenses();
 
-  const hasSummaryExpenses = Array.isArray(summaryExpenses);
-  const computedTotalSpending = hasSummaryExpenses
-    ? summaryExpenses.reduce(
-        (sum, expense) => sum + Number(expense?.amount || 0),
-        0,
-      )
-    : 0;
-  const computedTrackedCategories = hasSummaryExpenses
-    ? new Set(summaryExpenses.map((expense) => expense?.category)).size
-    : 0;
-  const computedVisibleEntries = hasSummaryExpenses
-    ? summaryExpenses.length
-    : 0;
+  const formattedCurrency = useFormattedCurrency();
 
-  const defaultStats = hasSummaryExpenses
-    ? [
-        {
-          label: "Total Spending",
-          value:
-            summaryTotalSpending ??
-            formatCurrency(computedTotalSpending, reportingCurrency),
-        },
-        {
-          label: "Categories",
-          value: summaryTrackedCategories ?? computedTrackedCategories,
-        },
-        {
-          label: "Entries",
-          value: summaryVisibleEntries ?? computedVisibleEntries,
-        },
-      ]
-    : [];
+  const summaryExpenses = filteredExpenses;
 
-  const resolvedStats = stats.length ? stats : defaultStats;
-  const categorySourceExpenses = Array.isArray(categoryFilterExpenses)
-    ? categoryFilterExpenses
-    : Array.isArray(expenses)
-      ? expenses
-      : [];
+  const computedTotalSpending = summaryExpenses.reduce(
+    (sum, expense) => sum + Number(expense?.amount || 0),
+    0,
+  );
+
+  const computedTrackedCategories = new Set(
+    summaryExpenses.map((expense) => expense?.category),
+  ).size;
+
+  const computedVisibleEntries = summaryExpenses.length;
+
+  const resolvedStats = [
+    {
+      label: "Total Spending",
+      value: formattedCurrency(computedTotalSpending),
+    },
+    {
+      label: "Categories",
+      value: computedTrackedCategories,
+    },
+    {
+      label: "Entries",
+      value: computedVisibleEntries,
+    },
+  ];
+
+  const categorySourceExpenses = dateFilteredExpenses;
+
   const availableCategoryOptions = Array.from(
     new Set(
       categorySourceExpenses
@@ -167,13 +152,8 @@ export default function ExpenseFilterPanel({
   }, []);
 
   function handleCategoryGroupClick(groupValues) {
-    if (!onCategoryFilterToggle) {
-      return;
-    }
+    const normalizedValues = [...new Set(groupValues)];
 
-    const normalizedValues = Array.from(
-      new Set(groupValues.map((value) => value)),
-    );
     const allSelected = normalizedValues.every((value) =>
       selectedCategoryFilters.includes(value),
     );
@@ -183,7 +163,7 @@ export default function ExpenseFilterPanel({
       const shouldToggle = allSelected ? currentlySelected : !currentlySelected;
 
       if (shouldToggle) {
-        onCategoryFilterToggle(value);
+        handleCategoryFilterToggle(value);
       }
     });
   }
@@ -201,7 +181,9 @@ export default function ExpenseFilterPanel({
                     <button
                       key={mode.value}
                       onClick={() =>
-                        onDateFilterModeChange(`${mode.value}:${currentPeriod}`)
+                        handleDateFilterModeChange(
+                          `${mode.value}:${currentPeriod}`,
+                        )
                       }
                       className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 ${
                         currentRelative === mode.value
@@ -247,7 +229,7 @@ export default function ExpenseFilterPanel({
                           className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 ${currentPeriod === mode.value ? "font-semibold" : ""}`}
                           onClick={() => {
                             setPeriodOpen(false);
-                            onDateFilterModeChange(
+                            handleDateFilterModeChange(
                               `${currentRelative}:${mode.value}`,
                             );
                           }}
@@ -269,7 +251,7 @@ export default function ExpenseFilterPanel({
                     expenses={expenses}
                     value={customDateFrom}
                     onChange={(event) =>
-                      onCustomDateFromChange(event.target.value)
+                      handleCustomDateFromChange(event.target.value)
                     }
                   />
                 </label>
@@ -279,7 +261,7 @@ export default function ExpenseFilterPanel({
                     expenses={expenses}
                     value={customDateTo}
                     onChange={(event) =>
-                      onCustomDateToChange(event.target.value)
+                      handleCustomDateToChange(event.target.value)
                     }
                   />
                 </label>
@@ -414,7 +396,7 @@ export default function ExpenseFilterPanel({
                         variant="plain"
                         className="text-[0.7rem] font-semibold leading-none uppercase tracking-[0.08em] text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
                         type="button"
-                        onClick={onClearCategoryFilters}
+                        onClick={clearCategoryFilters}
                       >
                         Clear
                       </Button>
@@ -440,7 +422,7 @@ export default function ExpenseFilterPanel({
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             type="checkbox"
                             onChange={() =>
-                              onCategoryFilterToggle?.(option.value)
+                              handleCategoryFilterToggle?.(option.value)
                             }
                           />
                           <span

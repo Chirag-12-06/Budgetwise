@@ -127,6 +127,23 @@ export default function useDateFilters() {
     }
   }
 
+  function resetDateFilters() {
+    setDateFilterMode("current:month");
+    setCustomDateFrom("");
+    setCustomDateTo("");
+    setDateRangeError("");
+
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+
+      next.set("mode", "current:month");
+      next.delete("from");
+      next.delete("to");
+
+      return next;
+    });
+  }
+
   return {
     dateFilterMode,
     setDateFilterMode,
@@ -139,6 +156,7 @@ export default function useDateFilters() {
     applyCustomDateRange,
     handleDateFilterModeChange,
     activateCustomDateRange,
+    resetDateFilters,
     setCustomDateFrom,
     setCustomDateTo,
     setDateRangeError,

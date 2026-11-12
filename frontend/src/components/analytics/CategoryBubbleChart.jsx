@@ -1,6 +1,6 @@
 import PanelCard from "../ui/PanelCard";
 import { getContrastTextColor, hexToRgba } from "../../utils/color";
-import { formatCurrency } from "../../utils/currency";
+import useFormattedCurrency from "../../hooks/useFormattedCurrency";
 import {
   useBubbleVisibility,
   useBubbleBoardSize,
@@ -10,7 +10,6 @@ export default function CategoryBubbleChart({
   categoryEntries,
   categories,
   isDarkMode,
-  reportingCurrency,
 }) {
   const { visibleCategories } = useBubbleVisibility(categoryEntries);
   const { bubbleBoardSize, bubbleBoardRef } = useBubbleBoardSize();
@@ -19,6 +18,8 @@ export default function CategoryBubbleChart({
     bubbleBoardSize,
     categoryEntries,
   });
+  const formattedCurrency = useFormattedCurrency();
+
   return (
     <PanelCard>
       {categoryEntries.length ? (
@@ -70,7 +71,7 @@ export default function CategoryBubbleChart({
                       animationDuration: `${bubble.animationDuration}s`,
                       animationDelay: `${bubble.animationDelay}s`,
                     }}
-                    title={`${category?.name}: ${formatCurrency(bubble.value, reportingCurrency)} (${bubble.percent.toFixed(1)}%)`}
+                    title={`${category?.name}: ${formattedCurrency(bubble.value)} (${bubble.percent.toFixed(1)}%)`}
                   >
                     <span
                       className="pointer-events-none inline-block max-w-full whitespace-nowrap font-bold leading-none"

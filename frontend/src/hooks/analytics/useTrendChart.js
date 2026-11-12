@@ -1,7 +1,6 @@
 import Chart from "chart.js/auto";
 import { useEffect, useRef } from "react";
-import { formatCurrency } from "../../utils/currency";
-import  usePreferences  from "../profile/usePreferences";
+import useFormattedCurrency from "../../hooks/useFormattedCurrency";
 
 export default function useTrendChart({
   visibleTrendPoints,
@@ -12,8 +11,7 @@ export default function useTrendChart({
 }) {
   const lineCanvasRef = useRef(null);
   const lineChartRef = useRef(null);
-  const { preferences } = usePreferences();
-  const reportingCurrency = preferences?.reportingCurrency ;
+  const formattedCurrency = useFormattedCurrency();
 
   const chartTitles = {
     daily: "Daily Expense Trend",
@@ -119,7 +117,7 @@ export default function useTrendChart({
         }
       }
 
-      return formatCurrency(numericValue, reportingCurrency);
+      return formattedCurrency(numericValue);
     }
 
     function limitLogScaleTicks(scale) {
@@ -164,12 +162,12 @@ export default function useTrendChart({
           const right = x.getPixelForValue(band.end);
 
           ctx.fillStyle = isDarkMode
-  ? index % 2 === 0
-    ? "rgba(255,255,255,0.03)"
-    : "rgba(255,255,255,0.06)"
-  : index % 2 === 0
-    ? "rgba(0,0,0,0.025)"
-    : "rgba(0,0,0,0.05)";
+            ? index % 2 === 0
+              ? "rgba(255,255,255,0.03)"
+              : "rgba(255,255,255,0.06)"
+            : index % 2 === 0
+              ? "rgba(0,0,0,0.025)"
+              : "rgba(0,0,0,0.05)";
 
           ctx.fillRect(
             left,
@@ -229,7 +227,7 @@ export default function useTrendChart({
               label: (context) => {
                 const originalValue =
                   rawValues[context.dataIndex] ?? context.parsed.y;
-                return `Amount: ${formatCurrency(originalValue, reportingCurrency)}`;
+                return `Amount: ${formattedCurrency(originalValue)}`;
               },
             },
           },

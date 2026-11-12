@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { formatDateKey } from "../../utils/date";
 
@@ -14,9 +13,7 @@ export default function useExpenseFilters({
 
     return expenses
       .filter((expense) => {
-        const expenseDate = formatDateKey(
-          expense.date || expense.createdAt,
-        );
+        const expenseDate = formatDateKey(expense.date || expense.createdAt);
 
         if (from && expenseDate < from) return false;
         if (to && expenseDate > to) return false;
@@ -25,7 +22,8 @@ export default function useExpenseFilters({
       })
       .sort(
         (left, right) =>
-          new Date(right.createdAt) - new Date(left.createdAt),
+          new Date(right.createdAt || right.date) -
+          new Date(left.createdAt || left.date),
       );
   }, [expenses, activeDateRange]);
 
@@ -35,9 +33,7 @@ export default function useExpenseFilters({
     }
 
     return dateFilteredExpenses.filter((expense) =>
-      selectedCategoryFilters.includes(
-        expense.category || "uncategorized",
-      ),
+      selectedCategoryFilters.includes(expense.category || "uncategorized"),
     );
   }, [dateFilteredExpenses, selectedCategoryFilters]);
 

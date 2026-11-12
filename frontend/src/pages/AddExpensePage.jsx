@@ -1,61 +1,47 @@
 import { useState } from "react";
+
 import ReceiptDialog from "../components/receipt/ReceiptDialog";
 import Button from "../components/ui/Button";
 import Calendar from "../components/ui/Calendar";
 import PanelCard from "../components/ui/PanelCard";
+
 import { CURRENCY_OPTIONS } from "../constants/currencies";
+
 import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
 import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
 import useCategories from "../hooks/useCategory";
-import { getNextDateKey } from "../utils/date";
+import useExpenses from "../hooks/expenses/useExpenses";
+
 import resolveReceiptItemAmount from "../utils/receiptItemAmount";
 
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
 
-function frequencyLabel(frequency, count) {
-  const n = Number(count);
-  const plural = n > 1;
-  switch (frequency) {
-    case "DAILY":
-      return plural ? "days" : "day";
-    case "WEEKLY":
-      return plural ? "weeks" : "week";
-    case "MONTHLY":
-      return plural ? "months" : "month";
-    case "YEARLY":
-      return plural ? "years" : "year";
-    default:
-      return frequency.toLowerCase();
-  }
-}
-
 const submitButtonClasses =
   "w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-70";
+
 const updateButtonClasses =
   "w-full rounded-xl bg-emerald-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-70";
+
 const cancelButtonClasses =
   "w-full rounded-xl bg-red-600 px-4 py-3.5 text-center text-xl font-medium text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-70";
+
 const scanButtonClasses =
   "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-indigo-500";
 
-export default function AddExpensePage({
-  expenses,
-  expenseForm,
-  setExpenseForm,
-  recurringForm,
-  setRecurringForm,
-  handleAddExpense,
-  submitting,
-  isEditingExpense,
-  isEditingFuture,
-  isEditingRecurringSeries,
-  handleCancelEditExpense,
-  handleCancelEditRecurringExpense,
-}) {
-  const [showRecurringModal, setShowRecurringModal] = useState(false);
+export default function AddExpensePage() {
   const [currencyOpen, setCurrencyOpen] = useState(false);
-  const [tempRecurring, setTempRecurring] = useState(recurringForm);
+
+  const {
+    expenses,
+    expenseForm,
+    setExpenseForm,
+    handleAddExpense,
+    submitting,
+    isEditingExpense,
+    handleCancelEditExpense,
+  } = useExpenses();
+
   const { categories, groups } = useCategories();
 
   const categoryGroups = (groups ?? []).map((group) => ({
@@ -94,40 +80,12 @@ export default function AddExpensePage({
     CURRENCY_OPTIONS.find(
       (currency) => currency.code === (expenseForm.currencyCode || "INR"),
     ) || CURRENCY_OPTIONS[0];
-  // const recurringUntilDateMin = getNextDateKey(expenseForm.date);
-  // const recurringUntilDateIsInvalid =
-  //   recurringForm.enabled &&
-  //   recurringForm.endType === "UNTIL_DATE" &&
-  //   Boolean(recurringForm.endDate) &&
-  //   Boolean(expenseForm.date) &&
-  //   recurringForm.endDate <= expenseForm.date;
-  // const showRecurringSection =
-  //   !isEditingExpense || isEditingRecurringSeries || isEditingFuture;
-  // const showRecurringFields = recurringForm.enabled && showRecurringSection;
-
-  // const handleRecurringToggle = () => {
-  //   // Open modal; do not persist until Save. If it was disabled, pre-check enabled in temp state
-  //   if (!recurringForm.enabled) {
-  //     setTempRecurring({ ...recurringForm, enabled: true });
-  //   } else {
-  //     setTempRecurring(recurringForm);
-  //   }
-  //   setShowRecurringModal(true);
-  // };
-
-  // const displayRecurringEnabled = showRecurringModal
-  //   ? Boolean(tempRecurring && tempRecurring.enabled)
-  //   : Boolean(recurringForm && recurringForm.enabled);
 
   return (
     <PanelCard variant="addExpense" className="mx-auto w-full max-w-190">
       <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
-          {isEditingExpense 
-          // || isEditingRecurringSeries || 
-          // isEditingFuture
-            ? "Edit Expense"
-            : "Add New Expense"}
+          {isEditingExpense ? "Edit Expense" : "Add New Expense"}
         </h2>
 
         <input
@@ -176,7 +134,9 @@ export default function AddExpensePage({
                   <span className="flex min-w-0 items-center gap-3">
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
-                      style={{ backgroundColor: selectedCategory.color }}
+                      style={{
+                        backgroundColor: selectedCategory.color,
+                      }}
                     >
                       <i className={selectedCategory.icon} aria-hidden="true" />
                     </span>
@@ -192,7 +152,9 @@ export default function AddExpensePage({
                 )}
 
                 <i
-                  className={`fas ${isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-gray-500 dark:text-slate-300`}
+                  className={`fas ${
+                    isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"
+                  } shrink-0 text-sm text-gray-500 dark:text-slate-300`}
                   aria-hidden="true"
                 />
               </Button>
@@ -200,9 +162,9 @@ export default function AddExpensePage({
               <select
                 className="sr-only"
                 value={expenseForm.category}
-                onChange={(event) => {
-                  handleCategorySelection(event.target.value);
-                }}
+                onChange={(event) =>
+                  handleCategorySelection(event.target.value)
+                }
                 required
                 tabIndex={-1}
                 aria-hidden="true"
@@ -247,7 +209,9 @@ export default function AddExpensePage({
                             >
                               <span
                                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
-                                style={{ backgroundColor: option.color }}
+                                style={{
+                                  backgroundColor: option.color,
+                                }}
                               >
                                 <i className={option.icon} aria-hidden="true" />
                               </span>
@@ -282,7 +246,6 @@ export default function AddExpensePage({
         </div>
 
         <div className="flex gap-2">
-          {/* Currency selector */}
           <div className="relative w-36 shrink-0">
             <button
               type="button"
@@ -302,7 +265,7 @@ export default function AddExpensePage({
             </button>
 
             {currencyOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-36 overflow-y-auto rounded-lg border bg-white dark:border-gray-600 dark:bg-gray-800 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-36 overflow-y-auto rounded-lg border bg-white shadow-xl dark:border-gray-600 dark:bg-gray-800">
                 {CURRENCY_OPTIONS.map((currency) => (
                   <button
                     key={currency.code}
@@ -329,9 +292,6 @@ export default function AddExpensePage({
             )}
           </div>
 
-          <i className="fas fa-chevron-down pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500" />
-
-          {/* Amount input */}
           <input
             className={`${fieldClasses} min-w-0 flex-1`}
             type="number"
@@ -361,82 +321,6 @@ export default function AddExpensePage({
           }
         />
 
-          
-         {/* showRecurringSection ? (
-          <label className="grid gap-2">
-            <Button
-              variant="plain"
-              type="button"
-              onClick={handleRecurringToggle}
-              aria-pressed={displayRecurringEnabled}
-              aria-label={
-                displayRecurringEnabled ? "Recurring" : "Don't Repeat"
-              }
-              title={displayRecurringEnabled ? "Recurring" : "Don't Repeat"}
-              className={`${fieldClasses} flex items-center gap-2 px-3 text-left ${displayRecurringEnabled ? "bg-indigo-600 text-white hover:bg-indigo-500" : ""}`}
-            >
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm ${displayRecurringEnabled ? "bg-white text-indigo-600" : "bg-gray-200 text-gray-600 dark:bg-slate-600/90 dark:text-slate-200"}`}
-              >
-                <i className="fas fa-repeat" aria-hidden="true" />
-              </span>
-              <span
-                className={`flex-1 min-w-0 text-base ${displayRecurringEnabled ? "text-white" : "text-gray-500 dark:text-slate-300"} text-left`}
-              >
-                {displayRecurringEnabled ? "Recurring" : "Don't Repeat"}
-              </span>
-              <i
-                className={`fas ${displayRecurringEnabled ? "fa-chevron-up" : "fa-chevron-down"} shrink-0 text-sm text-gray-500 dark:text-slate-300`}
-                aria-hidden="true"
-              />
-            </Button>
-
-            // Recurring details are edited in a modal for a cleaner UX
-           </label>
-        ) : null} 
-
-        {isEditingFuture ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              variant="plain"
-              className={updateButtonClasses}
-              type="submit"
-              disabled={submitting}
-            >
-              {submitting ? "Saving..." : "Update This & Future"}
-            </Button>
-            <Button
-              variant="plain"
-              className={cancelButtonClasses}
-              type="button"
-              onClick={handleCancelEditExpense}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) 
-        : isEditingRecurringSeries ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              variant="plain"
-              className={updateButtonClasses}
-              type="submit"
-              disabled={submitting}
-            >
-              {submitting ? "Saving..." : "Update Series"}
-            </Button>
-            <Button
-              variant="plain"
-              className={cancelButtonClasses}
-              type="button"
-              onClick={handleCancelEditRecurringExpense}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-          </div>
-        ):  */}
         {isEditingExpense ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
@@ -447,6 +331,7 @@ export default function AddExpensePage({
             >
               {submitting ? "Saving..." : "Update Expense"}
             </Button>
+
             <Button
               variant="plain"
               className={cancelButtonClasses}
@@ -468,199 +353,6 @@ export default function AddExpensePage({
           </Button>
         )}
       </form>
-
-      {/* {showRecurringModal ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
-          onClick={() => setShowRecurringModal(false)}
-          role="presentation"
-        >
-          <div
-            className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-800"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="recurring-details-dialog-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3
-              id="recurring-details-dialog-title"
-              className="text-xl font-bold text-gray-900 dark:text-white"
-            >
-              Recurring
-            </h3>
-
-            <div className="mt-5 grid gap-4">
-              <div className="grid gap-2">
-                <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                  Repeat every
-                </span>
-                <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
-                  <input
-                    className={fieldClasses}
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={tempRecurring.intervalValue}
-                    onChange={(event) =>
-                      setTempRecurring((current) => ({
-                        ...current,
-                        intervalValue: event.target.value,
-                      }))
-                    }
-                  />
-                  <select
-                    className={fieldClasses}
-                    value={tempRecurring.frequency}
-                    onChange={(event) =>
-                      setTempRecurring((current) => ({
-                        ...current,
-                        frequency: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="DAILY">
-                      {frequencyLabel("DAILY", tempRecurring.intervalValue)}
-                    </option>
-                    <option value="WEEKLY">
-                      {frequencyLabel("WEEKLY", tempRecurring.intervalValue)}
-                    </option>
-                    <option value="MONTHLY">
-                      {frequencyLabel("MONTHLY", tempRecurring.intervalValue)}
-                    </option>
-                    <option value="YEARLY">
-                      {frequencyLabel("YEARLY", tempRecurring.intervalValue)}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                  Repeat ends
-                </span>
-                <div className="grid gap-0 rounded-2xl border border-gray-200 bg-white p-0 dark:border-slate-600 dark:bg-slate-700/70">
-                  <label className="flex items-center gap-3 px-3 py-3 text-sm text-gray-800 dark:text-slate-100">
-                    <input
-                      type="radio"
-                      name="recurring-end-type-modal"
-                      value="FOREVER"
-                      checked={tempRecurring.endType === "FOREVER"}
-                      onChange={(event) =>
-                        setTempRecurring((current) => ({
-                          ...current,
-                          endType: event.target.value,
-                          endCount: "",
-                          endDate: "",
-                        }))
-                      }
-                    />
-                    <span className="ml-2">Forever</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 px-3 py-3 text-sm text-gray-800 dark:text-slate-100 border-t border-gray-200 dark:border-slate-600 group">
-                    <input
-                      type="radio"
-                      name="recurring-end-type-modal"
-                      value="COUNT"
-                      checked={tempRecurring.endType === "COUNT"}
-                      onChange={(event) =>
-                        setTempRecurring((current) => ({
-                          ...current,
-                          endType: event.target.value,
-                          endDate: "",
-                        }))
-                      }
-                    />
-
-                    {tempRecurring.endType === "COUNT" ? null : (
-                      <span className="flex-1 min-w-0 ml-2">
-                        Specific number of times
-                      </span>
-                    )}
-
-                    {tempRecurring.endType === "COUNT" ? (
-                      <div className="ml-3 flex items-center gap-1 opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
-                        <input
-                          className="h-6 w-15  px-3 text-base text-gray-900 dark:text-white"
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={tempRecurring.endCount}
-                          onChange={(event) =>
-                            setTempRecurring((current) => ({
-                              ...current,
-                              endType: "COUNT",
-                              endCount: event.target.value,
-                            }))
-                          }
-                          placeholder="1"
-                        />
-                        <span className="text-sm text-gray-500 dark:text-slate-300">
-                          times total
-                        </span>
-                      </div>
-                    ) : null}
-                  </label>
-
-                  <label className="flex items-start gap-3 px-3 py-3 text-sm text-gray-800 dark:text-slate-100 border-t border-gray-200 dark:border-slate-600">
-                    <input
-                      type="radio"
-                      name="recurring-end-type-modal"
-                      value="UNTIL_DATE"
-                      checked={tempRecurring.endType === "UNTIL_DATE"}
-                      onChange={(event) =>
-                        setTempRecurring((current) => ({
-                          ...current,
-                          endType: event.target.value,
-                          endCount: "",
-                        }))
-                      }
-                      className="mt-1"
-                    />
-                    <span className="grid flex-1 gap-2">
-                      Until
-                      <Calendar
-                        className="min-h-13 rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 focus:border-indigo-500 dark:border-slate-600 dark:bg-slate-700/80 dark:text-white"
-                        value={tempRecurring.endDate}
-                        minDate={recurringUntilDateMin}
-                        onChange={(event) =>
-                          setTempRecurring((current) => ({
-                            ...current,
-                            endType: "UNTIL_DATE",
-                            endDate: event.target.value,
-                          }))
-                        }
-                      />
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-3">
-              <Button
-                variant="plain"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
-                type="button"
-                onClick={() => {
-                  setRecurringForm(tempRecurring);
-                  setShowRecurringModal(false);
-                }}
-              >
-                Save
-              </Button>
-              <Button
-                variant="plain"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
-                type="button"
-                onClick={() => setShowRecurringModal(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null} */}
     </PanelCard>
   );
 }

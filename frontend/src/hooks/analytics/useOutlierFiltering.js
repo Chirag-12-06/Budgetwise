@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { formatCurrency } from "../../utils/currency";
+import useFormattedCurrency from "../../hooks/useFormattedCurrency";
 import { detectOutliers, isWithinOutlierBounds } from "../../utils/analytics";
-import  usePreferences  from "../profile/usePreferences";
 
 export default function useOutlierFiltering({
   trendPoints,
@@ -9,9 +8,8 @@ export default function useOutlierFiltering({
   rawCategoryEntries,
   analyticsTotal,
 }) {
+  const formattedCurrency = useFormattedCurrency();
   const [excludeOutliers, setExcludeOutliers] = useState(false);
-  const { preferences } = usePreferences();
-  const reportingCurrency = preferences?.reportingCurrency ;
 
   const trendOutlierInfo = useMemo(
     () => detectOutliers(trendPoints.map((point) => point.value)),
@@ -119,7 +117,7 @@ export default function useOutlierFiltering({
 
     return `Found ${count} outlier value${
       count > 1 ? "s" : ""
-    } out of ${trendPoints.length} data points. Highest outlier: ${formatCurrency(maxOutlier, reportingCurrency)}. This may affect chart readability.`;
+    } out of ${trendPoints.length} data points. Highest outlier: ${formattedCurrency(maxOutlier)}. This may affect chart readability.`;
   }, [excludeOutliers, trendOutlierInfo, trendPoints]);
 
   return {

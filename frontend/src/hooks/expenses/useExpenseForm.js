@@ -1,17 +1,14 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { createDefaultExpenseForm } from "../../utils/defaultforms";
+import { createDefaultExpenseForm } from "../../utils/defaultForms";
 import { getTodayDate, formatDateKey } from "../../utils/date";
 import { ROUTES } from "../../routes/routes";
 
 export default function useExpenseForm() {
   const navigate = useNavigate();
 
-  const [expenseForm, setExpenseForm] = useState(
-    createDefaultExpenseForm(),
-  );
+  const [expenseForm, setExpenseForm] = useState(createDefaultExpenseForm());
 
   const [editingExpenseId, setEditingExpenseId] = useState(null);
 

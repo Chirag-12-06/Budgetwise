@@ -1,16 +1,12 @@
 import { PanelCard, Button } from "../ui";
-import { formatCurrency } from "../../utils/currency";
+import useFormattedCurrency from "../../hooks/useFormattedCurrency";
 import {
   useBubbleVisibility,
   useBubbleBoardSize,
   useBubbleLayout,
 } from "../../hooks/analytics";
 
-export default function CategoryBreakdown({
-  categoryEntries,
-  categories,
-  reportingCurrency,
-}) {
+export default function CategoryBreakdown({ categoryEntries, categories }) {
   const { hiddenBubbleCategories, visibleCategories, toggleBubbleCategory } =
     useBubbleVisibility(categoryEntries);
   const { bubbleBoardSize } = useBubbleBoardSize();
@@ -19,6 +15,8 @@ export default function CategoryBreakdown({
     bubbleBoardSize,
     categoryEntries,
   });
+  const formattedCurrency = useFormattedCurrency();
+
   return (
     <PanelCard>
       <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
@@ -70,7 +68,7 @@ export default function CategoryBreakdown({
                     <strong className="truncate">{category?.name}</strong>
                   </div>
 
-                  <span>{formatCurrency(total, reportingCurrency)}</span>
+                  <span>{formattedCurrency(total)}</span>
                 </div>
 
                 <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">

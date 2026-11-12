@@ -1,13 +1,10 @@
 import Button from "../components/ui/Button";
 import PanelCard from "../components/ui/PanelCard";
 import useProfile from "../hooks/profile/useProfile";
-import { formatCurrency } from "../utils/currency";
-import usePreferences from "../hooks/profile/usePreferences";
+import useFormattedCurrency from "../hooks/useFormattedCurrency";
+import usePreferences from "../hooks/profile/usePreferencesData";
 import { useState } from "react";
-import {
-  PreferenceSelect,
-  SummaryCard,
-} from "../components/profile";
+import { PreferenceSelect, SummaryCard } from "../components/profile";
 import {
   CURRENCY_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -41,8 +38,7 @@ export default function ProfilePage({
     setPreference,
     savePreferences,
   } = usePreferences(showStatus);
-
-  const reportingCurrency = preferences.reportingCurrency;
+  const formattedCurrency = useFormattedCurrency();
 
   const trackedCategories = new Set(
     expenses.map((expense) => expense?.category || "uncategorized"),
@@ -191,19 +187,19 @@ export default function ProfilePage({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
             title="Total Spending"
-            value={formatCurrency(totalSpent, reportingCurrency)}
+            value={formattedCurrency(totalSpent)}
           />
 
           <SummaryCard
             title="This Month"
-            value={formatCurrency(monthSpent, reportingCurrency)}
+            value={formattedCurrency(monthSpent)}
           />
 
           <SummaryCard title="Entries" value={expenses.length} />
 
           <SummaryCard
             title="Avg Expense"
-            value={formatCurrency(averageExpense, reportingCurrency)}
+            value={formattedCurrency(averageExpense)}
           />
         </div>
 

@@ -14,7 +14,7 @@ export default function useAnalyticsPage({
   onTrendPointSelect,
 }) {
   const [useLogScale, setUseLogScale] = useState(false);
-  const { isDarkMode } = useTheme();
+  const { dark } = useTheme();
   const trendPoints = useMemo(
     () =>
       (trendData || [])
@@ -54,7 +54,7 @@ export default function useAnalyticsPage({
   const { lineCanvasRef, chartTitle } = useTrendChart({
     visibleTrendPoints,
     analyticsGroupBy,
-    isDarkMode,
+    isDarkMode: dark,
     useLogScale,
     onTrendPointSelect,
   });
@@ -76,7 +76,7 @@ export default function useAnalyticsPage({
 
   return {
     lineCanvasRef,
-    isDarkMode,
+    isDarkMode: dark,
     excludeOutliers,
     setExcludeOutliers,
     useLogScale,

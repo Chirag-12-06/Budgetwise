@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 import {
@@ -10,7 +9,6 @@ import {
 
 export default function useExpenseCrud({
   user,
-  editingExpenseId,
   handleApiError,
   showStatus,
   clearStatus,
@@ -36,12 +34,11 @@ export default function useExpenseCrud({
           }))
         : [];
 
-      const sortedExpenses = [...fetchedExpenses].sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.date || 0);
-        const dateB = new Date(b.createdAt || b.date || 0);
-
-        return dateB - dateA;
-      });
+      const sortedExpenses = [...fetchedExpenses].sort(
+        (a, b) =>
+          new Date(b.createdAt || b.date || 0) -
+          new Date(a.createdAt || a.date || 0),
+      );
 
       setExpenses(sortedExpenses);
       return sortedExpenses;
@@ -50,7 +47,7 @@ export default function useExpenseCrud({
     }
   }
 
-  async function saveExpense(expenseForm) {
+  async function saveExpense(expenseForm, editingExpenseId) {
     setSubmitting(true);
     clearStatus();
 
@@ -65,13 +62,18 @@ export default function useExpenseCrud({
     try {
       if (editingExpenseId !== null) {
         await updateExpense(editingExpenseId, payload);
-        showStatus("Expense updated successfully", "success");
       } else {
         await createExpense(payload);
-        showStatus("Expense added successfully", "success");
       }
 
       await refreshExpenses(activeDateRange);
+
+      showStatus(
+        editingExpenseId !== null
+          ? "Expense updated successfully"
+          : "Expense added successfully",
+        "success",
+      );
     } catch (error) {
       handleApiError(
         error,

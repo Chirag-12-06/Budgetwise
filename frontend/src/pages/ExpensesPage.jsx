@@ -1,72 +1,38 @@
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
-import RecurringExpenseActionDialog from "../components/recurringExpenseActionDialog";
 import Button from "../components/ui/Button";
 import PanelCard from "../components/ui/PanelCard";
-import usePreferences from "../hooks/profile/usePreferences";
+
 import useCategory from "../hooks/useCategory";
-import { formatCurrency } from "../utils/currency";
+import useExpenses from "../hooks/expenses/useExpenses";
+
+import useFormattedCurrency from "../hooks/useFormattedCurrency";
 import { formatDateDMY } from "../utils/date";
-import useAppController from "../hooks/useAppController";
 
-export default function ExpensesPage({
-  expenses,
-  dateFilterMode,
-  setDateFilterMode,
-  customDateFrom,
-  setCustomDateFrom,
-  customDateTo,
-  setCustomDateTo,
-  applyCustomDateRange,
-  dateRangeError,
-  filteredExpenses,
-  loadingExpenses,
-  emptyFilteredState,
-  handleStartEditExpense,
-  handleDeleteExpense,
-  recurringExpenseActionPrompt,
-  onRecurringExpenseActionRequest,
-  onRecurringExpenseActionClose,
-  onRecurringExpenseActionSelect,
-  // categoryFilterExpenses,
-  selectedCategoryFilters,
-  onCategoryFilterToggle,
-  onClearCategoryFilters,
-}) {
+export default function ExpensesPage() {
+  const {
+    filteredExpenses,
+    loadingExpenses,
+    emptyFilteredState,
+    handleStartEditExpense,
+    handleDeleteExpense,
+  } = useExpenses();
+
   const { categories } = useCategory();
-  const { preferences } = usePreferences();
-  // const {emptyFilteredState,filteredExpenses} = useAppController();
-
-  const reportingCurrency = preferences?.reportingCurrency || "INR";
+  const formattedCurrency = useFormattedCurrency();
 
   return (
     <section className="grid gap-4">
       <PanelCard>
-        <ExpenseFilterPanel
-          className="grid gap-4"
-          expenses={expenses}
-          dateFilterMode={dateFilterMode}
-          onDateFilterModeChange={setDateFilterMode}
-          customDateFrom={customDateFrom}
-          onCustomDateFromChange={setCustomDateFrom}
-          customDateTo={customDateTo}
-          onCustomDateToChange={setCustomDateTo}
-          onApplyDateRange={applyCustomDateRange}
-          dateRangeError={dateRangeError}
-          selectedCategoryFilters={selectedCategoryFilters}
-          onCategoryFilterToggle={onCategoryFilterToggle}
-          onClearCategoryFilters={onClearCategoryFilters}
-          summaryExpenses={filteredExpenses}
-        />
+        <ExpenseFilterPanel className="grid gap-4" />
       </PanelCard>
 
       <PanelCard>
         {filteredExpenses.length ? (
           <div className="max-h-[52vh] min-h-48 overflow-y-auto grid gap-3.5">
             {filteredExpenses.map((expense) => {
-              const category =
-                categories.find((item) => item.id === expense.category)
-
-              const color = category?.color;
+              const category = categories.find(
+                (item) => item.id === expense.category,
+              );
 
               return (
                 <article
@@ -76,57 +42,40 @@ export default function ExpensesPage({
                   <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3.5">
                     <span
                       className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm"
-                      style={{ backgroundColor: color }}
+                      style={{
+                        backgroundColor: category?.color,
+                      }}
                     >
-                      <i
-                        className={category?.icon}
-                        aria-hidden="true"
-                      />
+                      <i className={category?.icon} aria-hidden="true" />
                     </span>
+
                     <div className="grid gap-1">
-                      <div className="flex items-center gap-2">
-                        <strong>{expense.title}</strong>
-                        {expense.isRecurring && (
-                          <span
-                            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 p-2 text-sm text-white"
-                            title="Recurring"
-                          >
-                            <i
-                              className="fas fa-repeat text-sm"
-                              aria-hidden="true"
-                            />
-                          </span>
-                        )}
-                      </div>
+                      <strong>{expense.title}</strong>
+
                       <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
-                        {formatDateDMY(expense.createdAt)}
+                        {formatDateDMY(expense.date || expense.createdAt)}
                       </span>
                     </div>
+
                     <div className="font-bold">
-                      {formatCurrency(expense.amount, reportingCurrency)}
+                      {formattedCurrency(expense.amount)}
                     </div>
+
                     <div className="flex items-center gap-3">
                       <Button
                         aria-label={`Edit ${expense.title}`}
                         title="Edit expense"
                         variant="expenseEdit"
-                        onClick={() =>
-                          expense.isRecurring
-                            ? onRecurringExpenseActionRequest(expense, "edit")
-                            : handleStartEditExpense(expense)
-                        }
+                        onClick={() => handleStartEditExpense(expense)}
                       >
                         <i className="fas fa-pen" aria-hidden="true" />
                       </Button>
+
                       <Button
                         aria-label={`Delete ${expense.title}`}
                         title="Delete expense"
                         variant="expenseDelete"
-                        onClick={() =>
-                          expense.isRecurring
-                            ? onRecurringExpenseActionRequest(expense, "delete")
-                            : handleDeleteExpense(expense.id)
-                        }
+                        onClick={() => handleDeleteExpense(expense.id)}
                       >
                         <i className="fas fa-trash" aria-hidden="true" />
                       </Button>
@@ -146,14 +95,6 @@ export default function ExpensesPage({
           </div>
         )}
       </PanelCard>
-
-      <RecurringExpenseActionDialog
-        open={Boolean(recurringExpenseActionPrompt)}
-        actionType={recurringExpenseActionPrompt?.actionType}
-        expenseTitle={recurringExpenseActionPrompt?.expense?.title}
-        onClose={onRecurringExpenseActionClose}
-        onSelect={onRecurringExpenseActionSelect}
-      />
     </section>
   );
 }
