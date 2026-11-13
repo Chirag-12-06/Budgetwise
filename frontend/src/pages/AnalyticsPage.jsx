@@ -29,7 +29,6 @@ export default function AnalyticsPage({
 
   const {
     lineCanvasRef,
-    isDarkMode,
     excludeOutliers,
     setExcludeOutliers,
     useLogScale,
@@ -148,7 +147,6 @@ export default function AnalyticsPage({
           <CategoryBubbleChart
             categoryEntries={categoryEntries}
             categories={categories}
-            isDarkMode={isDarkMode}
           />
 
           <CategoryBreakdown

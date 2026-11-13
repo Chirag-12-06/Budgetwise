@@ -1,17 +1,18 @@
 import Chart from "chart.js/auto";
 import { useEffect, useRef } from "react";
 import useFormattedCurrency from "../../hooks/useFormattedCurrency";
+import { useTheme } from "../../hooks/ui/useTheme";
 
 export default function useTrendChart({
   visibleTrendPoints,
   analyticsGroupBy,
-  isDarkMode,
   useLogScale,
   onTrendPointSelect,
 }) {
   const lineCanvasRef = useRef(null);
   const lineChartRef = useRef(null);
   const formattedCurrency = useFormattedCurrency();
+  const { dark } = useTheme();
 
   const chartTitles = {
     daily: "Daily Expense Trend",
@@ -66,7 +67,7 @@ export default function useTrendChart({
       }
     }
 
-    const theme = isDarkMode
+    const theme = dark
       ? {
           textColor: "#e5e7eb",
           gridColor: "rgba(156, 163, 175, 0.2)",
@@ -161,7 +162,7 @@ export default function useTrendChart({
           const left = x.getPixelForValue(band.start);
           const right = x.getPixelForValue(band.end);
 
-          ctx.fillStyle = isDarkMode
+          ctx.fillStyle = dark
             ? index % 2 === 0
               ? "rgba(255,255,255,0.03)"
               : "rgba(255,255,255,0.06)"
@@ -297,7 +298,7 @@ export default function useTrendChart({
   }, [
     visibleTrendPoints,
     analyticsGroupBy,
-    isDarkMode,
+    dark,
     useLogScale,
     onTrendPointSelect,
   ]);

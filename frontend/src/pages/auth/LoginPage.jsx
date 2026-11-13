@@ -18,15 +18,13 @@ export default function LoginPage({
   loginForm,
   setLoginForm,
   submitting,
-  dark,
-  setDark,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   return (
     <>
-      <ThemeButton dark={dark} setDark={setDark} />
+      <ThemeButton />
 
       <Header />
 

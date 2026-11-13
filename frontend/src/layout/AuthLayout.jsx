@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../hooks/ui/useTheme";
 
 export default function AuthLayout() {
   const { dark } = useTheme();

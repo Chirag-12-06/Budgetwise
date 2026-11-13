@@ -6,7 +6,7 @@ export default function useFormattedCurrency() {
 
   const reportingCurrency = preferences?.reportingCurrency || "INR";
 
-  const formattedCurrency = useCallback(
+  return useCallback(
     (value, locale = "en-IN") => {
       const amount = Number(value);
 
@@ -19,6 +19,4 @@ export default function useFormattedCurrency() {
     },
     [reportingCurrency],
   );
-
-  return formattedCurrency;
 }

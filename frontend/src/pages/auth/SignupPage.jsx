@@ -15,12 +15,10 @@ export default function SignupPage({
   signupForm,
   setSignupForm,
   submitting,
-  dark,
-  setDark,
 }) {
   return (
     <>
-      <ThemeButton dark={dark} setDark={setDark} />
+      <ThemeButton  />
 
       <Header />
 

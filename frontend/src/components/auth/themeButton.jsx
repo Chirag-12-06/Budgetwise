@@ -1,6 +1,8 @@
 import Button from "../ui/Button";
+import { useTheme } from "../../hooks/ui/useTheme";
 
-export default function ThemeButton({ dark, setDark }) {
+export default function ThemeButton() {
+  const { dark, setDark } = useTheme();
   return (
     <div className="flex justify-end pt-4">
     <Button

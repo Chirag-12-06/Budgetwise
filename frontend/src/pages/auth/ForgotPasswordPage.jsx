@@ -18,8 +18,6 @@ const primaryButtonClasses =
 export default function ForgotPasswordPage({
   handleForgotPassword,
   submitting,
-  dark,
-  setDark,
 }) {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState("");
@@ -34,7 +32,7 @@ export default function ForgotPasswordPage({
 
   return (
     <div className="grid gap-6">
-      <ThemeButton dark={dark} setDark={setDark} />
+      <ThemeButton />
 
       <header className="pt-8 text-center">
         <h1 className="text-3xl font-black text-gray-900 dark:text-white">

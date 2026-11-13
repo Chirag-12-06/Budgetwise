@@ -4,7 +4,7 @@ import { resetPasswordUser } from "../../api/auth.api";
 import { ROUTES } from "../../routes/routes";
 import ThemeButton from "../../components/auth/themeButton";
 
-export default function ResetPasswordPage({ showStatus, dark, setDark }) {
+export default function ResetPasswordPage({ showStatus }) {
   const { token } = useParams();
 
   const [password, setPassword] = useState("");
@@ -43,7 +43,7 @@ export default function ResetPasswordPage({ showStatus, dark, setDark }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <ThemeButton dark={dark} setDark={setDark} />
+      <ThemeButton/>
 
       <form className="w-full max-w-md space-y-4" onSubmit={handleSubmit}>
         <h1 className="text-3xl font-bold text-center">Reset Password</h1>

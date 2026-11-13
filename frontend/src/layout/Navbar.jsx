@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "../hooks/ui/useTheme";
 
 import Button from "../components/ui/Button";
 import { ROUTES } from "../routes/routes";
@@ -24,12 +25,13 @@ const navigationItems = [
 const navButtonClasses =
   "h-9! w-9! gap-0! px-0! py-0! md:h-auto! md:w-auto! md:gap-2! md:px-3! md:py-2!";
 
-export default function Navbar({ user, handleLogout, dark, setDark }) {
+export default function Navbar({ user, handleLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const displayName = user?.name || user?.email || "Budgetwise user";
   const displayInitial = displayName.trim().charAt(0).toUpperCase() || "U";
+  const { dark, setDark } = useTheme();
 
   return (
     <nav className="app-navbar sticky top-0 z-50 -mx-4 w-[calc(100%+2rem)] bg-white shadow-md dark:bg-gray-800">

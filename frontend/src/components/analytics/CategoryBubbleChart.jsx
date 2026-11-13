@@ -6,10 +6,11 @@ import {
   useBubbleBoardSize,
   useBubbleLayout,
 } from "../../hooks/analytics";
+import { useTheme } from "../../hooks/ui/useTheme";
+
 export default function CategoryBubbleChart({
   categoryEntries,
   categories,
-  isDarkMode,
 }) {
   const { visibleCategories } = useBubbleVisibility(categoryEntries);
   const { bubbleBoardSize, bubbleBoardRef } = useBubbleBoardSize();
@@ -19,6 +20,7 @@ export default function CategoryBubbleChart({
     categoryEntries,
   });
   const formattedCurrency = useFormattedCurrency();
+  const { dark } = useTheme();
 
   return (
     <PanelCard>
@@ -31,7 +33,7 @@ export default function CategoryBubbleChart({
           >
             <div
               className="pointer-events-none absolute left-4 top-3 text-sm font-semibold tracking-wide"
-              style={{ color: isDarkMode ? "#e5e7eb" : "#1f2937" }}
+              style={{ color: dark ? "#e5e7eb" : "#1f2937" }}
             >
               Category Share
             </div>

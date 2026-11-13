@@ -1,9 +1,4 @@
-export default function PreferenceSelect({
-  label,
-  value,
-  onChange,
-  options,
-}) {
+export default function PreferenceSelect({ label, value, onChange, options }) {
   return (
     <label className="grid gap-2">
       <span className="text-[0.92rem] font-semibold">{label}</span>
@@ -16,8 +11,8 @@ export default function PreferenceSelect({
         {options.map((option) => {
           const isObject = typeof option === "object";
 
-          const optionValue = isObject ? option.value : option;
-          const optionLabel = isObject ? option.label : option;
+          const optionValue = isObject ? (option.value ?? option.code) : option;
+          const optionLabel = isObject ? (option.label ?? option.name) : option;
 
           return (
             <option key={optionValue} value={optionValue}>

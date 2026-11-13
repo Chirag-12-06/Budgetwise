@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import useOutlierFiltering from "./useOutlierFiltering";
 import useTrendChart from "./useTrendChart";
-import { useTheme } from "../../context/ThemeContext";
 
 export default function useAnalyticsPage({
   trendData,
@@ -14,7 +13,6 @@ export default function useAnalyticsPage({
   onTrendPointSelect,
 }) {
   const [useLogScale, setUseLogScale] = useState(false);
-  const { dark } = useTheme();
   const trendPoints = useMemo(
     () =>
       (trendData || [])
@@ -54,7 +52,6 @@ export default function useAnalyticsPage({
   const { lineCanvasRef, chartTitle } = useTrendChart({
     visibleTrendPoints,
     analyticsGroupBy,
-    isDarkMode: dark,
     useLogScale,
     onTrendPointSelect,
   });
@@ -76,7 +73,6 @@ export default function useAnalyticsPage({
 
   return {
     lineCanvasRef,
-    isDarkMode: dark,
     excludeOutliers,
     setExcludeOutliers,
     useLogScale,

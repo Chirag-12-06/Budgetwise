@@ -1,6 +1,5 @@
 import ExpenseFilterPanel from "../components/expenseFilterPanel";
-import Button from "../components/ui/Button";
-import PanelCard from "../components/ui/PanelCard";
+import {Button, PanelCard} from "../components/ui";
 
 import useCategory from "../hooks/useCategory";
 import useExpenses from "../hooks/expenses/useExpenses";

@@ -1,16 +1,15 @@
-import Button from "../components/ui/Button";
-import PanelCard from "../components/ui/PanelCard";
+import {Button, PanelCard} from "../components/ui";
 import useProfile from "../hooks/profile/useProfile";
 import useFormattedCurrency from "../hooks/useFormattedCurrency";
-import usePreferences from "../hooks/profile/usePreferencesData";
+import usePreferences from "../hooks/profile/usePreferences";
 import { useState } from "react";
 import { PreferenceSelect, SummaryCard } from "../components/profile";
 import {
-  CURRENCY_OPTIONS,
   LANGUAGE_OPTIONS,
   DATE_FORMAT_OPTIONS,
   TIMEZONE_OPTIONS,
 } from "../constants/preferences";
+import { CURRENCY_OPTIONS } from "../constants/currencies";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
@@ -37,7 +36,8 @@ export default function ProfilePage({
     saving: savingPreferences,
     setPreference,
     savePreferences,
-  } = usePreferences(showStatus);
+  } = usePreferences();
+
   const formattedCurrency = useFormattedCurrency();
 
   const trackedCategories = new Set(
@@ -239,7 +239,7 @@ export default function ProfilePage({
               <PreferenceSelect
                 label="Currency"
                 value={preferences.reportingCurrency}
-                onChange={(value) => setPreference("reportingCurrency", value)}
+                onChange={(code) => setPreference("reportingCurrency", code)}
                 options={CURRENCY_OPTIONS}
               />
 

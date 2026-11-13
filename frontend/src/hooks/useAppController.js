@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { useTheme } from "../context/ThemeContext";
 import { ROUTES } from "../routes/routes";
 import { clearStoredUser, logoutUser } from "../api/auth.api";
 import { getCurrentUser } from "../api/user.api";
@@ -12,7 +11,6 @@ import useStatusMessage from "./auth/useStatusMessage";
 
 export default function useAppController() {
   const navigate = useNavigate();
-  const { dark, setDark } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Authentication state
@@ -155,10 +153,6 @@ export default function useAppController() {
   }
 
   return {
-    // Theme
-    dark,
-    setDark,
-
     // Status
     status,
     showStatus,

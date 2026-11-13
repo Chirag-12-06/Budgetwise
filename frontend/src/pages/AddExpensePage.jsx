@@ -1,10 +1,7 @@
 import { useState } from "react";
 
 import ReceiptDialog from "../components/receipt/ReceiptDialog";
-import Button from "../components/ui/Button";
-import Calendar from "../components/ui/Calendar";
-import PanelCard from "../components/ui/PanelCard";
-
+import { Button, Calendar, PanelCard } from "../components/ui";
 import { CURRENCY_OPTIONS } from "../constants/currencies";
 
 import useExpenseCategory from "../hooks/expenses/useExpenseCategory";

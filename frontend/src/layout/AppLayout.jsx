@@ -1,12 +1,12 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
+import { useTheme } from "../hooks/ui/useTheme";
 
 export default function AppLayout({
   user,
   handleLogout,
-  dark,
-  setDark,
 }) {
+  const { dark, setDark } = useTheme();
   return (
     <div
       className={`min-h-screen ${
@@ -19,8 +19,6 @@ export default function AppLayout({
             <Navbar
                 user={user}
                 handleLogout={handleLogout}
-                dark={dark}
-                setDark={setDark}
             />
             <Outlet />
             </section>
