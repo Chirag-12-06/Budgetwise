@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getPreferences, updatePreferences } from "../../api/preference.api";
+import useStatus from "../auth/useStatus";
 
 const DEFAULT_PREFERENCES = {
   reportingCurrency: "INR",
@@ -8,86 +9,85 @@ const DEFAULT_PREFERENCES = {
   dateFormat: "DD/MM/YYYY",
 };
 
-export default function usePreferencesData({ user, authLoading, showStatus }) {
+export default function usePreferencesData({ user, authLoading }) {
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { showStatus } = useStatus();
 
-  
-useEffect(() => {
-  if (authLoading) return;
+  useEffect(() => {
+    if (authLoading) return;
 
-  if (!user) {
-    setPreferences(DEFAULT_PREFERENCES);
-    setLoading(false);
-    return;
-  }
-
-  let ignore = false;
-
-  async function fetchPreferences() {
-    setLoading(true);
-
-    try {
-      const response = await getPreferences();
-
-      if (!ignore) {
-        setPreferences({
-          ...DEFAULT_PREFERENCES,
-          ...(response.data?.data ?? response.data),
-        });
-      }
-    } catch (error) {
-      if (!ignore) {
-        showStatus?.(
-          error.response?.data?.message || "Failed to load preferences",
-          "error",
-        );
-      }
-    } finally {
-      if (!ignore) setLoading(false);
+    if (!user) {
+      setPreferences(DEFAULT_PREFERENCES);
+      setLoading(false);
+      return;
     }
-  }
 
-  fetchPreferences();
+    let ignore = false;
 
-  return () => {
-    ignore = true;
-  };
-}, [user, authLoading]);
+    async function fetchPreferences() {
+      setLoading(true);
 
+      try {
+        const response = await getPreferences();
+
+        if (!ignore) {
+          setPreferences({
+            ...DEFAULT_PREFERENCES,
+            ...(response.data?.data ?? response.data),
+          });
+        }
+      } catch (error) {
+        if (!ignore) {
+          showStatus?.(
+            error.response?.data?.message || "Failed to load preferences",
+            "error",
+          );
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+
+    fetchPreferences();
+
+    return () => {
+      ignore = true;
+    };
+  }, [user, authLoading]);
 
   function setPreference(field, value) {
-  setPreferences((previous) => {
-    const updated = {
-      ...previous,
-      [field]: value,
-    };
+    setPreferences((previous) => {
+      const updated = {
+        ...previous,
+        [field]: value,
+      };
 
-    return updated;
-  });
-}
+      return updated;
+    });
+  }
 
   async function savePreferences() {
-  try {
-    setSaving(true);
+    try {
+      setSaving(true);
 
-    await updatePreferences(preferences);
+      await updatePreferences(preferences);
 
-    showStatus?.("Preferences updated successfully", "success");
+      showStatus?.("Preferences updated successfully", "success");
 
-    return true;
-  } catch (error) {
-    showStatus?.(
-      error.response?.data?.message || "Failed to update preferences",
-      "error",
-    );
+      return true;
+    } catch (error) {
+      showStatus?.(
+        error.response?.data?.message || "Failed to update preferences",
+        "error",
+      );
 
-    return false;
-  } finally {
-    setSaving(false);
+      return false;
+    } finally {
+      setSaving(false);
+    }
   }
-}
 
   return {
     preferences,

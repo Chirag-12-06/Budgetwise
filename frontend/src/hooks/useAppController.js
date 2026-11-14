@@ -7,7 +7,7 @@ import { getCurrentUser } from "../api/user.api";
 
 import useAuthController from "./auth/useAuthController";
 import useSessionTimeout from "./auth/useSessionTimeout";
-import useStatusMessage from "./auth/useStatusMessage";
+import useStatus from "./auth/useStatus";
 
 export default function useAppController() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export default function useAppController() {
   );
 
   // Global status
-  const { status, showStatus, clearStatus } = useStatusMessage();
+  const { showStatus } = useStatus();
 
   // Handle API errors
   function handleApiError(error, fallbackMessage) {
@@ -105,9 +105,7 @@ export default function useAppController() {
     navigate,
     setSubmitting,
     setUpdatingProfile,
-    showStatus,
     resetToLoggedOutState,
-    clearStatus,
   });
 
   // Restore authenticated session
@@ -154,9 +152,6 @@ export default function useAppController() {
 
   return {
     // Status
-    status,
-    showStatus,
-    clearStatus,
     handleApiError,
 
     // Authentication state

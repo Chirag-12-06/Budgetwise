@@ -7,11 +7,9 @@ import {
   useBubbleLayout,
 } from "../../hooks/analytics";
 import { useTheme } from "../../hooks/ui/useTheme";
+import useCategory from "../../hooks/useCategory";
 
-export default function CategoryBubbleChart({
-  categoryEntries,
-  categories,
-}) {
+export default function CategoryBubbleChart({ categoryEntries }) {
   const { visibleCategories } = useBubbleVisibility(categoryEntries);
   const { bubbleBoardSize, bubbleBoardRef } = useBubbleBoardSize();
   const { bubblePanelHeight, bubbleLayout } = useBubbleLayout({
@@ -21,6 +19,7 @@ export default function CategoryBubbleChart({
   });
   const formattedCurrency = useFormattedCurrency();
   const { dark } = useTheme();
+  const { categories } = useCategory();
 
   return (
     <PanelCard>

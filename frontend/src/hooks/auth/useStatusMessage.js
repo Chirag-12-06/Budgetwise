@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 export default function useStatusMessage() {
   const [status, setStatus] = useState(null);
 
-  function showStatus(message, type) {
+  function showStatus(message, type = "success") {
     setStatus({ message, type });
   }
 
@@ -14,13 +14,10 @@ export default function useStatusMessage() {
   useEffect(() => {
     if (!status) return;
 
-    const timeoutId = setTimeout(() => {
-      clearStatus();
-    }, 3200);
+    const timeoutId = setTimeout(clearStatus, 3200);
 
     return () => clearTimeout(timeoutId);
   }, [status]);
-
 
   return {
     status,

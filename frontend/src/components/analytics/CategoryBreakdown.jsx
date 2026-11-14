@@ -5,8 +5,9 @@ import {
   useBubbleBoardSize,
   useBubbleLayout,
 } from "../../hooks/analytics";
+import useCategory from "../../hooks/useCategory";
 
-export default function CategoryBreakdown({ categoryEntries, categories }) {
+export default function CategoryBreakdown({ categoryEntries }) {
   const { hiddenBubbleCategories, visibleCategories, toggleBubbleCategory } =
     useBubbleVisibility(categoryEntries);
   const { bubbleBoardSize } = useBubbleBoardSize();
@@ -16,6 +17,7 @@ export default function CategoryBreakdown({ categoryEntries, categories }) {
     categoryEntries,
   });
   const formattedCurrency = useFormattedCurrency();
+  const { categories } = useCategory();
 
   return (
     <PanelCard>

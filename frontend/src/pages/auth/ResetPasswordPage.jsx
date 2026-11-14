@@ -3,8 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { resetPasswordUser } from "../../api/auth.api";
 import { ROUTES } from "../../routes/routes";
 import ThemeButton from "../../components/auth/themeButton";
+import useStatus from "../../hooks/auth/useStatus";
 
-export default function ResetPasswordPage({ showStatus }) {
+export default function ResetPasswordPage() {
   const { token } = useParams();
 
   const [password, setPassword] = useState("");
@@ -12,6 +13,8 @@ export default function ResetPasswordPage({ showStatus }) {
   const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
+
+  const { showStatus } = useStatus();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -43,7 +46,7 @@ export default function ResetPasswordPage({ showStatus }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <ThemeButton/>
+      <ThemeButton />
 
       <form className="w-full max-w-md space-y-4" onSubmit={handleSubmit}>
         <h1 className="text-3xl font-bold text-center">Reset Password</h1>

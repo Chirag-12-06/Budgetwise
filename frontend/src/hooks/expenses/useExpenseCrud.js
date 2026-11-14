@@ -7,16 +7,17 @@ import {
   updateExpense,
 } from "../../api/expense.api";
 
+import useStatus from "../auth/useStatus";
+
 export default function useExpenseCrud({
   user,
   handleApiError,
-  showStatus,
-  clearStatus,
   activeDateRange,
 }) {
   const [expenses, setExpenses] = useState([]);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { showStatus, clearStatus } = useStatus();
 
   async function refreshExpenses(options = activeDateRange) {
     if (!user) return [];

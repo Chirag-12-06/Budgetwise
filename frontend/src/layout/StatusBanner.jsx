@@ -1,9 +1,12 @@
-export default function StatusBanner({ status }) {
+import useStatus from "../hooks/auth/useStatus";
+
+export default function StatusBanner() {
+  const { status } = useStatus();
+
   if (!status) return null;
 
   const toneClasses = {
-    error:
-      "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
     success:
       "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   };

@@ -7,24 +7,21 @@ import useExpenseForm from "../hooks/expenses/useExpenseForm";
 import useDateFilters from "../hooks/filters/useDateFilters";
 import useCategoryFilters from "../hooks/filters/useCategoryFilters";
 import useExpenseFilters from "../hooks/filters/useExpenseFilters";
+import useStatus from "../hooks/auth/useStatus";
 
 export default function ExpenseProvider({
   children,
   user,
   authLoading,
   handleApiError,
-  showStatus,
-  clearStatus,
 }) {
   const expenseForm = useExpenseForm();
   const dateFilters = useDateFilters();
   const categoryFilters = useCategoryFilters();
-
+  const { clearStatus } = useStatus();
   const expenseCrud = useExpenseCrud({
     user,
     handleApiError,
-    showStatus,
-    clearStatus,
     activeDateRange: dateFilters.activeDateRange,
   });
 

@@ -6,9 +6,7 @@ import useAppController from "./hooks/useAppController";
 import ExpenseProvider from "./providers/ExpenseProvider";
 import PreferenceProvider from "./providers/PreferenceProvider";
 
-import AppLayout from "./layout/AppLayout";
-import AuthLayout from "./layout/AuthLayout";
-import StatusBanner from "./layout/StatusBanner";
+import { AppLayout, AuthLayout, StatusBanner } from "./layout";
 
 import {
   AddExpensePage,
@@ -31,9 +29,6 @@ function App() {
   useWindowResize();
 
   const {
-    status,
-    showStatus,
-    clearStatus,
     handleApiError,
 
     submitting,
@@ -95,24 +90,15 @@ function App() {
           />
         </Route>
 
-        <Route
-          path={ROUTES.RESET_PASSWORD}
-          element={<ResetPasswordPage showStatus={showStatus} />}
-        />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
         <Route
           element={
-            <PreferenceProvider
-              user={user}
-              authLoading={authLoading}
-              showStatus={showStatus}
-            >
+            <PreferenceProvider user={user} authLoading={authLoading}>
               <ExpenseProvider
                 user={user}
                 authLoading={authLoading}
                 handleApiError={handleApiError}
-                showStatus={showStatus}
-                clearStatus={clearStatus}
               >
                 <ProtectedRoute user={user} loading={authLoading} />
               </ExpenseProvider>
@@ -143,7 +129,6 @@ function App() {
                   user={user}
                   onUpdateProfile={handleUpdateProfile}
                   updatingProfile={updatingProfile}
-                  showStatus={showStatus}
                 />
               }
             />
@@ -151,7 +136,7 @@ function App() {
         </Route>
       </Routes>
 
-      <StatusBanner status={status} />
+      <StatusBanner />
     </>
   );
 }

@@ -8,18 +8,17 @@ import { updateProfileUser } from "../../api/user.api";
 
 import { ROUTES } from "../../routes/routes";
 
+import useStatus from "./useStatus";
 export default function useAuthController({
   loginForm,
   signupForm,
-  user,
   setUser,
   navigate,
   setSubmitting,
   setUpdatingProfile,
-  showStatus,
   resetToLoggedOutState,
-  clearStatus,
 }) {
+  const { showStatus, clearStatus } = useStatus();
   async function handleLogin(event) {
     event.preventDefault();
 

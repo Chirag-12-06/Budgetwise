@@ -7,7 +7,6 @@ import PanelCard from "../components/ui/PanelCard";
 import useAnalyticsPage from "../hooks/analytics/useAnalyticsPage";
 import useExpenseAnalytics from "../hooks/analytics/useExpenseAnalytics";
 import useExpenses from "../hooks/expenses/useExpenses";
-import useCategory from "../hooks/useCategory";
 
 export default function AnalyticsPage({
   analyticsGroupBy,
@@ -49,8 +48,6 @@ export default function AnalyticsPage({
   });
 
   const options = ["Daily", "Weekly", "Monthly", "Yearly"];
-
-  const { categories } = useCategory();
 
   return (
     <section className="grid gap-4">
@@ -144,15 +141,9 @@ export default function AnalyticsPage({
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="grid gap-4 lg:grid-cols-2">
-          <CategoryBubbleChart
-            categoryEntries={categoryEntries}
-            categories={categories}
-          />
+          <CategoryBubbleChart categoryEntries={categoryEntries} />
 
-          <CategoryBreakdown
-            categoryEntries={categoryEntries}
-            categories={categories}
-          />
+          <CategoryBreakdown categoryEntries={categoryEntries} />
         </div>
       </div>
     </section>

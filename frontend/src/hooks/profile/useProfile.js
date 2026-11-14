@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { MAX_AVATAR_FILE_SIZE } from "../../constants/profileConstants";
 import { buildFormFromUser, formatDate } from "../../utils/profile";
+import useStatus from "../auth/useStatus";
 
-export default function useProfile({ user, onUpdateProfile, showStatus }) {
+export default function useProfile({ user, onUpdateProfile }) {
+  const { showStatus } = useStatus();
   const [isEditing, setIsEditing] = useState(false);
   const displayName = user?.name || user?.email || "Budgetwise user";
   const displayEmail = user?.email || "No email available";
   const joinedOn = formatDate(user?.createdAt);
   const [form, setForm] = useState(() => buildFormFromUser(user));
-  
+
   function setFormField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -39,10 +41,10 @@ export default function useProfile({ user, onUpdateProfile, showStatus }) {
   }
 
   function handleRemoveAvatar() {
-      setForm((current) => ({ ...current, avatarDataUrl: "" }));
-    }
+    setForm((current) => ({ ...current, avatarDataUrl: "" }));
+  }
 
-    function validateAvatar(file) {
+  function validateAvatar(file) {
     if (!file.type.startsWith("image/")) {
       return "Please choose an image file.";
     }
@@ -69,7 +71,8 @@ export default function useProfile({ user, onUpdateProfile, showStatus }) {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const avatarDataUrl = typeof reader.result === "string" ? reader.result : "";
+      const avatarDataUrl =
+        typeof reader.result === "string" ? reader.result : "";
       setForm((current) => ({ ...current, avatarDataUrl }));
       showStatus("Avatar updated successfully.", "success");
     };

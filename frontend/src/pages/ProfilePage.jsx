@@ -1,4 +1,4 @@
-import {Button, PanelCard} from "../components/ui";
+import { Button, PanelCard } from "../components/ui";
 import useProfile from "../hooks/profile/useProfile";
 import useFormattedCurrency from "../hooks/useFormattedCurrency";
 import usePreferences from "../hooks/profile/usePreferences";
@@ -27,7 +27,6 @@ export default function ProfilePage({
   monthSpent = 0,
   onUpdateProfile,
   updatingProfile = false,
-  showStatus,
 }) {
   const [isEditingPreferences, setIsEditingPreferences] = useState(false);
   const {
@@ -57,7 +56,7 @@ export default function ProfilePage({
     handleRemoveAvatar,
     handleAvatarFileChange,
     handleSubmit,
-  } = useProfile({ user, onUpdateProfile, showStatus });
+  } = useProfile({ user, onUpdateProfile });
 
   return (
     <section className="grid gap-4">
