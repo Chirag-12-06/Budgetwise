@@ -1,21 +1,10 @@
 import { PanelCard, Button } from "../ui";
 import useFormattedCurrency from "../../hooks/useFormattedCurrency";
-import {
-  useBubbleVisibility,
-  useBubbleBoardSize,
-  useBubbleLayout,
-} from "../../hooks/analytics";
 import useCategory from "../../hooks/useCategory";
+import useAnalytics from "../../hooks/analytics/useAnalytics";
 
-export default function CategoryBreakdown({ categoryEntries }) {
-  const { hiddenBubbleCategories, visibleCategories, toggleBubbleCategory } =
-    useBubbleVisibility(categoryEntries);
-  const { bubbleBoardSize } = useBubbleBoardSize();
-  const { bubblePanelHeight, totalCategoryAmount } = useBubbleLayout({
-    visibleCategories,
-    bubbleBoardSize,
-    categoryEntries,
-  });
+export default function CategoryBreakdown({  }) {
+  const {hiddenBubbleCategories,categoryEntries, toggleBubbleCategory,bubblePanelHeight, totalCategoryAmount} = useAnalytics();
   const formattedCurrency = useFormattedCurrency();
   const { categories } = useCategory();
 

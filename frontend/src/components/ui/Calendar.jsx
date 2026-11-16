@@ -5,6 +5,7 @@ import { extractExpenseDateKey, formatDateKey } from "../../utils/date";
 
 const calendarBaseClasses =
   "calendar-input w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white";
+
 const highlightStyleId = "bw-calendar-highlight-style";
 
 const highlightStyleText = `
@@ -33,26 +34,21 @@ export default function Calendar({
 }) {
   const mergedHighlightDates = useMemo(() => {
     const explicitDates = Array.isArray(highlightDates)
-      ? highlightDates.filter((dateKey) => Boolean(dateKey))
+      ? highlightDates.filter(Boolean)
       : [];
 
-    if (explicitDates.length > 0) {
-      return Array.from(new Set(explicitDates));
-    }
+    const expenseDates = Array.isArray(expenses)
+      ? expenses.map(extractExpenseDateKey).filter(Boolean)
+      : [];
 
-    if (!Array.isArray(expenses)) {
-      return [];
-    }
-
-    return Array.from(
-      new Set(expenses.map(extractExpenseDateKey).filter(Boolean)),
-    );
+    return Array.from(new Set([...explicitDates, ...expenseDates]));
   }, [highlightDates, expenses]);
 
   const inputRef = useRef(null);
   const pickerRef = useRef(null);
   const onChangeRef = useRef(onChange);
   const highlightSetRef = useRef(new Set(mergedHighlightDates));
+
   const resolvedInputClasses = `${calendarBaseClasses} ${
     mergedHighlightDates.length ? "has-expenses" : ""
   } ${className}`.trim();
@@ -62,13 +58,9 @@ export default function Calendar({
   }, [onChange]);
 
   useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
+    if (typeof document === "undefined") return;
 
-    if (document.getElementById(highlightStyleId)) {
-      return;
-    }
+    if (document.getElementById(highlightStyleId)) return;
 
     const styleElement = document.createElement("style");
     styleElement.id = highlightStyleId;
@@ -78,15 +70,11 @@ export default function Calendar({
 
   useEffect(() => {
     highlightSetRef.current = new Set(mergedHighlightDates);
-    if (pickerRef.current) {
-      pickerRef.current.redraw();
-    }
+    pickerRef.current?.redraw();
   }, [mergedHighlightDates]);
 
   useEffect(() => {
-    if (!inputRef.current) {
-      return undefined;
-    }
+    if (!inputRef.current) return;
 
     const picker = flatpickr(inputRef.current, {
       dateFormat: "Y-m-d",
@@ -94,27 +82,31 @@ export default function Calendar({
       altFormat: "d-m-Y",
       altInputClass: resolvedInputClasses,
       disableMobile: true,
-      allowInput: false, // Prevents keyboard from ever appearing
+      allowInput: false,
       clickOpens: !disabled,
       minDate: minDate || undefined,
       defaultDate: value || undefined,
+
       onReady: (_selectedDates, _dateString, instance) => {
         if (instance.altInput) {
-          instance.altInput.placeholder = "DD MM YYYY";
+          instance.altInput.placeholder = "DD-MM-YYYY";
           instance.altInput.disabled = disabled;
         }
+
         instance.input.disabled = disabled;
       },
+
       onChange: (_selectedDates, dateString) => {
-        if (typeof onChangeRef.current === "function") {
-          onChangeRef.current({ target: { value: dateString } });
-        }
+        onChangeRef.current?.({ target: { value: dateString } });
       },
+
       onDayCreate: (_dateObject, _dateString, _instance, dayElement) => {
         const dateKey = formatDateKey(dayElement.dateObj);
-        if (highlightSetRef.current.has(dateKey)) {
-          dayElement.classList.add("has-expense");
-        }
+
+        dayElement.classList.toggle(
+          "has-expense",
+          highlightSetRef.current.has(dateKey),
+        );
       },
     });
 
@@ -128,9 +120,7 @@ export default function Calendar({
 
   useEffect(() => {
     const picker = pickerRef.current;
-    if (!picker) {
-      return;
-    }
+    if (!picker) return;
 
     if (picker.altInput) {
       picker.altInput.className = resolvedInputClasses;
@@ -142,9 +132,7 @@ export default function Calendar({
 
   useEffect(() => {
     const picker = pickerRef.current;
-    if (!picker) {
-      return;
-    }
+    if (!picker) return;
 
     picker.set("clickOpens", !disabled);
     picker.input.disabled = disabled;
@@ -157,30 +145,19 @@ export default function Calendar({
       );
     }
 
-    if (disabled) {
-      picker.close();
-    }
+    if (disabled) picker.close();
   }, [disabled]);
 
   useEffect(() => {
-    const picker = pickerRef.current;
-    if (!picker) {
-      return;
-    }
-
-    picker.set("minDate", minDate || undefined);
+    pickerRef.current?.set("minDate", minDate || undefined);
   }, [minDate]);
 
   useEffect(() => {
     const picker = pickerRef.current;
-    if (!picker) {
-      return;
-    }
+    if (!picker) return;
 
     if (!value) {
-      if (picker.input.value) {
-        picker.clear(false);
-      }
+      if (picker.input.value) picker.clear(false);
       return;
     }
 
@@ -196,7 +173,7 @@ export default function Calendar({
       inputMode="none"
       readOnly
       disabled={disabled}
-      placeholder="DD MM YYYY"
+      placeholder="DD-MM-YYYY"
       className={resolvedInputClasses}
       {...props}
     />

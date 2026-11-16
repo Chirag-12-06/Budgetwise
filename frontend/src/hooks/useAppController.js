@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { ROUTES } from "../routes/routes";
 import { clearStoredUser, logoutUser } from "../api/auth.api";
 import { getCurrentUser } from "../api/user.api";
+import { ROUTES } from "../routes/routes";
 
 import useAuthController from "./auth/useAuthController";
 import useSessionTimeout from "./auth/useSessionTimeout";
@@ -11,7 +11,6 @@ import useStatus from "./auth/useStatus";
 
 export default function useAppController() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   // Authentication state
   const [user, setUser] = useState(null);
@@ -32,11 +31,6 @@ export default function useAppController() {
     confirmPassword: "",
     avatarDataUrl: "",
   });
-
-  // Analytics preference
-  const [analyticsGroupBy, setAnalyticsGroupBy] = useState(
-    searchParams.get("groupBy") || "daily",
-  );
 
   // Global status
   const { showStatus } = useStatus();
@@ -138,18 +132,6 @@ export default function useAppController() {
     };
   }, []);
 
-  // Analytics grouping preference
-  function handleAnalyticsGroupByChange(value) {
-    setAnalyticsGroupBy(value);
-
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.set("groupBy", value);
-
-      return next;
-    });
-  }
-
   return {
     // Status
     handleApiError,
@@ -172,9 +154,5 @@ export default function useAppController() {
     handleForgotPassword,
     handleUpdateProfile,
     handleLogout,
-
-    // Analytics preference
-    analyticsGroupBy,
-    handleAnalyticsGroupByChange,
   };
 }

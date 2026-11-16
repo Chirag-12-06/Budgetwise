@@ -147,20 +147,18 @@ export function getNextDateKey(dateKey) {
   return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
-export function extractExpenseDateKey(expense) {
-  const source = expense?.createdAt ?? expense?.date;
-  if (!source) {
-    return null;
+export function extractExpenseDateKey(transaction) {
+  if (!transaction?.transactionDate) {
+    return "";
   }
 
-  if (typeof source === "string") {
-    const sourceDatePart = source.split("T")[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(sourceDatePart)) {
-      return sourceDatePart;
-    }
+  const date = transaction.transactionDate;
 
-    return toLocalDateKey(source);
+  // Prisma Date fields represent a calendar date.
+  // Extract the date without converting it to the user's local timezone.
+  if (typeof date === "string") {
+    return date.slice(0, 10);
   }
 
-  return toLocalDateKey(source);
+  return formatDateKey(date);
 }

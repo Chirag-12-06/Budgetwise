@@ -63,12 +63,12 @@ export default function AddExpensePage() {
 
   const {
     fileInputRef,
+    handleReceiptScan,
     receiptBill,
     receiptPaidMap,
     receiptDialogOpen,
     setReceiptDialogOpen,
     isScanning,
-    handleReceiptScan,
     toggleReceiptItem,
     applyReceiptSelection,
   } = useReceiptScanner({ setExpenseForm });

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { predictExpenseCategory } from "../../api/prediction.api";
 
 export default function useExpenseCategory({
   categories,
@@ -15,22 +16,12 @@ export default function useExpenseCategory({
   const selectedCategory =
     categories.find((category) => category.id === expenseForm.category) || null;
 
+  // Keep manual selection disabled for existing expenses.
   useEffect(() => {
-    if (isEditingExpense) {
-      setCategoryManuallySelected(true);
-      return;
-    }
+    setCategoryManuallySelected(isEditingExpense);
+  }, [isEditingExpense]);
 
-    if (!expenseForm.title && !expenseForm.amount && !expenseForm.category) {
-      setCategoryManuallySelected(false);
-    }
-  }, [
-    expenseForm.title,
-    expenseForm.amount,
-    expenseForm.category,
-    isEditingExpense,
-  ]);
-
+  // Clear an automatically assigned category when the title is cleared.
   useEffect(() => {
     if (isEditingExpense || categoryManuallySelected) {
       return;
@@ -53,6 +44,53 @@ export default function useExpenseCategory({
   }, [
     expenseForm.title,
     expenseForm.category,
+    categoryManuallySelected,
+    isEditingExpense,
+    setExpenseForm,
+  ]);
+
+  // Predict category from the expense title.
+  useEffect(() => {
+    if (isEditingExpense || categoryManuallySelected) {
+      return;
+    }
+
+    const title = expenseForm.title.trim();
+
+    if (title.length < 3) {
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const result = await predictExpenseCategory({
+          title,
+          amount: Number(expenseForm.amount || 0),
+        });
+
+        if (!result?.category || Number(result?.confidence || 0) < 0.6) {
+          return;
+        }
+
+        setExpenseForm((current) => {
+          if (current.title.trim() !== title) {
+            return current;
+          }
+
+          return {
+            ...current,
+            category: result.category,
+          };
+        });
+      } catch (error) {
+        console.error("Prediction failed:", error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    expenseForm.title,
+    expenseForm.amount,
     categoryManuallySelected,
     isEditingExpense,
     setExpenseForm,

@@ -1,22 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function useBubbleBoardSize() {
-  const bubbleBoardRef = useRef(null);
-
   const [bubbleBoardSize, setBubbleBoardSize] = useState({
     width: 0,
     height: 0,
   });
 
+  const [bubbleBoardRef, setBubbleBoardRef] = useState(null);
+
+  const bubbleBoardRefCallback = useCallback((node) => {
+    setBubbleBoardRef(node);
+  }, []);
+
   useEffect(() => {
-    const board = bubbleBoardRef.current;
-    if (!board) {
-      return undefined;
-    }
+    if (!bubbleBoardRef) return;
 
     const updateSize = () => {
-      const nextWidth = Math.round(board.clientWidth);
-      const nextHeight = Math.round(board.clientHeight);
+      const nextWidth = Math.round(bubbleBoardRef.clientWidth);
+      const nextHeight = Math.round(bubbleBoardRef.clientHeight);
+
       setBubbleBoardSize((current) =>
         current.width === nextWidth && current.height === nextHeight
           ? current
@@ -26,21 +28,14 @@ export default function useBubbleBoardSize() {
 
     updateSize();
 
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateSize);
-      return () => {
-        window.removeEventListener("resize", updateSize);
-      };
-    }
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(bubbleBoardRef);
 
-    const resizeObserver = new ResizeObserver(() => {
-      updateSize();
-    });
+    return () => resizeObserver.disconnect();
+  }, [bubbleBoardRef]);
 
-    resizeObserver.observe(board);
-    return () => {
-      resizeObserver.disconnect();
-    };
-  });
-  return { bubbleBoardRef, bubbleBoardSize };
+  return {
+    bubbleBoardRef: bubbleBoardRefCallback,
+    bubbleBoardSize,
+  };
 }

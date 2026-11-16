@@ -1,28 +1,27 @@
 import PanelCard from "../ui/PanelCard";
 import { getContrastTextColor, hexToRgba } from "../../utils/color";
 import useFormattedCurrency from "../../hooks/useFormattedCurrency";
-import {
-  useBubbleVisibility,
-  useBubbleBoardSize,
-  useBubbleLayout,
-} from "../../hooks/analytics";
-import { useTheme } from "../../hooks/ui/useTheme";
+import useAnalytics from "../../hooks/analytics/useAnalytics";
 import useCategory from "../../hooks/useCategory";
 
-export default function CategoryBubbleChart({ categoryEntries }) {
-  const { visibleCategories } = useBubbleVisibility(categoryEntries);
-  const { bubbleBoardSize, bubbleBoardRef } = useBubbleBoardSize();
-  const { bubblePanelHeight, bubbleLayout } = useBubbleLayout({
+export default function CategoryBubbleChart() {
+  const {
+    bubblePanelHeight,
+    bubbleLayout,
     visibleCategories,
-    bubbleBoardSize,
+    bubbleBoardRef,
     categoryEntries,
-  });
+  } = useAnalytics();
   const formattedCurrency = useFormattedCurrency();
-  const { dark } = useTheme();
   const { categories } = useCategory();
 
   return (
     <PanelCard>
+      <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
+        <div>
+          <h3>Category Share</h3>
+        </div>
+      </div>
       {categoryEntries.length ? (
         <div className="pt-3">
           <div
@@ -30,13 +29,6 @@ export default function CategoryBubbleChart({ categoryEntries }) {
             ref={bubbleBoardRef}
             style={{ height: `${bubblePanelHeight}px` }}
           >
-            <div
-              className="pointer-events-none absolute left-4 top-3 text-sm font-semibold tracking-wide"
-              style={{ color: dark ? "#e5e7eb" : "#1f2937" }}
-            >
-              Category Share
-            </div>
-
             {visibleCategories.length ? (
               bubbleLayout.map((bubble) => {
                 const category = categories.find(
