@@ -5,6 +5,8 @@ import { Mail } from "lucide-react";
 import { ROUTES } from "../../routes/routes";
 import ThemeButton from "../../components/auth/themeButton";
 
+import useAuth from "../../hooks/auth/useAuthController";
+
 const fieldLabelClasses = "grid gap-2";
 
 const fieldTextClasses = "text-[0.92rem] font-semibold";
@@ -15,12 +17,10 @@ const fieldInputClasses =
 const primaryButtonClasses =
   "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
 
-export default function ForgotPasswordPage({
-  handleForgotPassword,
-  submitting,
-}) {
+export default function ForgotPasswordPage() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMessage, setForgotMessage] = useState("");
+  const { handleForgotPassword } = useAuth();
 
   const navigate = useNavigate();
 

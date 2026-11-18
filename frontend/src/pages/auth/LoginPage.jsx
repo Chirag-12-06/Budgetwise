@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeClosed } from "lucide-react";
 import { ROUTES } from "../../routes/routes";
 import { ThemeButton, Header, AuthTabs } from "../../components/auth";
+import useAuth from "../../hooks/auth/useAuthController";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
@@ -13,15 +14,10 @@ const fieldInputClasses =
 const primaryButtonClasses =
   "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
 
-export default function LoginPage({
-  handleLogin,
-  loginForm,
-  setLoginForm,
-  submitting,
-}) {
+export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
+  const { handleLogin, loginForm, setLoginForm, submitting } = useAuth();
   return (
     <>
       <ThemeButton />

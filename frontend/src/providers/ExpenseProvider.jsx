@@ -8,13 +8,10 @@ import useDateFilters from "../hooks/filters/useDateFilters";
 import useCategoryFilters from "../hooks/filters/useCategoryFilters";
 import useExpenseFilters from "../hooks/filters/useExpenseFilters";
 import useStatus from "../hooks/auth/useStatus";
+import useAuth from "../hooks/auth/useAuthController";
 
-export default function ExpenseProvider({
-  children,
-  user,
-  authLoading,
-  handleApiError,
-}) {
+export default function ExpenseProvider({ children }) {
+  const { user, authLoading, handleApiError } = useAuth();
   const expenseForm = useExpenseForm();
   const dateFilters = useDateFilters();
   const categoryFilters = useCategoryFilters();

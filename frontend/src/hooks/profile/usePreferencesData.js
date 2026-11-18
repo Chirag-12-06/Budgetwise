@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getPreferences, updatePreferences } from "../../api/preference.api";
 import useStatus from "../auth/useStatus";
+import useAuth from "../auth/useAuthController";
 
 const DEFAULT_PREFERENCES = {
   reportingCurrency: "INR",
@@ -9,7 +10,8 @@ const DEFAULT_PREFERENCES = {
   dateFormat: "DD/MM/YYYY",
 };
 
-export default function usePreferencesData({ user, authLoading }) {
+export default function usePreferencesData() {
+  const { user, authLoading } = useAuth();
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

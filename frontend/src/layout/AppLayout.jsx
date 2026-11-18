@@ -1,12 +1,11 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import { useTheme } from "../hooks/ui/useTheme";
+import useAuth from "../hooks/auth/useAuthController";
 
-export default function AppLayout({
-  user,
-  handleLogout,
-}) {
-  const { dark, setDark } = useTheme();
+export default function AppLayout() {
+  const { dark } = useTheme();
+  const { user, handleLogout } = useAuth();
   return (
     <div
       className={`min-h-screen ${
@@ -15,13 +14,10 @@ export default function AppLayout({
     >
       <main className="min-h-screen px-4 pb-8">
         <section className="mx-auto w-full">
-            <section className="grid gap-6">
-            <Navbar
-                user={user}
-                handleLogout={handleLogout}
-            />
+          <section className="grid gap-6">
+            <Navbar user={user} handleLogout={handleLogout} />
             <Outlet />
-            </section>
+          </section>
         </section>
       </main>
     </div>

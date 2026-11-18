@@ -19,6 +19,7 @@ export default function useAuthController({
   resetToLoggedOutState,
 }) {
   const { showStatus, clearStatus } = useStatus();
+
   async function handleLogin(event) {
     event.preventDefault();
 

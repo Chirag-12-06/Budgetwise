@@ -1,24 +1,28 @@
-import Button from "../ui/Button"; // Adjust import path
+import Button from "../ui/Button";
+import useExpenses from "../../hooks/expenses/useExpenses";
+import useReceiptScanner from "../../hooks/receipt/useReceiptScanner";
+import resolveReceiptItemAmount from "../../utils/receiptItemAmount";
 
-export default function ReceiptDialog({
-  isOpen,
-  receiptBill,
-  receiptPaidMap,
-  onClose,
-  onToggleItem,
-  onApply,
-  resolveReceiptItemAmount,
-}) {
-  if (!isOpen) return null;
+export default function ReceiptDialog() {
+  const { setExpenseForm } = useExpenses();
 
-  const items = Array.isArray(receiptBill?.items)
-    ? receiptBill.items
-    : [];
+  const {
+    receiptBill,
+    receiptPaidMap,
+    receiptDialogOpen,
+    setReceiptDialogOpen,
+    toggleReceiptItem,
+    applyReceiptSelection,
+  } = useReceiptScanner({ setExpenseForm });
+
+  if (!receiptDialogOpen) return null;
+
+  const items = Array.isArray(receiptBill?.items) ? receiptBill.items : [];
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4"
-      onClick={onClose}
+      onClick={() => setReceiptDialogOpen(false)}
       role="presentation"
     >
       <div
@@ -41,7 +45,7 @@ export default function ReceiptDialog({
               <tr>
                 <th className="px-3 py-2">Item</th>
                 <th className="px-3 py-2">Qty</th>
-                <th className="px-3 py-2">Unit_Price</th>
+                <th className="px-3 py-2">Unit Price</th>
                 <th className="px-3 py-2">Amount</th>
                 <th className="px-3 py-2">Paid</th>
               </tr>
@@ -55,37 +59,23 @@ export default function ReceiptDialog({
                   const isPaid = Boolean(receiptPaidMap[key]);
 
                   return (
-                    <tr
-                      key={key}
-                      className="text-gray-800 dark:text-slate-100"
-                    >
-                      <td className="px-3 py-2">
-                        {item?.name || "(unnamed)"}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {item?.quantity ?? ""}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {item?.base_amount ?? ""}
-                      </td>
-
+                    <tr key={key} className="text-gray-800 dark:text-slate-100">
+                      <td className="px-3 py-2">{item?.name || "(unnamed)"}</td>
+                      <td className="px-3 py-2">{item?.quantity ?? ""}</td>
+                      <td className="px-3 py-2">{item?.base_amount ?? ""}</td>
                       <td className="px-3 py-2">
                         {amount ? amount.toFixed(2) : ""}
                       </td>
-
                       <td className="px-3 py-2">
                         <label className="inline-flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={isPaid}
                             onChange={(event) =>
-                              onToggleItem(index, event.target.checked)
+                              toggleReceiptItem(index, event.target.checked)
                             }
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-500"
                           />
-
                           <span className="text-sm text-gray-700 dark:text-slate-200">
                             {isPaid ? "Paid" : "Not paid"}
                           </span>
@@ -113,7 +103,7 @@ export default function ReceiptDialog({
             variant="plain"
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
             type="button"
-            onClick={onClose}
+            onClick={() => setReceiptDialogOpen(false)}
           >
             Cancel
           </Button>
@@ -122,7 +112,7 @@ export default function ReceiptDialog({
             variant="plain"
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
             type="button"
-            onClick={onApply}
+            onClick={() => applyReceiptSelection(resolveReceiptItemAmount)}
           >
             Use selection
           </Button>

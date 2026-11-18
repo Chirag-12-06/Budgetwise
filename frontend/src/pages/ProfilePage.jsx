@@ -21,12 +21,9 @@ const dangerTextButtonClasses =
   "text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300";
 
 export default function ProfilePage({
-  user,
   expenses = [],
   totalSpent = 0,
   monthSpent = 0,
-  onUpdateProfile,
-  updatingProfile = false,
 }) {
   const [isEditingPreferences, setIsEditingPreferences] = useState(false);
   const {
@@ -36,6 +33,8 @@ export default function ProfilePage({
     setPreference,
     savePreferences,
   } = usePreferences();
+
+  const { user, handleUpdateProfile, updatingProfile } = useAuth();
 
   const formattedCurrency = useFormattedCurrency();
 
@@ -56,7 +55,7 @@ export default function ProfilePage({
     handleRemoveAvatar,
     handleAvatarFileChange,
     handleSubmit,
-  } = useProfile({ user, onUpdateProfile });
+  } = useProfile({ user, handleUpdateProfile });
 
   return (
     <section className="grid gap-4">

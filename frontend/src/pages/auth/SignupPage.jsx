@@ -1,5 +1,6 @@
 import handleAvatarFileChange from "../../utils/avatar";
 import { ThemeButton, Header, AuthTabs } from "../../components/auth";
+import useAuth from "../../hooks/auth/useAuthController";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
@@ -10,15 +11,11 @@ const fieldInputClasses =
 const primaryButtonClasses =
   "rounded-md border-0 bg-indigo-600 px-4 py-3 font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70";
 
-export default function SignupPage({
-  handleSignup,
-  signupForm,
-  setSignupForm,
-  submitting,
-}) {
+export default function SignupPage() {
+  const { handleSignup, signupForm, setSignupForm, submitting } = useAuth();
   return (
     <>
-      <ThemeButton  />
+      <ThemeButton />
 
       <Header />
 

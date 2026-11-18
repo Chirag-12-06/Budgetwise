@@ -9,8 +9,6 @@ import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
 import useCategories from "../hooks/useCategory";
 import useExpenses from "../hooks/expenses/useExpenses";
 
-import resolveReceiptItemAmount from "../utils/receiptItemAmount";
-
 const fieldClasses =
   "h-13 w-full rounded-xl border border-gray-300 bg-white px-4 text-lg text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700/80 dark:text-white dark:placeholder:text-slate-300";
 
@@ -61,17 +59,9 @@ export default function AddExpensePage() {
     isEditingExpense,
   });
 
-  const {
-    fileInputRef,
-    handleReceiptScan,
-    receiptBill,
-    receiptPaidMap,
-    receiptDialogOpen,
-    setReceiptDialogOpen,
-    isScanning,
-    toggleReceiptItem,
-    applyReceiptSelection,
-  } = useReceiptScanner({ setExpenseForm });
+  const { fileInputRef, handleReceiptScan, isScanning } = useReceiptScanner({
+    setExpenseForm,
+  });
 
   const currentCurrency =
     CURRENCY_OPTIONS.find(
@@ -105,15 +95,7 @@ export default function AddExpensePage() {
         </Button>
       </div>
 
-      <ReceiptDialog
-        isOpen={receiptDialogOpen}
-        receiptBill={receiptBill}
-        receiptPaidMap={receiptPaidMap}
-        onClose={() => setReceiptDialogOpen(false)}
-        onToggleItem={toggleReceiptItem}
-        onApply={() => applyReceiptSelection(resolveReceiptItemAmount)}
-        resolveReceiptItemAmount={resolveReceiptItemAmount}
-      />
+      <ReceiptDialog />
 
       <form className="grid gap-7" onSubmit={handleAddExpense}>
         <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
