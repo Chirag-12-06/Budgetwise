@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { predictExpenseCategory } from "../../api/prediction.api";
+import useExpenses from "./useExpenses";
+import useCategories from "../useCategory";
 
-export default function useExpenseCategory({
-  categories,
-  expenseForm,
-  setExpenseForm,
-  isEditingExpense,
-}) {
+export default function useExpenseCategory() {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [categoryManuallySelected, setCategoryManuallySelected] =
     useState(false);
+  const { expenseForm, setExpenseForm, isEditingExpense } = useExpenses();
+  const { categories } = useCategories();
 
   const categoryDropdownRef = useRef(null);
 

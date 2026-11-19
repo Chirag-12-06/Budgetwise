@@ -2,11 +2,10 @@ import { useState } from "react";
 
 import ReceiptDialog from "../components/receipt/ReceiptDialog";
 import { Button, Calendar, PanelCard } from "../components/ui";
+import CategorySelector from "../components/expense-form/CategorySelector";
 import { CURRENCY_OPTIONS } from "../constants/currencies";
 
-import useExpenseCategory from "../hooks/expenses/useExpenseCategory";
 import useReceiptScanner from "../hooks/receipt/useReceiptScanner";
-import useCategories from "../hooks/useCategory";
 import useExpenses from "../hooks/expenses/useExpenses";
 
 const fieldClasses =
@@ -36,28 +35,6 @@ export default function AddExpensePage() {
     isEditingExpense,
     handleCancelEditExpense,
   } = useExpenses();
-
-  const { categories, groups } = useCategories();
-
-  const categoryGroups = (groups ?? []).map((group) => ({
-    ...group,
-    options: (categories ?? []).filter(
-      (category) => category.groupId === group.id,
-    ),
-  }));
-
-  const {
-    isCategoryMenuOpen,
-    setIsCategoryMenuOpen,
-    categoryDropdownRef,
-    selectedCategory,
-    handleCategorySelection,
-  } = useExpenseCategory({
-    categories,
-    expenseForm,
-    setExpenseForm,
-    isEditingExpense,
-  });
 
   const { fileInputRef, handleReceiptScan, isScanning } = useReceiptScanner({
     setExpenseForm,
@@ -100,111 +77,7 @@ export default function AddExpensePage() {
       <form className="grid gap-7" onSubmit={handleAddExpense}>
         <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
           <label className="grid gap-2">
-            <div className="relative" ref={categoryDropdownRef}>
-              <Button
-                variant="plain"
-                className={`${fieldClasses} flex items-center justify-between gap-2 px-3 text-left`}
-                type="button"
-                aria-expanded={isCategoryMenuOpen}
-                aria-haspopup="listbox"
-                onClick={() => setIsCategoryMenuOpen((current) => !current)}
-              >
-                {selectedCategory ? (
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
-                      style={{
-                        backgroundColor: selectedCategory.color,
-                      }}
-                    >
-                      <i className={selectedCategory.icon} aria-hidden="true" />
-                    </span>
-                    <span className="text-base">{selectedCategory.name}</span>
-                  </span>
-                ) : (
-                  <span className="flex min-w-0 items-center gap-3 text-gray-500 dark:text-slate-300">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-200 text-sm text-gray-600 dark:bg-slate-600/90 dark:text-slate-200">
-                      <i className="fas fa-tags" aria-hidden="true" />
-                    </span>
-                    <span className="text-base">Category</span>
-                  </span>
-                )}
-
-                <i
-                  className={`fas ${
-                    isCategoryMenuOpen ? "fa-chevron-up" : "fa-chevron-down"
-                  } shrink-0 text-sm text-gray-500 dark:text-slate-300`}
-                  aria-hidden="true"
-                />
-              </Button>
-
-              <select
-                className="sr-only"
-                value={expenseForm.category}
-                onChange={(event) =>
-                  handleCategorySelection(event.target.value)
-                }
-                required
-                tabIndex={-1}
-                aria-hidden="true"
-              >
-                <option value="" disabled>
-                  Category
-                </option>
-
-                {categories.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-
-              {isCategoryMenuOpen && (
-                <div className="absolute z-30 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-2xl backdrop-blur dark:border-slate-600 dark:bg-slate-800/95">
-                  {categoryGroups.map((group) => (
-                    <section
-                      className="border-b border-gray-200 py-1.5 last:border-b-0 dark:border-slate-600/70"
-                      key={group.id}
-                    >
-                      <p className="px-2 pb-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-slate-300">
-                        {group.name}
-                      </p>
-
-                      <div className="grid gap-1">
-                        {group.options.map((option) => {
-                          const isSelected = expenseForm.category === option.id;
-
-                          return (
-                            <Button
-                              key={option.id}
-                              variant="plain"
-                              className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
-                                isSelected
-                                  ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-500/25 dark:text-white"
-                                  : "text-gray-700 hover:bg-gray-100 dark:text-slate-100 dark:hover:bg-slate-700/80"
-                              }`}
-                              type="button"
-                              onClick={() => handleCategorySelection(option.id)}
-                            >
-                              <span
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm text-white"
-                                style={{
-                                  backgroundColor: option.color,
-                                }}
-                              >
-                                <i className={option.icon} aria-hidden="true" />
-                              </span>
-
-                              <span className="truncate">{option.name}</span>
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )}
-            </div>
+            <CategorySelector expenseForm={expenseForm} />
           </label>
 
           <label className="grid gap-2">

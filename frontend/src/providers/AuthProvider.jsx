@@ -1,8 +1,8 @@
 import AuthContext from "../context/AuthContext";
-import useAppController from "../hooks/useAppController";
+import useAuthController from "../hooks/auth/useAuthController";
 
 export default function AuthProvider({ children }) {
-  const auth = useAppController();
+  const auth = useAuthController();
 
   return (
     <AuthContext.Provider value={auth}>
