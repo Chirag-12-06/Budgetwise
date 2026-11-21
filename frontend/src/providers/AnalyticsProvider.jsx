@@ -12,8 +12,6 @@ import useBubbleVisibility from "../hooks/analytics/useBubbleVisibility";
 import useBubbleBoardSize from "../hooks/analytics/useBubbleBoardSize";
 import useBubbleLayout from "../hooks/analytics/useBubbleLayout";
 
-const options = ["Daily", "Weekly", "Monthly", "Yearly"];
-
 export default function AnalyticsProvider({ children }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -33,17 +31,10 @@ export default function AnalyticsProvider({ children }) {
     });
   }
 
-  const {
-    expenses,
-    filteredExpenses,
-    handleTrendPointDateSelect,
-  } = useExpenses();
+  const { expenses, filteredExpenses, handleTrendPointDateSelect } =
+    useExpenses();
 
-  const {
-    analyticsTotal,
-    categoryTotals,
-    trendData,
-  } = useExpenseAnalytics({
+  const { analyticsTotal, categoryTotals, trendData } = useExpenseAnalytics({
     expenses,
     filteredExpenses,
     analyticsGroupBy,
@@ -60,10 +51,7 @@ export default function AnalyticsProvider({ children }) {
           rangeFrom: point.rangeFrom || "",
           rangeTo: point.rangeTo || "",
         }))
-        .filter(
-          (point) =>
-            Number.isFinite(point.value) && point.value >= 0,
-        ),
+        .filter((point) => Number.isFinite(point.value) && point.value >= 0),
     [trendData],
   );
 
@@ -89,35 +77,26 @@ export default function AnalyticsProvider({ children }) {
     analyticsTotal,
   });
 
-  const { lineCanvasRef, chartTitle } = useTrendChart({
+  const { lineCanvasRef } = useTrendChart({
     visibleTrendPoints,
     analyticsGroupBy,
     useLogScale,
     onTrendPointSelect: handleTrendPointDateSelect,
   });
 
-  const {
-    hiddenBubbleCategories,
-    visibleCategories,
-    toggleBubbleCategory,
-  } = useBubbleVisibility(categoryEntries);
+  const { hiddenBubbleCategories, visibleCategories, toggleBubbleCategory } =
+    useBubbleVisibility(categoryEntries);
 
   const { bubbleBoardRef, bubbleBoardSize } = useBubbleBoardSize();
 
-  const {
-    bubblePanelHeight,
-    bubbleLayout,
-    totalCategoryAmount,
-  } = useBubbleLayout({
-    visibleCategories,
-    bubbleBoardSize,
-    categoryEntries,
-  });
-
+  const { bubblePanelHeight, bubbleLayout, totalCategoryAmount } =
+    useBubbleLayout({
+      visibleCategories,
+      bubbleBoardSize,
+      categoryEntries,
+    });
 
   const value = {
-    chartTitle,
-    options,
     analyticsGroupBy,
     handleAnalyticsGroupByChange,
     excludeOutliers,
@@ -134,7 +113,7 @@ export default function AnalyticsProvider({ children }) {
     bubbleLayout,
     hiddenBubbleCategories,
     toggleBubbleCategory,
-    
+
     totalCategoryAmount,
   };
 

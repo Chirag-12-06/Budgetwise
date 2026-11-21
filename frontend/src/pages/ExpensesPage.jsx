@@ -1,4 +1,4 @@
-import ExpenseFilterPanel from "../components/expenseFilterPanel";
+import ExpenseFilterPanel from "../components/expense-filters/expenseFilterPanel";
 import {Button, PanelCard} from "../components/ui";
 
 import useCategory from "../hooks/useCategory";

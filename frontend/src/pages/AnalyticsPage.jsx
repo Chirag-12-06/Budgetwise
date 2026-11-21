@@ -4,7 +4,7 @@ import {
   TrendLineChart,
 } from "../components/analytics";
 
-import ExpenseFilterPanel from "../components/expenseFilterPanel";
+import ExpenseFilterPanel from "../components/expense-filters/expenseFilterPanel";
 import PanelCard from "../components/ui/PanelCard";
 import AnalyticsProvider from "../providers/AnalyticsProvider";
 

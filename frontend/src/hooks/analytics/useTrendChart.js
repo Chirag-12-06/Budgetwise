@@ -14,14 +14,6 @@ export default function useTrendChart({
   const formattedCurrency = useFormattedCurrency();
   const { dark } = useTheme();
 
-  const chartTitles = {
-    daily: "Daily Expense Trend",
-    weekly: "Weekly Expense Trend",
-    monthly: "Monthly Expense Trend",
-    yearly: "Yearly Expense Trend",
-  };
-  const chartTitle = chartTitles[analyticsGroupBy] || "Expense Trend";
-
   useEffect(() => {
     const canvas = lineCanvasRef.current;
     if (!canvas) {
@@ -305,6 +297,5 @@ export default function useTrendChart({
 
   return {
     lineCanvasRef,
-    chartTitle,
   };
 }
