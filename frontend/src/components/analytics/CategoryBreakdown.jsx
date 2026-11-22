@@ -3,8 +3,15 @@ import useFormattedCurrency from "../../hooks/useFormattedCurrency";
 import useCategory from "../../hooks/useCategory";
 import useAnalytics from "../../hooks/analytics/useAnalytics";
 
-export default function CategoryBreakdown({  }) {
-  const {hiddenBubbleCategories,categoryEntries, toggleBubbleCategory,bubblePanelHeight, totalCategoryAmount} = useAnalytics();
+export default function CategoryBreakdown() {
+  const {
+    hiddenBubbleCategories,
+    categoryEntries,
+    toggleBubbleCategory,
+    bubblePanelHeight,
+    totalCategoryAmount,
+  } = useAnalytics();
+
   const formattedCurrency = useFormattedCurrency();
   const { categories } = useCategory();
 
@@ -18,7 +25,7 @@ export default function CategoryBreakdown({  }) {
 
       {categoryEntries.length ? (
         <div
-          className="overflow-y-auto overscroll-y-contain pr-1 hide-scrollbar"
+          className="overflow-y-auto overscroll-y-contain pr-1 category-breakdown-scrollbar"
           style={{
             minHeight: `${bubblePanelHeight}px`,
             maxHeight: `${bubblePanelHeight}px`,
@@ -40,14 +47,14 @@ export default function CategoryBreakdown({  }) {
                 key={categoryKey}
                 variant="plain"
                 type="button"
-                className={`grid gap-2 rounded-lg p-2 text-left transition-colors ${
+                className={`grid w-full gap-2 rounded-lg p-2 text-left transition-colors ${
                   isHidden
                     ? "opacity-45"
                     : "opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                 }`}
                 onClick={() => toggleBubbleCategory(categoryKey)}
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex w-full items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <span
                       className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white"
@@ -59,7 +66,7 @@ export default function CategoryBreakdown({  }) {
                     <strong className="truncate">{category?.name}</strong>
                   </div>
 
-                  <span>{formattedCurrency(total)}</span>
+                  <span className="shrink-0">{formattedCurrency(total)}</span>
                 </div>
 
                 <div className="h-[0.7rem] w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">

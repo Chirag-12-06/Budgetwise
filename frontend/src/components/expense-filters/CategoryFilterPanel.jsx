@@ -89,7 +89,7 @@ export default function CategoryFilterPanel() {
   return (
     <section className="grid h-full gap-2">
       {availableCategoryOptions.length ? (
-        <div className="grid h-full grid-cols-[1fr_1.4fr] items-stretch gap-3">
+        <div className="grid h-full grid-cols-[1fr_1.5fr] items-stretch gap-3">
           {/* Quick category groups */}
           {availableCategoryGroups.length > 0 && (
             <div className="grid min-w-0 self-stretch gap-0">

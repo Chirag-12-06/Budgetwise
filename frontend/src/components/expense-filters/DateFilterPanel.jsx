@@ -94,30 +94,14 @@ export default function DateFilterPanel() {
         <div className="flex w-full basis-full items-center gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[0.92rem] font-semibold">Period</span>
-            <div className="inline-flex w-fit shrink-0 items-center rounded-xl border py-1.5 px-2 dark:border-gray-700 dark:bg-gray-900/40">
-              {relativeModes.map((mode, index) => (
-                <button
-                  key={mode.value}
-                  type="button"
-                  onClick={() =>
-                    handleDateFilterModeChange(`${mode.value}:${currentPeriod}`)
-                  }
-                  className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    currentRelative === mode.value
-                      ? "rounded-lg bg-indigo-600 text-white shadow-sm"
-                      : "dark:text-gray-300 dark:hover:text-white"
-                  }`}
-                >
-                  {mode.label}
 
-                  {index !== relativeModes.length - 1 &&
-                    currentRelative !== mode.value &&
-                    currentRelative !== relativeModes[index + 1].value && (
-                      <span className="absolute right-0 top-1/2 h-4 -translate-y-1/2 border-r border-gray-600" />
-                    )}
-                </button>
-              ))}
-            </div>
+            <DateFilterSelector
+              options={relativeModes}
+              value={currentRelative}
+              onChange={(value) =>
+                handleDateFilterModeChange(`${value}:${currentPeriod}`)
+              }
+            />
 
             <DateFilterSelector
               options={periodModes}

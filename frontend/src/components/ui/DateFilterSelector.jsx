@@ -1,9 +1,4 @@
-
-export default function DateFilterSelector({
-  options,
-  value,
-  onChange,
-}) {
+export default function DateFilterSelector({ options, value, onChange }) {
   return (
     <div className="inline-flex items-center rounded-xl border py-1.5 px-2 dark:border-gray-700 dark:bg-gray-900/40">
       {options.map((option, index) => {
