@@ -1,5 +1,5 @@
 import ExpenseFilterPanel from "../components/expense-filters/expenseFilterPanel";
-import {Button, PanelCard} from "../components/ui";
+import { Button, PanelCard } from "../components/ui";
 
 import useCategory from "../hooks/useCategory";
 import useExpenses from "../hooks/expenses/useExpenses";
@@ -52,7 +52,9 @@ export default function ExpensesPage() {
                       <strong>{expense.title}</strong>
 
                       <span className="text-[0.92rem] text-gray-500 dark:text-gray-300">
-                        {formatDateDMY(expense.date || expense.createdAt)}
+                        {formatDateDMY(
+                          expense.transactionDate || expense.createdAt,
+                        )}
                       </span>
                     </div>
 

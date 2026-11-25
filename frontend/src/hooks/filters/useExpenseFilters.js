@@ -11,20 +11,16 @@ export default function useExpenseFilters({
 
     const { from, to } = activeDateRange;
 
-    return expenses
-      .filter((expense) => {
-        const expenseDate = formatDateKey(expense.date || expense.createdAt);
-
-        if (from && expenseDate < from) return false;
-        if (to && expenseDate > to) return false;
-
-        return true;
-      })
-      .sort(
-        (left, right) =>
-          new Date(right.createdAt || right.date) -
-          new Date(left.createdAt || left.date),
+    return expenses.filter((expense) => {
+      const expenseDate = formatDateKey(
+        expense.transactionDate || expense.date,
       );
+
+      if (from && expenseDate < from) return false;
+      if (to && expenseDate > to) return false;
+
+      return true;
+    });
   }, [expenses, activeDateRange]);
 
   const filteredExpenses = useMemo(() => {

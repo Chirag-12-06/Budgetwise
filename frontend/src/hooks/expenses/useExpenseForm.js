@@ -2,20 +2,24 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { createDefaultExpenseForm } from "../../utils/defaultForms";
-import { getTodayDate, formatDateKey } from "../../utils/date";
+import { formatDateKey } from "../../utils/date";
 import { ROUTES } from "../../routes/routes";
+import useTodayDate from "../useTodayDate";
 
 export default function useExpenseForm() {
   const navigate = useNavigate();
+  const todayDate = useTodayDate();
 
-  const [expenseForm, setExpenseForm] = useState(createDefaultExpenseForm());
+  const [expenseForm, setExpenseForm] = useState(
+    createDefaultExpenseForm(todayDate),
+  );
 
   const [editingExpenseId, setEditingExpenseId] = useState(null);
 
   function handleStartEditExpense(expense) {
     const dateValue = expense?.createdAt
       ? formatDateKey(expense.createdAt)
-      : getTodayDate();
+      : todayDate;
 
     setEditingExpenseId(expense.id);
 
@@ -35,7 +39,7 @@ export default function useExpenseForm() {
 
   function handleCancelEditExpense() {
     setEditingExpenseId(null);
-    setExpenseForm(createDefaultExpenseForm());
+    setExpenseForm(createDefaultExpenseForm(todayDate));
   }
 
   return {

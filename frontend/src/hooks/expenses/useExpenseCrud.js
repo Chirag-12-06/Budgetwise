@@ -35,14 +35,8 @@ export default function useExpenseCrud({
           }))
         : [];
 
-      const sortedExpenses = [...fetchedExpenses].sort(
-        (a, b) =>
-          new Date(b.createdAt || b.date || 0) -
-          new Date(a.createdAt || a.date || 0),
-      );
-
-      setExpenses(sortedExpenses);
-      return sortedExpenses;
+      setExpenses(fetchedExpenses);
+      return fetchedExpenses;
     } finally {
       setLoadingExpenses(false);
     }

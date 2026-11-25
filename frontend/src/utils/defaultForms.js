@@ -1,12 +1,10 @@
-import { getTodayDate } from "./date";
-
-export function createDefaultExpenseForm() {
+export function createDefaultExpenseForm(todayDate) {
   return {
     title: "",
     amount: "",
     currencyCode: "INR",
     category: "",
-    date: getTodayDate(),
+    date: todayDate,
   };
 }
 

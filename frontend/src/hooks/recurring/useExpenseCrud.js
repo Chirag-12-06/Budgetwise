@@ -1,4 +1,4 @@
-import { getTodayDate } from "../../utils/date";
+import useTodayDate from "../useTodayDate";
 import {
   createRecurringExpense,
   updateRecurringExpense,
@@ -14,7 +14,7 @@ import { formatDateKey } from "../../utils/date";
 import {
   createDefaultExpenseForm,
   createDefaultRecurringForm,
-} from "../../utils/defaultforms";
+} from "../../utils/defaultForms";
 
 export default function useExpenseCrud({
   user,
@@ -152,7 +152,7 @@ export default function useExpenseCrud({
   async function handleStartEditExpense(expense) {
     const dateValue = expense?.createdAt
       ? formatDateKey(expense.createdAt)
-      : getTodayDate();
+      : useTodayDate();
     setEditingExpenseId(expense.id);
     setExpenseForm({
       title: expense.title || "",

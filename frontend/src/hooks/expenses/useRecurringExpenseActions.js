@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getTodayDate } from "../../utils/date.js";
+import  useTodayDate  from "../../hooks/useTodayDate.js";
 import { removeExpense } from "../../api/expense.api.js";
 import {
   fetchRecurringExpense,
@@ -45,7 +45,7 @@ export default function useRecurringExpenseActions({
       const recurringExpense = await fetchRecurringExpense(numericId);
       const startDateValue = recurringExpense?.startDate
         ? formatDateKey(recurringExpense.startDate)
-        : getTodayDate();
+        : useTodayDate();
       setEditingExpenseId(null);
       setEditingRecurringExpenseId(recurringExpense.id);
       setExpenseForm({

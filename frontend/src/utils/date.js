@@ -20,14 +20,6 @@ function parseDateOnly(value) {
   return { year, month, day };
 }
 
-function toLocalDateKey(value) {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null;
-  }
-  return formatDateKey(parsedDate);
-}
-
 export function formatDateKey(value) {
   if (!value) {
     return "";
@@ -119,13 +111,19 @@ export function formatTrendLabel(label, groupBy) {
   return label;
 }
 
-export function getTodayDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+export function getTodayDate(timeZone = "Asia/Kolkata") {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
 
-  return `${year}-${month}-${day}`;
+  const values = Object.fromEntries(
+    parts.map(({ type, value }) => [type, value]),
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 export function getNextDateKey(dateKey) {

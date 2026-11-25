@@ -23,6 +23,16 @@ export default function useDateFilters() {
 
   const [dateRangeError, setDateRangeError] = useState("");
 
+  const formatLocalDateKey = (date) => {
+    if (!date) return undefined;
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
   const activeDateRange = useMemo(() => {
     if (dateFilterMode === "custom") {
       const error = validateCustomDateRange(customDateFrom, customDateTo);
@@ -42,8 +52,8 @@ export default function useDateFilters() {
     });
 
     return {
-      from: startDate?.toISOString().split("T")[0],
-      to: endDate?.toISOString().split("T")[0],
+      from: formatLocalDateKey(startDate),
+      to: formatLocalDateKey(endDate),
     };
   }, [dateFilterMode, customDateFrom, customDateTo]);
 
