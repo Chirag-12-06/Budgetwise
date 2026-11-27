@@ -8,8 +8,11 @@ function storeUser(user) {
   localStorage.setItem(USER_ID_KEY, String(user.id));
 }
 
-// GET /api/users/profile
 export async function getCurrentUser() {
+  console.count("getCurrentUser called");
+
+  console.trace("getCurrentUser call stack");
+
   const response = await api.get("/users/profile");
 
   const user = response.data;
@@ -19,7 +22,6 @@ export async function getCurrentUser() {
   return user;
 }
 
-// PUT /api/users/profile
 export async function updateProfileUser({ name, avatarUrl }) {
   const response = await api.put("/users/profile", {
     name,
@@ -30,8 +32,5 @@ export async function updateProfileUser({ name, avatarUrl }) {
 
   storeUser(user);
 
-  return {
-    ...response,
-    user,
-  };
+  return { user };
 }

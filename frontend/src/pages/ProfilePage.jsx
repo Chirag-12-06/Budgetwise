@@ -1,15 +1,15 @@
-import { Button, PanelCard } from "../components/ui";
-import useProfile from "../hooks/profile/useProfile";
-import useFormattedCurrency from "../hooks/useFormattedCurrency";
-import usePreferences from "../hooks/profile/usePreferences";
 import { useState } from "react";
-import { PreferenceSelect, SummaryCard } from "../components/profile";
+import { PreferenceSelect } from "../components/profile";
+import { Button, PanelCard } from "../components/ui";
+import { CURRENCY_OPTIONS } from "../constants/currencies";
 import {
-  LANGUAGE_OPTIONS,
   DATE_FORMAT_OPTIONS,
+  LANGUAGE_OPTIONS,
   TIMEZONE_OPTIONS,
 } from "../constants/preferences";
-import { CURRENCY_OPTIONS } from "../constants/currencies";
+import useAuth from "../hooks/auth/useAuth";
+import usePreferences from "../hooks/profile/usePreferences";
+import useProfile from "../hooks/profile/useProfile";
 
 const fieldLabelClasses = "grid gap-2";
 const fieldTextClasses = "text-[0.92rem] font-semibold";
@@ -20,11 +20,7 @@ const primaryButtonClasses =
 const dangerTextButtonClasses =
   "text-sm font-semibold text-red-600 transition-colors hover:text-red-700 dark:text-red-400 dark:hover:text-red-300";
 
-export default function ProfilePage({
-  expenses = [],
-  totalSpent = 0,
-  monthSpent = 0,
-}) {
+export default function ProfilePage() {
   const [isEditingPreferences, setIsEditingPreferences] = useState(false);
   const {
     preferences,
@@ -36,12 +32,6 @@ export default function ProfilePage({
 
   const { user, handleUpdateProfile, updatingProfile } = useAuth();
 
-  const formattedCurrency = useFormattedCurrency();
-
-  const trackedCategories = new Set(
-    expenses.map((expense) => expense?.category || "uncategorized"),
-  ).size;
-  const averageExpense = expenses.length ? totalSpent / expenses.length : 0;
   const {
     displayEmail,
     joinedOn,
@@ -55,7 +45,7 @@ export default function ProfilePage({
     handleRemoveAvatar,
     handleAvatarFileChange,
     handleSubmit,
-  } = useProfile({ user, handleUpdateProfile });
+  } = useProfile({ user, onUpdateProfile: handleUpdateProfile });
 
   return (
     <section className="grid gap-4">
@@ -176,35 +166,6 @@ export default function ProfilePage({
             </div>
           </form>
         ) : null}
-      </PanelCard>
-
-      <PanelCard className="grid gap-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Spending Snapshot
-        </h3>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard
-            title="Total Spending"
-            value={formattedCurrency(totalSpent)}
-          />
-
-          <SummaryCard
-            title="This Month"
-            value={formattedCurrency(monthSpent)}
-          />
-
-          <SummaryCard title="Entries" value={expenses.length} />
-
-          <SummaryCard
-            title="Avg Expense"
-            value={formattedCurrency(averageExpense)}
-          />
-        </div>
-
-        <p className="text-sm text-gray-500 dark:text-gray-300">
-          You are currently tracking {trackedCategories} categories across your
-          expenses.
-        </p>
       </PanelCard>
 
       <PanelCard className="grid gap-4">

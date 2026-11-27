@@ -183,10 +183,7 @@ export default function useAuthController() {
     try {
       const response = await forgotPasswordUser(email);
 
-      showStatus(
-        response.data.message || "Reset instructions sent.",
-        "success",
-      );
+      showStatus(response.message || "Reset instructions sent.", "success");
 
       return { ok: true };
     } catch (error) {
